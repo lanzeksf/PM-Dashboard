@@ -5,13 +5,13 @@
 const D = {
 
   users: [
-    { id: "loren",   name: "Loren C.",   ini: "LC", role: "Admin",            desc: "Admin · All verticals",   color: "#533AB7", vert: null },
-    { id: "tony",    name: "Tony S.",    ini: "TS", role: "Structural Coord.", desc: "Structural Coord.",        color: "#185FA5", vert: "structural" },
-    { id: "luis",    name: "Luis A.",    ini: "LA", role: "Solar APM",         desc: "Solar APM",               color: "#854F0B", vert: "solar" },
-    { id: "jillian", name: "Jillian H.", ini: "JH", role: "Solar Coord.",      desc: "Solar Coord.",            color: "#854F0B", vert: "solar" },
-    { id: "adam",    name: "Adam K.",    ini: "AK", role: "Aerospace Eng.",    desc: "Aerospace Eng.",          color: "#185FA5", vert: "aerospace" },
-    { id: "jake",    name: "Jacob T.",   ini: "JT", role: "Field Coord.",      desc: "Field Coord. · All",      color: "#3B6D11", vert: null },
-    { id: "lanze",   name: "Lanze A.",   ini: "LA", role: "Efficiency & Ops", desc: "Efficiency & Ops",        color: "#533AB7", vert: null },
+    { id: "loren",   name: "Loren C.",   ini: "LC", role: "Admin",            desc: "Admin · All verticals",  color: "#533AB7", vert: null },
+    { id: "tony",    name: "Tony S.",    ini: "TS", role: "Structural Coord.", desc: "Structural Coord.",       color: "#185FA5", vert: "structural" },
+    { id: "luis",    name: "Luis A.",    ini: "LA", role: "Solar APM",         desc: "Solar APM",              color: "#854F0B", vert: "solar" },
+    { id: "jillian", name: "Jillian H.", ini: "JH", role: "Solar Coord.",      desc: "Solar Coord.",           color: "#854F0B", vert: "solar" },
+    { id: "adam",    name: "Adam K.",    ini: "AK", role: "Aerospace Eng.",    desc: "Aerospace Eng.",         color: "#185FA5", vert: "aerospace" },
+    { id: "jake",    name: "Jacob T.",   ini: "JT", role: "Field Coord.",      desc: "Field Coord. · All",     color: "#3B6D11", vert: null },
+    { id: "lanze",   name: "Lanze A.",   ini: "LA", role: "Efficiency & Ops",  desc: "Efficiency & Ops",       color: "#533AB7", vert: null },
   ],
 
   projects: [
@@ -74,9 +74,9 @@ const D = {
       { c: "#ba7517", t: "Lockheed B3 — customer EO sign-off pending",      s: "3 days open · follow up today" },
     ],
     jake: [
-      { c: "#e24b4a", t: "Fresno Civic — anchor bolt misalignment B4",      s: "Notify Tony · structural hold" },
-      { c: "#e24b4a", t: "Kern Carports Ph2 — footing pour blocked",        s: "Notify Luis · no permit clearance" },
-      { c: "#e24b4a", t: "USAF Stand #7 — weld inspection hold",            s: "Notify Adam · AWS D1.1 NCR" },
+      { c: "#e24b4a", t: "Fresno Civic — anchor bolt misalignment B4",      s: "Notify Tony S. · structural hold" },
+      { c: "#e24b4a", t: "Kern Carports Ph2 — footing pour blocked",        s: "Notify Luis A. · no permit clearance" },
+      { c: "#e24b4a", t: "USAF Stand #7 — weld inspection hold",            s: "Notify Adam K. · AWS D1.1 NCR" },
     ],
     lanze: [
       { c: "#e24b4a", t: "RFI pipeline: 2 items >3 days aging",             s: "DET-RFI-041 + DET-RFI-039 awaiting Loren" },
