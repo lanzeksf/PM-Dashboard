@@ -5,13 +5,13 @@
 const D = {
 
   users: [
-    { id: "loren",   name: "Loren",   ini: "LO", role: "Admin",            desc: "Admin · All verticals",   color: "#533AB7", vert: null },
-    { id: "tony",    name: "Tony",    ini: "TO", role: "Structural Coord.", desc: "Structural Coord.",        color: "#185FA5", vert: "structural" },
-    { id: "luis",    name: "Luis",    ini: "LU", role: "Solar APM",         desc: "Solar APM",               color: "#854F0B", vert: "solar" },
-    { id: "jillian", name: "Jillian", ini: "JL", role: "Solar Coord.",      desc: "Solar Coord.",            color: "#854F0B", vert: "solar" },
-    { id: "adam",    name: "Adam",    ini: "AD", role: "Aerospace Eng.",    desc: "Aerospace Eng.",          color: "#185FA5", vert: "aerospace" },
-    { id: "jake",    name: "Jake",    ini: "JK", role: "Field Coord.",      desc: "Field Coord. · All",      color: "#3B6D11", vert: null },
-    { id: "lanze",   name: "Lanze",   ini: "LZ", role: "Efficiency & Ops", desc: "Efficiency & Ops",        color: "#533AB7", vert: null },
+    { id: "loren",   name: "Loren C.",   ini: "LC", role: "Admin",            desc: "Admin · All verticals",   color: "#533AB7", vert: null },
+    { id: "tony",    name: "Tony S.",    ini: "TS", role: "Structural Coord.", desc: "Structural Coord.",        color: "#185FA5", vert: "structural" },
+    { id: "luis",    name: "Luis A.",    ini: "LA", role: "Solar APM",         desc: "Solar APM",               color: "#854F0B", vert: "solar" },
+    { id: "jillian", name: "Jillian H.", ini: "JH", role: "Solar Coord.",      desc: "Solar Coord.",            color: "#854F0B", vert: "solar" },
+    { id: "adam",    name: "Adam K.",    ini: "AK", role: "Aerospace Eng.",    desc: "Aerospace Eng.",          color: "#185FA5", vert: "aerospace" },
+    { id: "jake",    name: "Jacob T.",   ini: "JT", role: "Field Coord.",      desc: "Field Coord. · All",      color: "#3B6D11", vert: null },
+    { id: "lanze",   name: "Lanze A.",   ini: "LA", role: "Efficiency & Ops", desc: "Efficiency & Ops",        color: "#533AB7", vert: null },
   ],
 
   projects: [

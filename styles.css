@@ -37,7 +37,7 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg);
   color: var(--txt);
-  font-size: 14px;
+  font-size: 16px;
 }
 
 /* ── SHELL ── */
@@ -45,9 +45,13 @@ html, body {
 
 /* ── SIDEBAR ── */
 .sb { width: 196px; flex-shrink: 0; background: var(--bg2); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
-.sb-brand { padding: 14px 14px 10px; border-bottom: 0.5px solid var(--border); }
-.sb-brand-t { font-size: 13px; font-weight: 500; color: var(--txt); display: flex; align-items: center; gap: 6px; }
-.sb-brand-s { font-size: 10px; color: var(--txt2); margin-top: 2px; }
+.sb-brand { padding: 14px 14px 10px; border-bottom: 0.5px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; }
+.sb-logo  { width: 120px; height: auto; display: block; margin-bottom: 10px; }
+.sb-brand-t { font-size: 17px; font-weight: 500; color: var(--txt); display: flex; align-items: center; gap: 6px; }
+.sb-brand-s { font-size: 13px; color: var(--txt2); margin-top: 2px; }
+.sb-exit { background: none; border: none; cursor: pointer; color: var(--txt2); padding: 2px; line-height: 1; }
+.sb-exit:hover { color: var(--txt); }
+.sb-exit svg { display: block; }
 .sb-nav { flex: 1; overflow-y: auto; padding: 6px 0; }
 .nb {
   display: flex; align-items: center; gap: 8px;
@@ -58,28 +62,28 @@ html, body {
 }
 .nb:hover  { background: var(--bg3); color: var(--txt); }
 .nb.on     { background: var(--bg); color: var(--txt); font-weight: 500; border-left: 2px solid #185fa5; }
+.nb-ico svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; color: #6b9fd4; }
+.nb.on .nb-ico svg { color: #185fa5; }
 .nb-ico    { font-size: 14px; width: 16px; text-align: center; flex-shrink: 0; }
-.nb-lbl    { flex: 1; }
+.nb-lbl    { flex: 1; font-size: 13px; }
 .badge     { background: #e24b4a; color: #fff; font-size: 9px; border-radius: 8px; padding: 1px 5px; min-width: 16px; text-align: center; }
 .sb-bot    { padding: 10px 12px; border-top: 0.5px solid var(--border); display: flex; align-items: center; gap: 8px; }
 .av        { border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 11px; color: #fff; flex-shrink: 0; }
-.sb-uname  { font-size: 11px; font-weight: 500; color: var(--txt); flex: 1; line-height: 1.3; }
-.sb-urole  { font-size: 10px; color: var(--txt2); }
-.exit-btn  { font-size: 10px; padding: 3px 8px; background: none; border: 0.5px solid var(--border2); color: var(--txt2); border-radius: 6px; cursor: pointer; }
-.exit-btn:hover { background: var(--bg3); color: var(--txt); }
+.sb-uname  { font-size: 13px; font-weight: 500; color: var(--txt); flex: 1; line-height: 1.3; }
+.sb-urole  { font-size: 11px; color: var(--txt2); }
 
 /* ── MAIN ── */
 .main { flex: 1; overflow-y: auto; background: var(--bg); }
 .page { padding: 18px 22px; }
 .ph   { margin-bottom: 14px; }
-.pt   { font-size: 17px; font-weight: 500; color: var(--txt); }
-.ps   { font-size: 12px; color: var(--txt2); margin-top: 2px; }
+.pt   { font-size: 24px; font-weight: 500; color: var(--txt); }
+.ps   { font-size: 14px; color: var(--txt2); margin-top: 2px; }
 
 /* ── STATS ── */
 .statrow { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 14px; }
 .stat    { background: var(--bg2); border-radius: var(--r); padding: 10px 12px; }
-.stat-l  { font-size: 10px; color: var(--txt2); margin-bottom: 3px; }
-.stat-v  { font-size: 22px; font-weight: 500; color: var(--txt); }
+.stat-l  { font-size: 13px; color: var(--txt2); margin-bottom: 3px; }
+.stat-v  { font-size: 32px; font-weight: 500; color: var(--txt); }
 .stat-v.red { color: #a32d2d; }
 .stat-v.amb { color: #854f0b; }
 .stat-v.blu { color: #185fa5; }
@@ -128,10 +132,12 @@ html, body {
 
 /* ── LOGIN ── */
 .login-wrap  { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; background: var(--bg); }
-.login-title { font-size: 20px; font-weight: 500; color: var(--txt); margin-bottom: 4px; }
-.login-sub   { font-size: 12px; color: var(--txt2); margin-bottom: 24px; }
-.user-grid   { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 10px; width: 100%; max-width: 700px; }
-.uc          { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--rl); padding: 14px 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: border-color .12s, background .12s; }
+.login-title { font-size: 28px; font-weight: 500; color: var(--txt); margin-bottom: 4px; }
+.login-sub   { font-size: 15px; color: var(--txt2); margin-bottom: 24px; }
+.user-grid   { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); gap: 12px; width: 100%; max-width: 800px; }
+.uc          { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--rl); padding: 18px 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: border-color .12s, background .12s; }
 .uc:hover    { border-color: var(--border2); background: var(--bg3); }
-.uc-name     { font-size: 12px; font-weight: 500; color: var(--txt); }
-.uc-role     { font-size: 10px; color: var(--txt2); text-align: center; line-height: 1.4; }
+.uc-name     { font-size: 16px; font-weight: 500; color: var(--txt); }
+.uc-role     { font-size: 13px; color: var(--txt2); text-align: center; line-height: 1.4; }
+.chip.struct-lt { background: transparent; color: #a0a09a; border: 0.5px solid #a0a09a; }
+.chip.solar-grn { background: var(--grn-bg); color: var(--grn-txt); }
