@@ -25,25 +25,27 @@ const SHELL_COLORS = {
 };
 
 const NAV_ICONS = {
-  dashboard:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
-  kernbot:    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="11"/><circle cx="8.5" cy="16" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="16" r="1" fill="currentColor" stroke="none"/></svg>,
-  rfi:        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
-  scope:      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
-  fab:        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h20M4 20V10l8-7 8 7v10"/><path d="M10 20v-6h4v6"/></svg>,
-  field:      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-  owner:      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-  detailing:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
+  dashboard:  ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  kernbot:    ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="11"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg>,
+  owner:      ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.35 2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
+  scope:      ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+  changes:    ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  detailing:  ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
+  rfi:        ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+  fab:        ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>,
+  field:      ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
 };
 
 const NAV_ITEMS = [
   { id:"dashboard",  label:"Dashboard"      },
   { id:"kernbot",    label:"Kern Bot"        },
-  { id:"rfi",        label:"RFI Log"         },
+  { id:"owner",      label:"Owner Pending"   },
   { id:"scope",      label:"Scope Tracker"   },
+  { id:"changes",    label:"Change Orders"   },
+  { id:"detailing",  label:"Detailing"       },
+  { id:"rfi",        label:"RFI Log"         },
   { id:"fab",        label:"Fabrication"     },
   { id:"field",      label:"Field Needs"     },
-  { id:"owner",      label:"Owner Pending"   },
-  { id:"detailing",  label:"Detailing"       },
 ];
 
 // ── Coming Soon placeholder ──────────────────────────────────────────────────
@@ -344,7 +346,7 @@ async function callKernBot(userMessage, conversationHistory=[]) {
       method:"POST",
       headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
       body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",
+        model:"claude-sonnet-4-5",
         max_tokens:1024,
         system:KSF_SYSTEM_PROMPT,
         messages
@@ -1531,49 +1533,44 @@ export default function KSFCommandCenter() {
   return (
     <div style={{display:"flex",height:"100vh",background:SHELL_COLORS.bg,fontFamily:"system-ui,-apple-system,sans-serif",overflow:"hidden"}}>
       {/* ── Sidebar ── */}
-      <aside style={{width:200,background:SHELL_COLORS.sidebar,borderRight:`1px solid ${SHELL_COLORS.border}`,display:"flex",flexDirection:"column",flexShrink:0}}>
+      <aside style={{width:200,background:"#080a10",borderRight:"1px solid #111520",display:"flex",flexDirection:"column",flexShrink:0}}>
         {/* Brand */}
-        <div style={{padding:"14px 12px 10px",borderBottom:`1px solid ${SHELL_COLORS.border}`}}>
-          <div style={{display:"flex",alignItems:"center",gap:9}}>
-            <div style={{width:30,height:30,borderRadius:8,background:"#1e2340",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <span style={{color:"#fff",fontWeight:800,fontSize:10,letterSpacing:"-0.5px"}}>KSF</span>
-            </div>
-            <div>
-              <p style={{margin:0,fontSize:12,fontWeight:600,color:SHELL_COLORS.text,lineHeight:1.2}}>Command Center</p>
-              <p style={{margin:0,fontSize:9,color:SHELL_COLORS.hint}}>Kern Steel Fabrication</p>
-            </div>
+        <div style={{padding:"14px 10px 12px",borderBottom:"1px solid #111520",display:"flex",alignItems:"center",gap:7}}>
+          <span style={{fontSize:20}}>⚙</span>
+          <div>
+            <div style={{fontFamily:"system-ui",fontSize:16,fontWeight:800,color:"#e8a020",lineHeight:1}}>KSF</div>
+            <div style={{fontSize:9,color:"#1e2438",lineHeight:1.4}}>Command Center</div>
           </div>
         </div>
 
         {/* Nav */}
         <nav style={{flex:1,overflowY:"auto",padding:"8px 7px"}}>
-          {NAV_ITEMS.map(item=>(
-            <button key={item.id} onClick={()=>setTab(item.id)}
-              style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"7px 9px",borderRadius:7,border:`1px solid ${tab===item.id?"rgba(79,110,247,0.3)":"transparent"}`,background:tab===item.id?"rgba(79,110,247,0.12)":"none",cursor:"pointer",fontFamily:"inherit",marginBottom:2,transition:"all 0.12s"}}
-              onMouseEnter={e=>{ if(tab!==item.id) e.currentTarget.style.background="rgba(255,255,255,0.04)"; }}
-              onMouseLeave={e=>{ if(tab!==item.id) e.currentTarget.style.background="none"; }}>
-              <span style={{color:tab===item.id?"#a0b0ff":SHELL_COLORS.hint,flexShrink:0,display:"flex",alignItems:"center"}}>{NAV_ICONS[item.id]}</span>
-              <span style={{fontSize:12,color:tab===item.id?SHELL_COLORS.text:SHELL_COLORS.muted,fontWeight:tab===item.id?500:400}}>{item.label}</span>
-              {item.id==="kernbot"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:SHELL_COLORS.success,flexShrink:0}}/>}
-            </button>
-          ))}
+          {NAV_ITEMS.map(item=>{
+            const Icon=NAV_ICONS[item.id];
+            const active=tab===item.id;
+            return (
+              <button key={item.id} onClick={()=>setTab(item.id)}
+                style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:8,border:`1px solid ${active?"#e8a02018":"transparent"}`,background:active?"#141928":"transparent",cursor:"pointer",fontFamily:"inherit",marginBottom:1,color:active?"#e8a020":"#2e3850",fontSize:12,fontWeight:600,textAlign:"left"}}
+                onMouseEnter={e=>{ if(!active){e.currentTarget.style.background="#0e1020";e.currentTarget.style.color="#6a7898";}}}
+                onMouseLeave={e=>{ if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#2e3850";}}}>
+                <span style={{flexShrink:0,display:"flex",alignItems:"center",opacity:active?1:0.7}}><Icon/></span>
+                <span style={{flex:1}}>{item.label}</span>
+                {item.id==="kernbot"&&<span style={{width:6,height:6,borderRadius:"50%",background:"#30a060",flexShrink:0}}/>}
+              </button>
+            );
+          })}
         </nav>
 
         {/* User footer */}
-        <div style={{padding:"9px 10px",borderTop:`1px solid ${SHELL_COLORS.border}`}}>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{width:26,height:26,borderRadius:"50%",background:shellUser.color+"30",border:`1px solid ${shellUser.color}50`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <span style={{fontSize:9,fontWeight:600,color:shellUser.color}}>{shellUser.initials}</span>
-            </div>
-            <div style={{flex:1,minWidth:0}}>
-              <p style={{margin:0,fontSize:11,color:SHELL_COLORS.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.name}</p>
-              <p style={{margin:0,fontSize:9,color:SHELL_COLORS.hint,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.role}</p>
-            </div>
-            <button onClick={()=>setShellUser(null)}
-              style={{background:"none",border:`1px solid ${SHELL_COLORS.border}`,borderRadius:5,padding:"2px 7px",color:SHELL_COLORS.hint,fontSize:9,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
-              out
-            </button>
+        <div style={{padding:"10px",borderTop:"1px solid #111520",display:"flex",alignItems:"center",gap:7}}>
+          <div style={{width:28,height:28,borderRadius:8,background:shellUser.color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:10,color:"#060810",flexShrink:0}}>
+            {shellUser.initials}
           </div>
+          <span style={{fontSize:12,fontWeight:600,color:"#3a4060",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.name}</span>
+          <button onClick={()=>setShellUser(null)}
+            style={{width:26,height:26,borderRadius:6,background:"#111520",border:"none",color:"#2e3450",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
         </div>
       </aside>
 
@@ -1583,6 +1580,7 @@ export default function KSFCommandCenter() {
         {tab==="dashboard"&& <ComingSoon label="Dashboard"/>}
         {tab==="rfi"      && <ComingSoon label="RFI Log"/>}
         {tab==="scope"    && <ComingSoon label="Scope Tracker"/>}
+        {tab==="changes"  && <ComingSoon label="Change Orders"/>}
         {tab==="fab"      && <ComingSoon label="Fabrication & Shipping"/>}
         {tab==="field"    && <ComingSoon label="Field Needs"/>}
         {tab==="owner"    && <ComingSoon label="Owner Pending"/>}
