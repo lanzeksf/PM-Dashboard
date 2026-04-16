@@ -29,10 +29,10 @@ const NAV_ICONS = {
   kernbot:    ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="11"/><circle cx="8" cy="16" r="1.2" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1.2" fill="currentColor" stroke="none"/></svg>,
   owner:      ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.35 2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
   scope:      ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-  changes:    ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>,
-  detailing:  ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>,
+  changes:    ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="12" y1="12" x2="12" y2="12"/><path d="M10 15c0-1.1.9-2 2-2s2 .9 2 2-.9 1-2 1-2-.1-2-1"/><line x1="12" y1="11" x2="12" y2="11.01"/></svg>,
+  detailing:  ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 21h18"/><path d="M3 21L12 3l9 18"/><path d="M9.5 14h5"/></svg>,
   rfi:        ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-  fab:        ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>,
+  fab:        ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="2" y1="6" x2="22" y2="6"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="6" x2="6" y2="10"/><line x1="18" y1="6" x2="18" y2="10"/><line x1="12" y1="10" x2="12" y2="20"/><line x1="8" y1="20" x2="16" y2="20"/></svg>,
   field:      ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
 };
 
@@ -309,9 +309,10 @@ Your job is to help the KSF PM team get fast, accurate answers about fabrication
 
 How to respond:
 - Talk like a knowledgeable colleague, not a textbook. Be direct and conversational.
-- No bullet-pointed reports, no bold headers, no numbered lists unless the question genuinely calls for steps.
-- If a question is ambiguous and the answer would be meaningfully different depending on context, ask one short clarifying question — or better yet, give the answer for both cases in plain language. For example, if someone asks "hole size for a 1-1/2 bolt" without context, cover both standard bolt holes and anchor rod holes since those are different. Use your judgment — if you can usefully cover both scenarios in two sentences, do that rather than asking.
-- Just answer the question clearly and specifically. Cite the standard naturally in the sentence — like "per AISC 360 Table J3.3" not as a separate block.
+- If the user explicitly asks for a specific format — bullet points, a numbered list, a table, short answers — always follow that instruction. User formatting requests override everything else.
+- Otherwise, default to plain prose. No bullet-pointed reports, no bold headers unless the question genuinely calls for structure.
+- If a question is ambiguous and the answer would be meaningfully different depending on context, cover both cases in plain language rather than asking — e.g. if someone asks "hole size for a 1-1/2 bolt" without context, give both the standard bolt hole size and anchor rod hole size since they're different.
+- Cite standards naturally in the sentence — like "per AISC 360 Table J3.3" not as a separate block.
 - Keep it short. One or two paragraphs is usually right. The team is busy.
 - If you're not certain, say so plainly — "I'd check with Loren on this" or "this one needs EOR sign-off."
 - Never end with a confidence statement like "CONFIDENCE: HIGH". The UI handles that.
@@ -1438,9 +1439,17 @@ function KernBotApp({preloadUser}) {
   };
 
   const markRead    = id => { const c=store.chats.find(x=>x.id===id); if(c) store.updateChat(id,{unread:false,msgs:c.msgs.map(m=>({...m,unread:false}))}); };
-  const renameChat  = (cId,title) => store.updateChat(cId,{title});
+  const renameChat  = (cId,title) => {
+    store.updateChat(cId,{title});
+    const c=store.chats.find(x=>x.id===cId);
+    if(c?.pmqId){ const q=store.queue.find(x=>x.pmqId===c.pmqId); if(q) store.updateQueue(q.id,{title}); }
+  };
   const deleteChat  = cId => { store.removeChat(cId); if(chatId===cId) setChatId(null); };
-  const renameQueue = (qId,title) => store.updateQueue(qId,{title});
+  const renameQueue = (qId,title) => {
+    store.updateQueue(qId,{title});
+    const q=store.queue.find(x=>x.id===qId);
+    if(q?.pmqId){ const c=store.chats.find(x=>x.pmqId===q.pmqId); if(c) store.updateChat(c.id,{title}); }
+  };
   const removeQueue = qId => store.removeQueue(qId);
 
   const activeChat = store.chats.find(c=>c.id===chatId);
