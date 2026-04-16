@@ -16,12 +16,12 @@ const SHELL_USERS = [
 ];
 
 const SHELL_COLORS = {
-  bg:"#0d0f16", sidebar:"#0b0d13", surface:"#1a1d27",
-  border:"rgba(255,255,255,0.07)", borderHi:"rgba(255,255,255,0.12)",
-  text:"#f0f2f8", muted:"#8b90a0", hint:"#4a4f62",
-  accent:"#4f6ef7", accentDim:"rgba(79,110,247,0.14)",
-  success:"#22c55e", warning:"#f59e0b", danger:"#f87171",
-  pm:"#a78bfa", pmDim:"rgba(167,139,250,0.12)",
+  bg:"#0f1117", sidebar:"#0c0e15", surface:"#1c1f2e",
+  border:"rgba(255,255,255,0.09)", borderHi:"rgba(255,255,255,0.15)",
+  text:"#eef0f7", muted:"#9097b0", hint:"#555d7a",
+  accent:"#5b7cfa", accentDim:"rgba(91,124,250,0.15)",
+  success:"#34d399", warning:"#fbbf24", danger:"#f87171",
+  pm:"#b197fc", pmDim:"rgba(177,151,252,0.13)",
 };
 
 const NAV_ICONS = {
@@ -279,14 +279,14 @@ function useStore() {
 
 // ── Colors ─────────────────────────────────────────────────────────────────
 const C = {
-  bg:"#0d0f16", sidebar:"#111318", surface:"#1a1d27", surface2:"#22263a",
-  border:"rgba(255,255,255,0.07)", borderHi:"rgba(255,255,255,0.13)",
-  text:"#f0f2f8", muted:"#8b90a0", hint:"#4a4f62",
-  accent:"#4f6ef7", accentDim:"rgba(79,110,247,0.14)", accentText:"#a0b0ff",
-  success:"#22c55e", successDim:"rgba(34,197,94,0.12)",
-  warning:"#f59e0b", warningDim:"rgba(245,158,11,0.12)",
-  danger:"#f87171",  dangerDim:"rgba(248,113,113,0.12)",
-  pm:"#a78bfa",      pmDim:"rgba(167,139,250,0.12)",
+  bg:"#0f1117", sidebar:"#13151e", surface:"#1c1f2e", surface2:"#242838",
+  border:"rgba(255,255,255,0.09)", borderHi:"rgba(255,255,255,0.15)",
+  text:"#eef0f7", muted:"#9097b0", hint:"#555d7a",
+  accent:"#5b7cfa", accentDim:"rgba(91,124,250,0.15)", accentText:"#8eaafe",
+  success:"#34d399", successDim:"rgba(52,211,153,0.13)",
+  warning:"#fbbf24", warningDim:"rgba(251,191,36,0.13)",
+  danger:"#f87171",  dangerDim:"rgba(248,113,113,0.13)",
+  pm:"#b197fc",      pmDim:"rgba(177,151,252,0.13)",
 };
 
 const USERS_LIST = [
@@ -303,31 +303,26 @@ const PROJECT_TYPES=["Aero","Solar","Structural","General question"];
 const URGENCY_OPTS =["Low","Medium","High"];
 const VERTICALS    =["All","Structural","Solar","Aero"];
 
-const KSF_SYSTEM_PROMPT = `You are Kern Bot, the internal AI assistant for Kern Steel Fabrication (KSF) in Bakersfield, CA. KSF operates across three verticals: Structural (commercial/institutional steel fabrication and erection), Solar Carports (engineered solar canopy structures), and Aerospace (precision maintenance stands for Lockheed Martin and US Air Force).
+const KSF_SYSTEM_PROMPT = `You are Kern Bot, the internal assistant for Kern Steel Fabrication (KSF) in Bakersfield, CA. You work across three verticals: Structural steel fabrication and erection, Solar Carports, and Aerospace maintenance stands for Lockheed Martin and the US Air Force.
 
-Your role is to answer questions from KSF's PM team about fabrication procedures, AISC standards, AWS welding standards, RFI procedures, contract terms, change orders, material specs, tolerances, and field issues.
+Your job is to help the KSF PM team get fast, accurate answers about fabrication procedures, AISC standards, AWS welding, RFIs, contracts, change orders, material specs, tolerances, and field issues.
 
-Key standards you must know:
-- AISC 303 (Code of Standard Practice) and AISC 360 (Structural Steel Specification) govern all fabrication
-- AWS D1.1 governs weld inspection
-- Aerospace projects require a written Engineering Order (EO) for ANY field modification — no exceptions, no verbal approvals
-- Solar carport structures require AHJ permit approval before construction starts
-- Material substitutions always require written EOR approval — no verbal approvals accepted
+How to respond:
+- Talk like a knowledgeable colleague, not a textbook. Be direct and conversational.
+- No bullet-pointed reports, no bold headers, no numbered lists unless the question genuinely calls for steps.
+- Just answer the question clearly and specifically. If there's a standard or section that applies, cite it naturally in the sentence — like "per AISC 360 Table J3.4" not as a separate formatted block.
+- Keep it short. One or two paragraphs is usually right. The team is busy.
+- If you're not certain, say so plainly — "I'd check with Loren on this" or "this one needs EOR sign-off" — without making a big deal of it.
+- Never end with a confidence statement like "CONFIDENCE: HIGH". The UI handles that separately.
+- Never say "As an AI" or explain your limitations. Just answer.
 
-Team context:
-- Loren C. is the Senior PM and decision-maker — escalate to him when uncertain
-- Tony S. handles Structural coordination
-- Luis A. and Jillian H. handle Solar projects
-- Adam K. handles Aerospace (Lockheed/USAF)
-- Jacob T. is the Field Coordinator — keep communications to him brief and action-oriented
-- Lanze A. is the Manufacturing Engineer focused on shop floor optimization
+Critical rules you must always apply:
+- Aerospace projects (Lockheed, USAF): any field modification needs a written Engineering Order. No exceptions, no verbal approvals.
+- Material substitutions: always need written EOR approval before fab starts.
+- Solar carports: AHJ permit must be confirmed before construction starts.
+- When in doubt on anything Loren-level, say so and recommend escalating.
 
-Response format:
-- Be direct and specific — cite the exact standard, section, and requirement
-- Include a confidence assessment: HIGH (90%+), MEDIUM (70-89%), or LOW (below 70%)
-- If confidence is low, recommend escalating to Loren
-- Flag any contract notice deadlines, liability risks, or safety issues prominently
-- Keep answers concise — this is a working tool, not a textbook`;
+Team: Loren C. (Senior PM, decision-maker), Tony S. (Structural), Luis A. + Jillian H. (Solar), Adam K. (Aerospace), Jacob T. (Field — keep it brief with him), Lanze A. (Manufacturing Engineer, shop floor optimization).`;
 
 async function callKernBot(userMessage, conversationHistory=[]) {
   const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
@@ -645,37 +640,62 @@ function AttachDisplay({attachments,onView}) {
 }
 
 // ── Message Bubble ─────────────────────────────────────────────────────────
-function Bubble({m,isMe,userColor,userInitials,onView}) {
+// ── Source side panel ─────────────────────────────────────────────────────
+function SourcePanel({source,onClose}) {
+  return (
+    <div style={{position:"absolute",top:0,right:0,bottom:0,width:320,background:C.surface,borderLeft:`1px solid ${C.borderHi}`,display:"flex",flexDirection:"column",zIndex:100,boxShadow:"-8px 0 32px rgba(0,0,0,0.4)"}}>
+      <div style={{padding:"14px 16px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <div>
+          <p style={{margin:0,fontWeight:600,fontSize:14,color:C.text}}>{source.doc}</p>
+          {source.section&&<p style={{margin:"2px 0 0",fontSize:12,color:C.muted}}>{source.section}</p>}
+        </div>
+        <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",color:C.hint,fontSize:18,lineHeight:1,padding:4}}>×</button>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"16px"}}>
+        <div style={{background:C.surface2,borderRadius:10,padding:"14px",border:`1px solid ${C.border}`}}>
+          <p style={{margin:"0 0 10px",fontSize:12,color:C.hint,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:600}}>Reference</p>
+          <p style={{margin:0,fontSize:13,color:C.muted,lineHeight:1.7}}>Full document content will appear here once the KSF knowledge base is connected. For now this confirms the source cited by Kern Bot.</p>
+        </div>
+        <div style={{marginTop:12,padding:"10px 12px",background:C.accentDim,border:`1px solid rgba(91,124,250,0.2)`,borderRadius:8}}>
+          <p style={{margin:0,fontSize:11,color:C.accentText,lineHeight:1.65}}>📚 Knowledge base integration coming soon. Sources will display full text, page references, and revision history.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Bubble({m,isMe,userColor,userInitials,onView,onSourceClick}) {
   const isPM=m.role==="pm", isBot=m.role==="bot";
   const avBg=isMe?userColor+"30":isPM?C.pmDim:C.accentDim;
   const avC =isMe?userColor:isPM?C.pm:C.accent;
   const avL =isMe?userInitials:isPM?(m.name?.split(" ").map(w=>w[0]).join("").slice(0,2)||"LC"):"KB";
   const bg  =m.escalationNotice?C.pmDim:isPM?C.pmDim:isBot&&m.confidence!=null&&m.confidence<80?C.warningDim:isMe?C.surface2:C.surface;
-  const bdr =m.escalationNotice?"rgba(167,139,250,0.3)":m.unread&&isPM?C.warning:isPM?"rgba(167,139,250,0.2)":isBot&&m.confidence!=null&&m.confidence<80?"rgba(245,158,11,0.18)":C.border;
+  const bdr =m.escalationNotice?"rgba(177,151,252,0.3)":m.unread&&isPM?C.warning:isPM?"rgba(177,151,252,0.2)":isBot&&m.confidence!=null&&m.confidence<80?"rgba(251,191,36,0.18)":C.border;
   return (
-    <div style={{display:"flex",gap:8,alignItems:"flex-start",flexDirection:isMe?"row-reverse":"row"}}>
-      <div style={{width:26,height:26,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1,background:avBg,border:`1px solid ${avC}22`}}>
-        <span style={{fontSize:9,fontWeight:600,color:avC}}>{avL}</span>
+    <div style={{display:"flex",gap:10,alignItems:"flex-start",flexDirection:isMe?"row-reverse":"row"}}>
+      <div style={{width:30,height:30,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1,background:avBg,border:`1px solid ${avC}33`}}>
+        <span style={{fontSize:10,fontWeight:700,color:avC}}>{avL}</span>
       </div>
-      <div style={{maxWidth:"80%",minWidth:0}}>
-        <div style={{fontSize:10,marginBottom:3,display:"flex",alignItems:"center",gap:5,flexDirection:isMe?"row-reverse":"row"}}>
-          <span style={{color:isPM?C.pm:isBot?C.muted:C.hint}}>{isPM?(m.name||"Senior PM"):isBot?"Kern Bot":"You"}</span>
-          {m.unread&&isPM&&<span style={{fontSize:9,padding:"1px 5px",borderRadius:20,background:C.warningDim,color:C.warning,fontWeight:500}}>New</span>}
+      <div style={{maxWidth:"82%",minWidth:0}}>
+        <div style={{fontSize:11,marginBottom:4,display:"flex",alignItems:"center",gap:5,flexDirection:isMe?"row-reverse":"row"}}>
+          <span style={{color:isPM?C.pm:isBot?C.muted:C.hint,fontWeight:500}}>{isPM?(m.name||"Senior PM"):isBot?"Kern Bot":"You"}</span>
+          {m.unread&&isPM&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:20,background:C.warningDim,color:C.warning,fontWeight:600}}>New</span>}
         </div>
-        <div style={{background:bg,border:`1px solid ${bdr}`,borderRadius:isMe?"11px 3px 11px 11px":"3px 11px 11px 11px",padding:"10px 13px",fontSize:12,color:C.text,lineHeight:1.7,whiteSpace:"pre-wrap"}}>
-          {m.escalationNotice&&<div style={{marginBottom:4}}><span style={{fontSize:9,fontWeight:500,padding:"2px 6px",borderRadius:20,background:C.pmDim,color:C.pm}}>Escalation notice</span></div>}
+        <div style={{background:bg,border:`1px solid ${bdr}`,borderRadius:isMe?"12px 3px 12px 12px":"3px 12px 12px 12px",padding:"11px 14px",fontSize:13,color:C.text,lineHeight:1.75,whiteSpace:"pre-wrap"}}>
+          {m.escalationNotice&&<div style={{marginBottom:5}}><span style={{fontSize:10,fontWeight:500,padding:"2px 7px",borderRadius:20,background:C.pmDim,color:C.pm}}>Escalation notice</span></div>}
           {m.text}
-          {/* attachments in bubble */}
           {m.attachments?.length>0&&<AttachDisplay attachments={m.attachments} onView={onView}/>}
-          {/* source citations */}
           {m.sources?.length>0&&(
-            <div style={{marginTop:8,display:"flex",flexWrap:"wrap",gap:4}}>
+            <div style={{marginTop:10,display:"flex",flexWrap:"wrap",gap:5}}>
               {m.sources.map((s,j)=>(
-                <span key={j} style={{display:"inline-flex",alignItems:"center",gap:4,background:C.surface2,border:`1px solid ${C.border}`,borderRadius:5,padding:"2px 7px"}}>
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={C.accentText} strokeWidth="1.5" strokeLinecap="round"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={C.accentText} strokeWidth="1.5"/></svg>
-                  <span style={{fontSize:9,color:C.accentText,fontWeight:500}}>{s.doc}</span>
-                  <span style={{fontSize:9,color:C.muted}}>{s.section}</span>
-                </span>
+                <button key={j} onClick={()=>onSourceClick&&onSourceClick(s)}
+                  style={{display:"inline-flex",alignItems:"center",gap:5,background:C.surface2,border:`1px solid ${C.border}`,borderRadius:6,padding:"3px 9px",cursor:"pointer",fontFamily:"inherit",transition:"all 0.12s"}}
+                  onMouseEnter={e=>{e.currentTarget.style.background=C.accentDim;e.currentTarget.style.borderColor="rgba(91,124,250,0.3)";}}
+                  onMouseLeave={e=>{e.currentTarget.style.background=C.surface2;e.currentTarget.style.borderColor=C.border;}}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={C.accentText} strokeWidth="1.5" strokeLinecap="round"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={C.accentText} strokeWidth="1.5"/></svg>
+                  <span style={{fontSize:10,color:C.accentText,fontWeight:500}}>{s.doc}</span>
+                  {s.section&&<span style={{fontSize:10,color:C.muted}}>{s.section}</span>}
+                </button>
               ))}
             </div>
           )}
@@ -693,7 +713,7 @@ function InputBar({value,onChange,onKeyDown,onSend,disabled,placeholder,accentCo
       {children}
       <textarea value={value} onChange={onChange} onKeyDown={onKeyDown}
         placeholder={placeholder} disabled={disabled} rows={1}
-        style={{width:"100%",background:"none",border:"none",outline:"none",color:C.text,fontSize:12,fontFamily:"inherit",resize:"none",lineHeight:1.6,padding:"10px 12px",boxSizing:"border-box",display:"block",minHeight:40,maxHeight:130,overflowY:"auto"}}/>
+        style={{width:"100%",background:"none",border:"none",outline:"none",color:C.text,fontSize:13,fontFamily:"inherit",resize:"none",lineHeight:1.6,padding:"10px 12px",boxSizing:"border-box",display:"block",minHeight:40,maxHeight:130,overflowY:"auto"}}/>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 8px 7px",borderTop:`1px solid ${C.border}`}}>
         <span style={{fontSize:10,color:hint?C.pm:C.hint}}>{hint||"Shift+Enter for new line"}</span>
         <button onClick={onSend} disabled={disabled||!value.trim()}
@@ -983,23 +1003,23 @@ function QueueDetail({item,user,onSend,onResolve,onUnresolve}) {
 
         {/* metadata — view or edit */}
         {!editing ? (
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px 14px"}}>
-            <div style={{display:"flex",flexDirection:"column",gap:2}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:"4px 12px",maxWidth:520}}>
+            <div style={{display:"flex",flexDirection:"column",gap:1}}>
               <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.07em"}}>From</span>
-              <span style={{fontSize:12,color:C.text,fontWeight:500}}>{item.from}</span>
+              <span style={{fontSize:13,color:C.text,fontWeight:600}}>{item.from}</span>
               <span style={{fontSize:11,color:C.muted}}>{item.fromPos}</span>
             </div>
-            {item.project&&<div style={{display:"flex",flexDirection:"column",gap:2}}>
-              <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.07em"}}>Job number</span>
-              <span style={{fontSize:12,color:C.text,fontWeight:500}}>#{item.project}</span>
+            {item.project&&<div style={{display:"flex",flexDirection:"column",gap:1}}>
+              <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.07em"}}>Job #</span>
+              <span style={{fontSize:13,color:C.text,fontWeight:600}}>#{item.project}</span>
             </div>}
-            {item.projectType&&<div style={{display:"flex",flexDirection:"column",gap:2}}>
-              <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.07em"}}>Project type</span>
-              <span style={{fontSize:12,color:C.muted}}>{item.projectType}</span>
+            {item.projectType&&<div style={{display:"flex",flexDirection:"column",gap:1}}>
+              <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.07em"}}>Type</span>
+              <span style={{fontSize:13,color:C.muted}}>{item.projectType}</span>
             </div>}
-            {item.psRef&&<div style={{display:"flex",flexDirection:"column",gap:2}}>
-              <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.07em"}}>ProjectSight ref</span>
-              <span style={{fontSize:12,color:C.accentText}}>{item.psRef}</span>
+            {item.psRef&&<div style={{display:"flex",flexDirection:"column",gap:1}}>
+              <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.07em"}}>PS Ref</span>
+              <span style={{fontSize:13,color:C.accentText}}>{item.psRef}</span>
             </div>}
           </div>
         ) : (
@@ -1055,7 +1075,7 @@ function QueueDetail({item,user,onSend,onResolve,onUnresolve}) {
               <textarea ref={taRef} value={input} onChange={e=>setInput(e.target.value)}
                 onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&(input.trim()||attachments.length)){e.preventDefault();doSend();}}}
                 placeholder={dragOver?"Drop files to attach…":attachments.length?"Add a message (optional) or press Enter to send…":"Reply to this thread — Loren will see it as new…"} rows={1}
-                style={{width:"100%",background:"none",border:"none",outline:"none",color:C.text,fontSize:12,fontFamily:"inherit",resize:"none",lineHeight:1.6,padding:"10px 12px",boxSizing:"border-box",display:"block",minHeight:44,maxHeight:120,overflowY:"auto"}}/>
+                style={{width:"100%",background:"none",border:"none",outline:"none",color:C.text,fontSize:13,fontFamily:"inherit",resize:"none",lineHeight:1.6,padding:"10px 12px",boxSizing:"border-box",display:"block",minHeight:44,maxHeight:120,overflowY:"auto"}}/>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 8px 7px",borderTop:`1px solid ${C.border}`}}>
                 <button onClick={openPicker}
                   title="Attach files — images, PDFs, drawings, docs"
@@ -1101,6 +1121,7 @@ function ChatPane({chat,user,isAdmin,onEscalate,onResolve,onUnresolve,onSend,onS
   const [input,setInput]=useState(""); const [loading,setLoading]=useState(false);
   const [viewerFile,setViewerFile]=useState(null);
   const [dragOver,setDragOver]=useState(false);
+  const [activeSource,setActiveSource]=useState(null);
   const bottomRef=useRef(); const taRef=useRef();
   const {attachments,error:attErr,openPicker,handleFiles,removeAt,clear:clearAtt,fileInput}=useAttachments();
 
@@ -1125,17 +1146,18 @@ function ChatPane({chat,user,isAdmin,onEscalate,onResolve,onUnresolve,onSend,onS
   const QUICK=["Minimum edge distance — A325 bolts in 3/8\" plate","Anchor rod hole size for 1-1/4\" rod","A572 Gr.50 sub for A36 without EOR approval?","CJP weld inspection requirements — AWS D1.1"];
 
   return (
-    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:C.bg}}>
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:C.bg,position:"relative"}}>
       {fileInput}
       {viewerFile&&<Viewer file={viewerFile} onClose={()=>setViewerFile(null)}/>}
-      <div style={{padding:"9px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+      {activeSource&&<SourcePanel source={activeSource} onClose={()=>setActiveSource(null)}/>}
+      <div style={{padding:"11px 16px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
         <div>
-          <p style={{margin:0,fontWeight:500,fontSize:13,color:C.text}}>{chat?.title||"New conversation"}</p>
-          <p style={{margin:0,fontSize:10,color:C.hint}}>AISC · CoSP · AWS D1.1 · KSF Standards — Kern Bot</p>
+          <p style={{margin:0,fontWeight:600,fontSize:14,color:C.text}}>{chat?.title||"New conversation"}</p>
+          <p style={{margin:0,fontSize:11,color:C.hint}}>AISC · CoSP · AWS D1.1 · KSF Standards — Kern Bot</p>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          {isEscalated&&!isResolved&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:C.pmDim,color:C.pm,fontFamily:"monospace"}}>{chat.pmqId}</span>}
-          {isResolved&&<span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:C.successDim,color:C.success}}>Resolved</span>}
+          {isEscalated&&!isResolved&&<span style={{fontSize:11,padding:"2px 9px",borderRadius:20,background:C.pmDim,color:C.pm,fontFamily:"monospace"}}>{chat.pmqId}</span>}
+          {isResolved&&<span style={{fontSize:11,padding:"2px 9px",borderRadius:20,background:C.successDim,color:C.success}}>Resolved</span>}
         </div>
       </div>
 
@@ -1160,22 +1182,22 @@ function ChatPane({chat,user,isAdmin,onEscalate,onResolve,onUnresolve,onSend,onS
             const isMe=m.role==="user", isLast=idx===msgs.length-1;
             return (
               <div key={m.id}>
-                <Bubble m={m} isMe={isMe} userColor={user.color} userInitials={user.initials} onView={setViewerFile}/>
+                <Bubble m={m} isMe={isMe} userColor={user.color} userInitials={user.initials} onView={setViewerFile} onSourceClick={setActiveSource}/>
                 {!isAdmin&&m.role==="bot"&&m.confidence!=null&&!m.escalationNotice&&isLast&&!isEscalated&&!isResolved&&(
-                  <div style={{paddingLeft:34,marginTop:6,display:"flex",gap:8,alignItems:"center"}}>
-                    {m.confidence<80&&<span style={{fontSize:10,color:C.warning}}>⚠ Confidence below 80%</span>}
-                    <button onClick={onEscalate} style={{fontSize:10,padding:"2px 9px",borderRadius:20,background:C.pmDim,border:`1px solid rgba(167,139,250,0.28)`,color:C.pm,cursor:"pointer",fontFamily:"inherit"}}>Escalate →</button>
+                  <div style={{paddingLeft:40,marginTop:7,display:"flex",gap:9,alignItems:"center"}}>
+                    {m.confidence<80&&<span style={{fontSize:11,color:C.warning}}>⚠ Confidence below 80%</span>}
+                    <button onClick={onEscalate} style={{fontSize:11,padding:"3px 11px",borderRadius:20,background:C.pmDim,border:`1px solid rgba(177,151,252,0.3)`,color:C.pm,cursor:"pointer",fontFamily:"inherit"}}>Escalate →</button>
                   </div>
                 )}
               </div>
             );
           })}
           {loading&&(
-            <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
-              <div style={{width:26,height:26,borderRadius:"50%",background:C.accentDim,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <span style={{fontSize:9,color:C.accent,fontWeight:600}}>KB</span>
+            <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+              <div style={{width:30,height:30,borderRadius:"50%",background:C.accentDim,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <span style={{fontSize:10,color:C.accent,fontWeight:700}}>KB</span>
               </div>
-              <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:"3px 11px 11px 11px",padding:"10px 13px",display:"flex",alignItems:"center",gap:5}}>
+              <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:"3px 12px 12px 12px",padding:"11px 14px",display:"flex",alignItems:"center",gap:6}}>
                 {[0,1,2].map(i=><div key={i} style={{width:5,height:5,borderRadius:"50%",background:C.accent,animation:`kbdot 1.2s ease-in-out ${i*0.2}s infinite`}}/>)}
               </div>
             </div>
@@ -1198,7 +1220,7 @@ function ChatPane({chat,user,isAdmin,onEscalate,onResolve,onUnresolve,onSend,onS
                 onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();isEscalated?reply():send();}}}
                 placeholder={attachments.length>0?"Add a message (optional) or press Enter to send…":isEscalated?"Reply to the thread — Loren will see this…":msgs.length===0?"Ask anything, or attach drawings/photos/PDFs for context…":"Follow up or attach files…"}
                 disabled={loading} rows={1}
-                style={{width:"100%",background:"none",border:"none",outline:"none",color:C.text,fontSize:12,fontFamily:"inherit",resize:"none",lineHeight:1.6,padding:"10px 12px",boxSizing:"border-box",display:"block",minHeight:40,maxHeight:130,overflowY:"auto"}}/>
+                style={{width:"100%",background:"none",border:"none",outline:"none",color:C.text,fontSize:13,fontFamily:"inherit",resize:"none",lineHeight:1.6,padding:"10px 12px",boxSizing:"border-box",display:"block",minHeight:40,maxHeight:130,overflowY:"auto"}}/>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 8px 7px",borderTop:`1px solid ${C.border}`}}>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   {/* paperclip button */}
@@ -1259,8 +1281,8 @@ function ChatRow({c,active,isAdmin,onSelect,onRename,onEscalate,onResolve,onUnre
         onMouseLeave={e=>{if(!active)e.currentTarget.style.background="none";}}>
         <div style={{width:6,height:6,borderRadius:"50%",flexShrink:0,marginRight:5,background:dotColor||"transparent",border:dotColor&&!showUnread?`1.5px solid ${dotColor}`:"none"}}/>
         <div style={{flex:1,minWidth:0}}>
-          <span style={{fontSize:13,color:active?C.text:c.resolved?C.hint:C.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block",lineHeight:1.35,opacity:c.resolved?0.65:1}}>{c.title}</span>
-          {!c.resolved&&<span style={{fontSize:11,color:C.hint,display:"block",marginTop:1}}>{fmtRel(c.lastActivity||c.createdAt)}</span>}
+          <span style={{fontSize:14,color:active?C.text:c.resolved?C.hint:C.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block",lineHeight:1.35,opacity:c.resolved?0.65:1}}>{c.title}</span>
+          {!c.resolved&&<span style={{fontSize:12,color:C.hint,display:"block",marginTop:1}}>{fmtRel(c.lastActivity||c.createdAt)}</span>}
         </div>
         <button onClick={e=>{e.stopPropagation();setMenuOpen(o=>!o);}} style={{background:"none",border:"none",cursor:"pointer",color:C.hint,padding:"2px 4px",borderRadius:4,display:"flex",alignItems:"center",flexShrink:0,opacity:menuOpen?1:0.4,transition:"opacity 0.1s"}}
           onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity=menuOpen?"1":"0.4"}>
@@ -1288,8 +1310,8 @@ function QueueRow({q,active,onSelect,onRename,onResolve,onUnresolve,onRemove}) {
         onMouseLeave={e=>{if(!active)e.currentTarget.style.background="none";}}>
         <div style={{width:6,height:6,borderRadius:"50%",flexShrink:0,marginRight:5,background:dotColor}}/>
         <div style={{flex:1,minWidth:0}}>
-          <span style={{fontSize:13,color:active?C.text:q.resolved?C.hint:C.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block",lineHeight:1.35,opacity:q.resolved?0.65:1}}>{q.title}</span>
-          <span style={{fontSize:11,color:C.hint,display:"block",marginTop:1,fontFamily:"monospace"}}>{q.pmqId}{!q.resolved&&` · ${fmtRel(q.createdAt)}`}</span>
+          <span style={{fontSize:14,color:active?C.text:q.resolved?C.hint:C.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block",lineHeight:1.35,opacity:q.resolved?0.65:1}}>{q.title}</span>
+          <span style={{fontSize:12,color:C.hint,display:"block",marginTop:1,fontFamily:"monospace"}}>{q.pmqId}{!q.resolved&&` · ${fmtRel(q.createdAt)}`}</span>
         </div>
         <button onClick={e=>{e.stopPropagation();setMenuOpen(o=>!o);}} style={{background:"none",border:"none",cursor:"pointer",color:C.hint,padding:"2px 4px",borderRadius:4,display:"flex",alignItems:"center",flexShrink:0,opacity:menuOpen?1:0.4,transition:"opacity 0.1s"}}
           onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity=menuOpen?"1":"0.4"}>
@@ -1533,42 +1555,48 @@ export default function KSFCommandCenter() {
   return (
     <div style={{display:"flex",height:"100vh",background:SHELL_COLORS.bg,fontFamily:"system-ui,-apple-system,sans-serif",overflow:"hidden"}}>
       {/* ── Sidebar ── */}
-      <aside style={{width:200,background:"#080a10",borderRight:"1px solid #111520",display:"flex",flexDirection:"column",flexShrink:0}}>
+      <aside style={{width:210,background:"#0c0e15",borderRight:"1px solid rgba(255,255,255,0.08)",display:"flex",flexDirection:"column",flexShrink:0}}>
         {/* Brand */}
-        <div style={{padding:"14px 10px 12px",borderBottom:"1px solid #111520",display:"flex",alignItems:"center",gap:7}}>
-          <span style={{fontSize:20}}>⚙</span>
-          <div>
-            <div style={{fontFamily:"system-ui",fontSize:16,fontWeight:800,color:"#e8a020",lineHeight:1}}>KSF</div>
-            <div style={{fontSize:9,color:"#1e2438",lineHeight:1.4}}>Command Center</div>
+        <div style={{padding:"16px 12px 13px",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:9}}>
+            <div style={{width:32,height:32,borderRadius:8,background:"rgba(91,124,250,0.2)",border:"1px solid rgba(91,124,250,0.35)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <span style={{color:"#8eaafe",fontWeight:800,fontSize:11,letterSpacing:"0.5px"}}>KSF</span>
+            </div>
+            <span style={{fontSize:13,fontWeight:700,color:"#eef0f7",whiteSpace:"nowrap"}}>Command Center</span>
           </div>
         </div>
 
         {/* Nav */}
-        <nav style={{flex:1,overflowY:"auto",padding:"8px 7px"}}>
+        <nav style={{flex:1,overflowY:"auto",padding:"10px 8px"}}>
           {NAV_ITEMS.map(item=>{
             const Icon=NAV_ICONS[item.id];
             const active=tab===item.id;
             return (
               <button key={item.id} onClick={()=>setTab(item.id)}
-                style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:8,border:`1px solid ${active?"#e8a02018":"transparent"}`,background:active?"#141928":"transparent",cursor:"pointer",fontFamily:"inherit",marginBottom:1,color:active?"#e8a020":"#2e3850",fontSize:12,fontWeight:600,textAlign:"left"}}
-                onMouseEnter={e=>{ if(!active){e.currentTarget.style.background="#0e1020";e.currentTarget.style.color="#6a7898";}}}
-                onMouseLeave={e=>{ if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#2e3850";}}}>
-                <span style={{flexShrink:0,display:"flex",alignItems:"center",opacity:active?1:0.7}}><Icon/></span>
+                style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"9px 10px",borderRadius:8,border:`1px solid ${active?"rgba(91,124,250,0.3)":"transparent"}`,background:active?"rgba(91,124,250,0.13)":"transparent",cursor:"pointer",fontFamily:"inherit",marginBottom:2,color:active?"#eef0f7":"#6b7494",fontSize:13,fontWeight:active?600:500,textAlign:"left",transition:"all 0.12s"}}
+                onMouseEnter={e=>{ if(!active){e.currentTarget.style.background="rgba(255,255,255,0.05)";e.currentTarget.style.color="#9097b0";}}}
+                onMouseLeave={e=>{ if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#6b7494";}}}>
+                <span style={{flexShrink:0,display:"flex",alignItems:"center",color:active?"#8eaafe":"currentColor"}}><Icon/></span>
                 <span style={{flex:1}}>{item.label}</span>
-                {item.id==="kernbot"&&<span style={{width:6,height:6,borderRadius:"50%",background:"#30a060",flexShrink:0}}/>}
+                {item.id==="kernbot"&&<span style={{width:7,height:7,borderRadius:"50%",background:"#34d399",flexShrink:0,boxShadow:"0 0 6px #34d39966"}}/>}
               </button>
             );
           })}
         </nav>
 
         {/* User footer */}
-        <div style={{padding:"10px",borderTop:"1px solid #111520",display:"flex",alignItems:"center",gap:7}}>
-          <div style={{width:28,height:28,borderRadius:8,background:shellUser.color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:10,color:"#060810",flexShrink:0}}>
+        <div style={{padding:"10px 12px",borderTop:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",gap:9}}>
+          <div style={{width:30,height:30,borderRadius:8,background:shellUser.color+"33",border:`1px solid ${shellUser.color}55`,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:11,color:shellUser.color,flexShrink:0}}>
             {shellUser.initials}
           </div>
-          <span style={{fontSize:12,fontWeight:600,color:"#3a4060",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.name}</span>
-          <button onClick={()=>setShellUser(null)}
-            style={{width:26,height:26,borderRadius:6,background:"#111520",border:"none",color:"#2e3450",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+          <div style={{flex:1,minWidth:0}}>
+            <p style={{margin:0,fontSize:12,fontWeight:600,color:"#eef0f7",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.name}</p>
+            <p style={{margin:0,fontSize:10,color:"#555d7a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.role}</p>
+          </div>
+          <button onClick={()=>setShellUser(null)} title="Sign out"
+            style={{width:26,height:26,borderRadius:6,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.09)",color:"#555d7a",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}
+            onMouseEnter={e=>{e.currentTarget.style.color="#9097b0";e.currentTarget.style.background="rgba(255,255,255,0.09)";}}
+            onMouseLeave={e=>{e.currentTarget.style.color="#555d7a";e.currentTarget.style.background="rgba(255,255,255,0.05)";}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </button>
         </div>
