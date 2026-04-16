@@ -24,16 +24,26 @@ const SHELL_COLORS = {
   pm:"#a78bfa", pmDim:"rgba(167,139,250,0.12)",
 };
 
+const NAV_ICONS = {
+  dashboard:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
+  kernbot:    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="11"/><circle cx="8.5" cy="16" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="16" r="1" fill="currentColor" stroke="none"/></svg>,
+  rfi:        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
+  scope:      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
+  fab:        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h20M4 20V10l8-7 8 7v10"/><path d="M10 20v-6h4v6"/></svg>,
+  field:      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  owner:      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  detailing:  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
+};
+
 const NAV_ITEMS = [
-  { id:"dashboard",  label:"Dashboard",      icon:"⊞" },
-  { id:"kernbot",    label:"Kern Bot",        icon:"◈" },
-  { id:"rfi",        label:"RFI Log",         icon:"≡" },
-  { id:"scope",      label:"Scope Tracker",   icon:"◎" },
-  { id:"fab",        label:"Fabrication",     icon:"⬡" },
-  { id:"field",      label:"Field Needs",     icon:"⚑" },
-  { id:"owner",      label:"Owner Pending",   icon:"◷" },
-  { id:"detailing",  label:"Detailing",       icon:"⊟" },
-  { id:"lanze",      label:"Lanze View",      icon:"▲" },
+  { id:"dashboard",  label:"Dashboard"      },
+  { id:"kernbot",    label:"Kern Bot"        },
+  { id:"rfi",        label:"RFI Log"         },
+  { id:"scope",      label:"Scope Tracker"   },
+  { id:"fab",        label:"Fabrication"     },
+  { id:"field",      label:"Field Needs"     },
+  { id:"owner",      label:"Owner Pending"   },
+  { id:"detailing",  label:"Detailing"       },
 ];
 
 // ── Coming Soon placeholder ──────────────────────────────────────────────────
@@ -291,15 +301,84 @@ const PROJECT_TYPES=["Aero","Solar","Structural","General question"];
 const URGENCY_OPTS =["Low","Medium","High"];
 const VERTICALS    =["All","Structural","Solar","Aero"];
 
-const BOT_RESPONSES = [
-  {text:"Per KSF Anchor Rod Guidelines: positional tolerance is ±1/8\" for bolts up to 1\", ±3/16\" for bolts over 1\". KSF-verified hole sizes must be used per Table 14-1. Jam nuts go below the base plate; washers below are 1/8\" thick matching the washer above.",
-   sources:[{doc:"KSF Anchor Rod Guidelines",section:"Company std"},{doc:"AISC 360",section:"§6.4.1"}],confidence:93},
-  {text:"Partial match found but confidence is below threshold for this configuration. The closest reference may not fully address your case. Consider escalating to the queue if this affects fabrication decisions.",
-   sources:[{doc:"AISC 360",section:"§4.2"}],confidence:62},
-  {text:"Per AISC Code of Standard Practice §4.4, the fabricator must return approval documents within 14 calendar days. Any deviation requires written EOR authorization.",
-   sources:[{doc:"AISC CoSP",section:"§4.4"}],confidence:89},
-];
-let _botIdx=0;
+const KSF_SYSTEM_PROMPT = `You are Kern Bot, the internal AI assistant for Kern Steel Fabrication (KSF) in Bakersfield, CA. KSF operates across three verticals: Structural (commercial/institutional steel fabrication and erection), Solar Carports (engineered solar canopy structures), and Aerospace (precision maintenance stands for Lockheed Martin and US Air Force).
+
+Your role is to answer questions from KSF's PM team about fabrication procedures, AISC standards, AWS welding standards, RFI procedures, contract terms, change orders, material specs, tolerances, and field issues.
+
+Key standards you must know:
+- AISC 303 (Code of Standard Practice) and AISC 360 (Structural Steel Specification) govern all fabrication
+- AWS D1.1 governs weld inspection
+- Aerospace projects require a written Engineering Order (EO) for ANY field modification — no exceptions, no verbal approvals
+- Solar carport structures require AHJ permit approval before construction starts
+- Material substitutions always require written EOR approval — no verbal approvals accepted
+
+Team context:
+- Loren C. is the Senior PM and decision-maker — escalate to him when uncertain
+- Tony S. handles Structural coordination
+- Luis A. and Jillian H. handle Solar projects
+- Adam K. handles Aerospace (Lockheed/USAF)
+- Jacob T. is the Field Coordinator — keep communications to him brief and action-oriented
+- Lanze A. is the Manufacturing Engineer focused on shop floor optimization
+
+Response format:
+- Be direct and specific — cite the exact standard, section, and requirement
+- Include a confidence assessment: HIGH (90%+), MEDIUM (70-89%), or LOW (below 70%)
+- If confidence is low, recommend escalating to Loren
+- Flag any contract notice deadlines, liability risks, or safety issues prominently
+- Keep answers concise — this is a working tool, not a textbook`;
+
+async function callKernBot(userMessage, conversationHistory=[]) {
+  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+  if(!apiKey) return {text:"API key not configured. Add VITE_ANTHROPIC_API_KEY to your environment variables.",sources:[],confidence:0};
+
+  const messages = [
+    ...conversationHistory.map(m=>({
+      role: m.role==="user"?"user":"assistant",
+      content: m.text||""
+    })),
+    {role:"user", content:userMessage}
+  ];
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1024,
+        system:KSF_SYSTEM_PROMPT,
+        messages
+      })
+    });
+    if(!res.ok){ const err=await res.text(); throw new Error(err); }
+    const data = await res.json();
+    const text = data.content?.[0]?.text||"No response received.";
+
+    // Parse confidence from response text
+    let confidence = 85;
+    if(/HIGH confidence|confidence.*HIGH|90%|95%|97%|certain|definitive/i.test(text)) confidence=93;
+    else if(/MEDIUM confidence|confidence.*MEDIUM|70%|75%|80%|likely|probably/i.test(text)) confidence=78;
+    else if(/LOW confidence|confidence.*LOW|uncertain|unclear|recommend.*escalat|not.*sure/i.test(text)) confidence=55;
+
+    // Extract any standard references as sources
+    const sources=[];
+    const stdPatterns=[
+      {re:/AISC\s*360[^,\s]*/gi, doc:"AISC 360"},
+      {re:/AISC\s*303[^,\s]*/gi, doc:"AISC 303"},
+      {re:/AWS\s*D1\.1[^,\s]*/gi, doc:"AWS D1.1"},
+      {re:/AISC\s*CoSP[^,\s]*/gi, doc:"AISC CoSP"},
+      {re:/KSF\s*SOP[^,\s]*/gi,   doc:"KSF SOP"},
+    ];
+    stdPatterns.forEach(({re,doc})=>{
+      const m=text.match(re);
+      if(m) sources.push({doc,section:m[0].replace(doc,"").trim()||""});
+    });
+
+    return {text, sources, confidence};
+  } catch(e) {
+    return {text:`Error connecting to Kern Bot: ${e.message}. Check your API key and network connection.`,sources:[],confidence:0};
+  }
+}
 
 // ── Badges ─────────────────────────────────────────────────────────────────
 const ConfBadge = ({s}) => {
@@ -677,17 +756,55 @@ function EscalateModal({msgs,onSubmit,onClose}) {
   const [ctx,setCtx]=useState(""); const [proj,setProj]=useState(""); const [pt,setPt]=useState(""); const [ps,setPs]=useState(""); const [urg,setUrg]=useState("Medium");
   const inp={width:"100%",padding:"8px 10px",background:C.surface2,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:12,fontFamily:"inherit",boxSizing:"border-box",outline:"none"};
   const lbl={fontSize:10,color:C.hint,margin:"0 0 4px",textTransform:"uppercase",letterSpacing:"0.07em"};
+  // Urgency options — keyboard navigable via arrow keys naturally since they're buttons
+  const urgRef = useRef(null);
   return (
     <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
       <div style={{background:C.surface,border:`1px solid ${C.borderHi}`,borderRadius:13,width:"100%",maxWidth:500,maxHeight:"90vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 80px rgba(0,0,0,0.7)"}}>
         <div style={{padding:"13px 15px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
-          <div><p style={{margin:0,fontWeight:500,fontSize:14,color:C.text}}>Escalate this thread</p><p style={{margin:0,fontSize:11,color:C.muted}}>Full thread included · All fields optional</p></div>
+          <div><p style={{margin:0,fontWeight:500,fontSize:14,color:C.text}}>Escalate this thread</p><p style={{margin:0,fontSize:11,color:C.muted}}>Tab through fields · Shift+Enter in context box to submit</p></div>
           <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",color:C.muted,fontSize:18,lineHeight:1}}>×</button>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"13px 15px",display:"flex",flexDirection:"column",gap:11}}>
+          {/* 1 — Project number */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+            <div>
+              <p style={lbl}>Project number</p>
+              <input autoFocus style={inp} value={proj} onChange={e=>setProj(e.target.value)} placeholder="e.g. 4521"/>
+            </div>
+            {/* 2 — Project type */}
+            <div>
+              <p style={lbl}>Project type</p>
+              <select style={{...inp,cursor:"pointer"}} value={pt} onChange={e=>setPt(e.target.value)}>
+                <option value="">Select…</option>
+                {PROJECT_TYPES.map(t=><option key={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+          {/* 3 — ProjectSight reference */}
+          <div>
+            <p style={lbl}>ProjectSight reference</p>
+            <input style={inp} value={ps} onChange={e=>setPs(e.target.value)} placeholder="RFI-0042, submittal ID…"/>
+          </div>
+          {/* 4 — Urgency */}
+          <div>
+            <p style={lbl}>Urgency</p>
+            <div ref={urgRef} style={{display:"flex",gap:5}}>
+              {URGENCY_OPTS.map((u,i)=>{
+                const a=urg===u; const cl=u==="High"?C.danger:u==="Medium"?C.warning:C.success;
+                return <button key={u} onClick={()=>setUrg(u)}
+                  onKeyDown={e=>{
+                    if(e.key==="ArrowRight"){ e.preventDefault(); setUrg(URGENCY_OPTS[Math.min(i+1,2)]); }
+                    if(e.key==="ArrowLeft"){  e.preventDefault(); setUrg(URGENCY_OPTS[Math.max(i-1,0)]); }
+                  }}
+                  style={{flex:1,padding:"7px",fontSize:12,borderRadius:7,border:`1px solid ${a?cl+"66":C.border}`,background:a?cl+"18":"none",color:a?cl:C.muted,cursor:"pointer",fontFamily:"inherit",fontWeight:a?500:400}}>{u}</button>;
+              })}
+            </div>
+          </div>
+          {/* 5 — Thread preview (read-only, no tab stop) */}
           <div>
             <p style={lbl}>Thread preview</p>
-            <div style={{background:C.surface2,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 11px",maxHeight:110,overflowY:"auto",display:"flex",flexDirection:"column",gap:5}}>
+            <div tabIndex={-1} style={{background:C.surface2,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 11px",maxHeight:110,overflowY:"auto",display:"flex",flexDirection:"column",gap:5}}>
               {msgs.filter(m=>!m.escalationNotice).map((m,i)=>(
                 <div key={i} style={{fontSize:11,lineHeight:1.6}}>
                   <span style={{fontWeight:500,color:m.role==="user"?C.accentText:C.pm,marginRight:5}}>{m.role==="user"?"You":"Kern Bot"}</span>
@@ -698,18 +815,14 @@ function EscalateModal({msgs,onSubmit,onClose}) {
               ))}
             </div>
           </div>
+          {/* 6 — Additional context — Enter = newline, Shift+Enter = submit */}
           <div>
-            <p style={lbl}>Urgency</p>
-            <div style={{display:"flex",gap:5}}>
-              {URGENCY_OPTS.map(u=>{const a=urg===u;const cl=u==="High"?C.danger:u==="Medium"?C.warning:C.success;return <button key={u} onClick={()=>setUrg(u)} style={{flex:1,padding:"7px",fontSize:12,borderRadius:7,border:`1px solid ${a?cl+"66":C.border}`,background:a?cl+"18":"none",color:a?cl:C.muted,cursor:"pointer",fontFamily:"inherit",fontWeight:a?500:400}}>{u}</button>;})}
-            </div>
+            <p style={lbl}>Additional context</p>
+            <textarea value={ctx} onChange={e=>setCtx(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter"&&e.shiftKey){e.preventDefault();onSubmit({ctx,proj,pt,ps,urg});}}}
+              style={{...inp,minHeight:75,resize:"vertical",lineHeight:1.65}}
+              placeholder="Add anything the thread doesn't cover… (Shift+Enter to submit)"/>
           </div>
-          <div><p style={lbl}>Additional context</p><textarea value={ctx} onChange={e=>setCtx(e.target.value)} style={{...inp,minHeight:75,resize:"vertical",lineHeight:1.65}} placeholder="Add anything the thread doesn't cover…"/></div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
-            <div><p style={lbl}>Project number</p><input style={inp} value={proj} onChange={e=>setProj(e.target.value)} placeholder="e.g. 4521"/></div>
-            <div><p style={lbl}>Project type</p><select style={{...inp,cursor:"pointer"}} value={pt} onChange={e=>setPt(e.target.value)}><option value="">Select…</option>{PROJECT_TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
-          </div>
-          <div><p style={lbl}>ProjectSight reference</p><input style={inp} value={ps} onChange={e=>setPs(e.target.value)} placeholder="RFI-0042, submittal ID…"/></div>
         </div>
         <div style={{padding:"10px 15px",borderTop:`1px solid ${C.border}`,display:"flex",gap:8,flexShrink:0}}>
           <button onClick={onClose} style={{flex:1,padding:"8px",fontSize:12,background:"none",border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
@@ -1241,8 +1354,9 @@ function KernBotApp({preloadUser}) {
     const c=store.chats.find(x=>x.id===id); if(!c) return;
     const title=c.title==="New conversation"&&text?text.slice(0,44)+(text.length>44?"…":""):c.title==="New conversation"&&attachments.length?attachments[0].name:c.title;
     store.updateChat(id,{title,lastActivity:nowStamp(),msgs:[...c.msgs,um]});
-    await new Promise(r=>setTimeout(r,1100));
-    const resp=BOT_RESPONSES[_botIdx%BOT_RESPONSES.length]; _botIdx++;
+    // Build conversation history for context (last 10 messages)
+    const history=c.msgs.filter(m=>!m.escalationNotice&&(m.role==="user"||m.role==="bot")).slice(-10);
+    const resp = await callKernBot(text, history);
     const c2=store.chats.find(x=>x.id===id); if(!c2) return;
     store.updateChat(id,{lastActivity:nowStamp(),msgs:[...c2.msgs,{id:nextId(),role:"bot",...resp}]});
   },[]);
@@ -1433,12 +1547,12 @@ export default function KSFCommandCenter() {
 
         {/* Nav */}
         <nav style={{flex:1,overflowY:"auto",padding:"8px 7px"}}>
-          {NAV_ITEMS.filter(item=>item.id!=="lanze"||(shellUser.id==="loren"||shellUser.id==="lanze")).map(item=>(
+          {NAV_ITEMS.map(item=>(
             <button key={item.id} onClick={()=>setTab(item.id)}
               style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"7px 9px",borderRadius:7,border:`1px solid ${tab===item.id?"rgba(79,110,247,0.3)":"transparent"}`,background:tab===item.id?"rgba(79,110,247,0.12)":"none",cursor:"pointer",fontFamily:"inherit",marginBottom:2,transition:"all 0.12s"}}
               onMouseEnter={e=>{ if(tab!==item.id) e.currentTarget.style.background="rgba(255,255,255,0.04)"; }}
               onMouseLeave={e=>{ if(tab!==item.id) e.currentTarget.style.background="none"; }}>
-              <span style={{fontSize:14,opacity:tab===item.id?1:0.45,color:tab===item.id?"#a0b0ff":"inherit",flexShrink:0}}>{item.icon}</span>
+              <span style={{color:tab===item.id?"#a0b0ff":SHELL_COLORS.hint,flexShrink:0,display:"flex",alignItems:"center"}}>{NAV_ICONS[item.id]}</span>
               <span style={{fontSize:12,color:tab===item.id?SHELL_COLORS.text:SHELL_COLORS.muted,fontWeight:tab===item.id?500:400}}>{item.label}</span>
               {item.id==="kernbot"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:SHELL_COLORS.success,flexShrink:0}}/>}
             </button>
@@ -1473,7 +1587,6 @@ export default function KSFCommandCenter() {
         {tab==="field"    && <ComingSoon label="Field Needs"/>}
         {tab==="owner"    && <ComingSoon label="Owner Pending"/>}
         {tab==="detailing"&& <ComingSoon label="Detailing"/>}
-        {tab==="lanze"    && <ComingSoon label="Lanze View"/>}
       </main>
     </div>
   );
