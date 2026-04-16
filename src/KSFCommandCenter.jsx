@@ -16,24 +16,24 @@ const SHELL_USERS = [
 ];
 
 const SHELL_COLORS = {
-  bg:"#0f1117", sidebar:"#0c0e15", surface:"#1c1f2e",
-  border:"rgba(255,255,255,0.09)", borderHi:"rgba(255,255,255,0.15)",
-  text:"#eef0f7", muted:"#9097b0", hint:"#555d7a",
-  accent:"#5b7cfa", accentDim:"rgba(91,124,250,0.15)",
+  bg:"#141720", sidebar:"#0f1219", surface:"#1e2235",
+  border:"rgba(255,255,255,0.11)", borderHi:"rgba(255,255,255,0.18)",
+  text:"#f2f4fc", muted:"#a8b0cc", hint:"#6670a0",
+  accent:"#5b7cfa", accentDim:"rgba(91,124,250,0.18)",
   success:"#34d399", warning:"#fbbf24", danger:"#f87171",
-  pm:"#b197fc", pmDim:"rgba(177,151,252,0.13)",
+  pm:"#b197fc", pmDim:"rgba(177,151,252,0.15)",
 };
 
 const NAV_ICONS = {
-  dashboard:  ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-  kernbot:    ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="11"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg>,
-  owner:      ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.35 2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
-  scope:      ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
-  changes:    ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  detailing:  ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
-  rfi:        ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
-  fab:        ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>,
-  field:      ()=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  dashboard:  ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
+  kernbot:    ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="11"/><circle cx="8" cy="16" r="1.2" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1.2" fill="currentColor" stroke="none"/></svg>,
+  owner:      ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.35 2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
+  scope:      ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  changes:    ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>,
+  detailing:  ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>,
+  rfi:        ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  fab:        ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>,
+  field:      ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
 };
 
 const NAV_ITEMS = [
@@ -279,14 +279,14 @@ function useStore() {
 
 // ── Colors ─────────────────────────────────────────────────────────────────
 const C = {
-  bg:"#0f1117", sidebar:"#13151e", surface:"#1c1f2e", surface2:"#242838",
-  border:"rgba(255,255,255,0.09)", borderHi:"rgba(255,255,255,0.15)",
-  text:"#eef0f7", muted:"#9097b0", hint:"#555d7a",
-  accent:"#5b7cfa", accentDim:"rgba(91,124,250,0.15)", accentText:"#8eaafe",
-  success:"#34d399", successDim:"rgba(52,211,153,0.13)",
-  warning:"#fbbf24", warningDim:"rgba(251,191,36,0.13)",
-  danger:"#f87171",  dangerDim:"rgba(248,113,113,0.13)",
-  pm:"#b197fc",      pmDim:"rgba(177,151,252,0.13)",
+  bg:"#141720", sidebar:"#111420", surface:"#1e2235", surface2:"#252a40",
+  border:"rgba(255,255,255,0.11)", borderHi:"rgba(255,255,255,0.18)",
+  text:"#f2f4fc", muted:"#a8b0cc", hint:"#6670a0",
+  accent:"#5b7cfa", accentDim:"rgba(91,124,250,0.18)", accentText:"#8eaafe",
+  success:"#34d399", successDim:"rgba(52,211,153,0.15)",
+  warning:"#fbbf24", warningDim:"rgba(251,191,36,0.15)",
+  danger:"#f87171",  dangerDim:"rgba(248,113,113,0.15)",
+  pm:"#b197fc",      pmDim:"rgba(177,151,252,0.15)",
 };
 
 const USERS_LIST = [
@@ -310,19 +310,20 @@ Your job is to help the KSF PM team get fast, accurate answers about fabrication
 How to respond:
 - Talk like a knowledgeable colleague, not a textbook. Be direct and conversational.
 - No bullet-pointed reports, no bold headers, no numbered lists unless the question genuinely calls for steps.
-- Just answer the question clearly and specifically. If there's a standard or section that applies, cite it naturally in the sentence — like "per AISC 360 Table J3.4" not as a separate formatted block.
+- If a question is ambiguous and the answer would be meaningfully different depending on context, ask one short clarifying question — or better yet, give the answer for both cases in plain language. For example, if someone asks "hole size for a 1-1/2 bolt" without context, cover both standard bolt holes and anchor rod holes since those are different. Use your judgment — if you can usefully cover both scenarios in two sentences, do that rather than asking.
+- Just answer the question clearly and specifically. Cite the standard naturally in the sentence — like "per AISC 360 Table J3.3" not as a separate block.
 - Keep it short. One or two paragraphs is usually right. The team is busy.
-- If you're not certain, say so plainly — "I'd check with Loren on this" or "this one needs EOR sign-off" — without making a big deal of it.
-- Never end with a confidence statement like "CONFIDENCE: HIGH". The UI handles that separately.
+- If you're not certain, say so plainly — "I'd check with Loren on this" or "this one needs EOR sign-off."
+- Never end with a confidence statement like "CONFIDENCE: HIGH". The UI handles that.
 - Never say "As an AI" or explain your limitations. Just answer.
 
-Critical rules you must always apply:
-- Aerospace projects (Lockheed, USAF): any field modification needs a written Engineering Order. No exceptions, no verbal approvals.
+Critical rules:
+- Aerospace (Lockheed, USAF): any field modification needs a written Engineering Order. No exceptions, no verbal approvals.
 - Material substitutions: always need written EOR approval before fab starts.
 - Solar carports: AHJ permit must be confirmed before construction starts.
 - When in doubt on anything Loren-level, say so and recommend escalating.
 
-Team: Loren C. (Senior PM, decision-maker), Tony S. (Structural), Luis A. + Jillian H. (Solar), Adam K. (Aerospace), Jacob T. (Field — keep it brief with him), Lanze A. (Manufacturing Engineer, shop floor optimization).`;
+Team: Loren C. (Senior PM, decision-maker), Tony S. (Structural), Luis A. + Jillian H. (Solar), Adam K. (Aerospace), Jacob T. (Field — keep it brief), Lanze A. (Manufacturing Engineer, shop floor optimization).`;
 
 async function callKernBot(userMessage, conversationHistory=[]) {
   const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
@@ -1003,22 +1004,22 @@ function QueueDetail({item,user,onSend,onResolve,onUnresolve}) {
 
         {/* metadata — view or edit */}
         {!editing ? (
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:"4px 12px",maxWidth:520}}>
-            <div style={{display:"flex",flexDirection:"column",gap:1}}>
-              <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.07em"}}>From</span>
+          <div style={{display:"flex",gap:"20px 32px",flexWrap:"wrap",alignItems:"flex-start",justifyContent:"center",padding:"4px 0"}}>
+            <div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"center",textAlign:"center"}}>
+              <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:600}}>From</span>
               <span style={{fontSize:13,color:C.text,fontWeight:600}}>{item.from}</span>
               <span style={{fontSize:11,color:C.muted}}>{item.fromPos}</span>
             </div>
-            {item.project&&<div style={{display:"flex",flexDirection:"column",gap:1}}>
-              <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.07em"}}>Job #</span>
+            {item.project&&<div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"center",textAlign:"center"}}>
+              <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:600}}>Job #</span>
               <span style={{fontSize:13,color:C.text,fontWeight:600}}>#{item.project}</span>
             </div>}
-            {item.projectType&&<div style={{display:"flex",flexDirection:"column",gap:1}}>
-              <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.07em"}}>Type</span>
+            {item.projectType&&<div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"center",textAlign:"center"}}>
+              <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:600}}>Type</span>
               <span style={{fontSize:13,color:C.muted}}>{item.projectType}</span>
             </div>}
-            {item.psRef&&<div style={{display:"flex",flexDirection:"column",gap:1}}>
-              <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.07em"}}>PS Ref</span>
+            {item.psRef&&<div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"center",textAlign:"center"}}>
+              <span style={{fontSize:9,color:C.hint,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:600}}>PS Ref</span>
               <span style={{fontSize:13,color:C.accentText}}>{item.psRef}</span>
             </div>}
           </div>
@@ -1555,7 +1556,7 @@ export default function KSFCommandCenter() {
   return (
     <div style={{display:"flex",height:"100vh",background:SHELL_COLORS.bg,fontFamily:"system-ui,-apple-system,sans-serif",overflow:"hidden"}}>
       {/* ── Sidebar ── */}
-      <aside style={{width:210,background:"#0c0e15",borderRight:"1px solid rgba(255,255,255,0.08)",display:"flex",flexDirection:"column",flexShrink:0}}>
+      <aside style={{width:215,background:"#0f1219",borderRight:"1px solid rgba(255,255,255,0.1)",display:"flex",flexDirection:"column",flexShrink:0}}>
         {/* Brand */}
         <div style={{padding:"16px 12px 13px",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
           <div style={{display:"flex",alignItems:"center",gap:9}}>
@@ -1573,9 +1574,9 @@ export default function KSFCommandCenter() {
             const active=tab===item.id;
             return (
               <button key={item.id} onClick={()=>setTab(item.id)}
-                style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"9px 10px",borderRadius:8,border:`1px solid ${active?"rgba(91,124,250,0.3)":"transparent"}`,background:active?"rgba(91,124,250,0.13)":"transparent",cursor:"pointer",fontFamily:"inherit",marginBottom:2,color:active?"#eef0f7":"#6b7494",fontSize:13,fontWeight:active?600:500,textAlign:"left",transition:"all 0.12s"}}
-                onMouseEnter={e=>{ if(!active){e.currentTarget.style.background="rgba(255,255,255,0.05)";e.currentTarget.style.color="#9097b0";}}}
-                onMouseLeave={e=>{ if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#6b7494";}}}>
+                style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 11px",borderRadius:8,border:`1px solid ${active?"rgba(91,124,250,0.35)":"transparent"}`,background:active?"rgba(91,124,250,0.16)":"transparent",cursor:"pointer",fontFamily:"inherit",marginBottom:2,color:active?"#f2f4fc":"#7880a8",fontSize:13,fontWeight:active?600:500,textAlign:"left",transition:"all 0.12s"}}
+                onMouseEnter={e=>{ if(!active){e.currentTarget.style.background="rgba(255,255,255,0.06)";e.currentTarget.style.color="#a8b0cc";}}}
+                onMouseLeave={e=>{ if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#7880a8";}}}>
                 <span style={{flexShrink:0,display:"flex",alignItems:"center",color:active?"#8eaafe":"currentColor"}}><Icon/></span>
                 <span style={{flex:1}}>{item.label}</span>
                 {item.id==="kernbot"&&<span style={{width:7,height:7,borderRadius:"50%",background:"#34d399",flexShrink:0,boxShadow:"0 0 6px #34d39966"}}/>}
