@@ -25,15 +25,35 @@ const SHELL_COLORS = {
 };
 
 const NAV_ICONS = {
-  dashboard:  ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
-  kernbot:    ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="11"/><circle cx="8" cy="16" r="1.2" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1.2" fill="currentColor" stroke="none"/></svg>,
-  owner:      ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.35 2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
-  scope:      ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-  changes:    ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="12" y1="12" x2="12" y2="12"/><path d="M10 15c0-1.1.9-2 2-2s2 .9 2 2-.9 1-2 1-2-.1-2-1"/><line x1="12" y1="11" x2="12" y2="11.01"/></svg>,
-  detailing:  ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 21h18"/><path d="M3 21L12 3l9 18"/><path d="M9.5 14h5"/></svg>,
-  rfi:        ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-  fab:        ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="2" y1="6" x2="22" y2="6"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="6" x2="6" y2="10"/><line x1="18" y1="6" x2="18" y2="10"/><line x1="12" y1="10" x2="12" y2="20"/><line x1="8" y1="20" x2="16" y2="20"/></svg>,
-  field:      ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  dashboard:  ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
+  kernbot:    ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="11"/><circle cx="8.5" cy="16" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="16" r="1.2" fill="currentColor" stroke="none"/></svg>,
+  owner:      ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.35 2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
+  scope:      ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  changes:    ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M14.5 9.5a2.5 2 0 0 0-5 0c0 1.5 5 2 5 3.5a2.5 2 0 0 1-5 0"/><line x1="12" y1="7" x2="12" y2="9.5"/><line x1="12" y1="15" x2="12" y2="17"/></svg>,
+  detailing:  ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M3 21V7l9-4 9 4v14"/><line x1="9" y1="21" x2="9" y2="13"/><line x1="15" y1="21" x2="15" y2="13"/><rect x="9" y="13" width="6" height="4"/></svg>,
+  rfi:        ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  // AISC W-shape cross-section: wide top flange, fillet taper into thin web, wide bottom flange
+  fab: ()=><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    {/* Top flange */}
+    <line x1="1" y1="2.5" x2="19" y2="2.5"/>
+    <line x1="1" y1="4.5" x2="19" y2="4.5"/>
+    <line x1="1" y1="2.5" x2="1" y2="4.5"/>
+    <line x1="19" y1="2.5" x2="19" y2="4.5"/>
+    {/* Left fillet: taper from flange edge to web */}
+    <line x1="1" y1="4.5" x2="8.5" y2="6"/>
+    <line x1="19" y1="4.5" x2="11.5" y2="6"/>
+    {/* Web */}
+    <line x1="8.5" y1="6" x2="8.5" y2="14"/>
+    <line x1="11.5" y1="6" x2="11.5" y2="14"/>
+    {/* Right fillet: taper from web back to flange */}
+    <line x1="8.5" y1="14" x2="1" y2="15.5"/>
+    <line x1="11.5" y1="14" x2="19" y2="15.5"/>
+    {/* Bottom flange */}
+    <line x1="1" y1="15.5" x2="1" y2="17.5"/>
+    <line x1="19" y1="15.5" x2="19" y2="17.5"/>
+    <line x1="1" y1="17.5" x2="19" y2="17.5"/>
+  </svg>,
+  field:      ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
 };
 
 const NAV_ITEMS = [
@@ -1556,64 +1576,106 @@ function KernBotApp({preloadUser}) {
 export default function KSFCommandCenter() {
   const [shellUser, setShellUser] = useState(null);
   const [tab, setTab] = useState("kernbot");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if(!shellUser) return <ShellLogin onLogin={u=>{ setShellUser(u); setTab("kernbot"); }}/>;
 
-  // Map shell user → KernBot user format
   const kbUser = USERS_LIST.find(u=>u.id===shellUser.id) || USERS_LIST[0];
 
-  return (
-    <div style={{display:"flex",height:"100vh",background:SHELL_COLORS.bg,fontFamily:"system-ui,-apple-system,sans-serif",overflow:"hidden"}}>
-      {/* ── Sidebar ── */}
-      <aside style={{width:215,background:"#0f1219",borderRight:"1px solid rgba(255,255,255,0.1)",display:"flex",flexDirection:"column",flexShrink:0}}>
-        {/* Brand */}
-        <div style={{padding:"16px 12px 13px",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:9}}>
-            <div style={{width:32,height:32,borderRadius:8,background:"rgba(91,124,250,0.2)",border:"1px solid rgba(91,124,250,0.35)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <span style={{color:"#8eaafe",fontWeight:800,fontSize:11,letterSpacing:"0.5px"}}>KSF</span>
-            </div>
-            <span style={{fontSize:13,fontWeight:700,color:"#eef0f7",whiteSpace:"nowrap"}}>Command Center</span>
-          </div>
-        </div>
-
-        {/* Nav */}
-        <nav style={{flex:1,overflowY:"auto",padding:"10px 8px"}}>
-          {NAV_ITEMS.map(item=>{
-            const Icon=NAV_ICONS[item.id];
-            const active=tab===item.id;
-            return (
-              <button key={item.id} onClick={()=>setTab(item.id)}
-                style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 11px",borderRadius:8,border:`1px solid ${active?"rgba(91,124,250,0.35)":"transparent"}`,background:active?"rgba(91,124,250,0.16)":"transparent",cursor:"pointer",fontFamily:"inherit",marginBottom:2,color:active?"#f2f4fc":"#7880a8",fontSize:13,fontWeight:active?600:500,textAlign:"left",transition:"all 0.12s"}}
-                onMouseEnter={e=>{ if(!active){e.currentTarget.style.background="rgba(255,255,255,0.06)";e.currentTarget.style.color="#a8b0cc";}}}
-                onMouseLeave={e=>{ if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#7880a8";}}}>
-                <span style={{flexShrink:0,display:"flex",alignItems:"center",color:active?"#8eaafe":"currentColor"}}><Icon/></span>
-                <span style={{flex:1}}>{item.label}</span>
-                {item.id==="kernbot"&&<span style={{width:7,height:7,borderRadius:"50%",background:"#34d399",flexShrink:0,boxShadow:"0 0 6px #34d39966"}}/>}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* User footer */}
-        <div style={{padding:"10px 12px",borderTop:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",gap:9}}>
-          <div style={{width:30,height:30,borderRadius:8,background:shellUser.color+"33",border:`1px solid ${shellUser.color}55`,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:11,color:shellUser.color,flexShrink:0}}>
-            {shellUser.initials}
-          </div>
-          <div style={{flex:1,minWidth:0}}>
-            <p style={{margin:0,fontSize:12,fontWeight:600,color:"#eef0f7",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.name}</p>
-            <p style={{margin:0,fontSize:10,color:"#555d7a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.role}</p>
-          </div>
-          <button onClick={()=>setShellUser(null)} title="Sign out"
-            style={{width:26,height:26,borderRadius:6,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.09)",color:"#555d7a",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}
-            onMouseEnter={e=>{e.currentTarget.style.color="#9097b0";e.currentTarget.style.background="rgba(255,255,255,0.09)";}}
-            onMouseLeave={e=>{e.currentTarget.style.color="#555d7a";e.currentTarget.style.background="rgba(255,255,255,0.05)";}}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+  const Sidebar = ({mobile=false}) => (
+    <aside style={{
+      width:210, background:"#0a0b0f",
+      borderRight:"1px solid rgba(255,255,255,0.06)",
+      display:"flex", flexDirection:"column", flexShrink:0,
+      ...(mobile ? {
+        position:"absolute", inset:"0 auto 0 0", zIndex:200,
+        boxShadow:"4px 0 24px rgba(0,0,0,0.5)"
+      } : {})
+    }}>
+      {/* Brand */}
+      <div style={{padding:"16px 14px 12px", display:"flex", alignItems:"center", gap:8}}>
+        {mobile&&(
+          <button onClick={()=>setSidebarOpen(false)}
+            style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",padding:"2px 6px 2px 0",display:"flex",flexShrink:0}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
+        )}
+        <div style={{width:22,height:22,borderRadius:5,background:"rgba(91,124,250,0.2)",border:"1px solid rgba(91,124,250,0.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#8eaafe" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
-      </aside>
+        <span style={{fontSize:12,fontWeight:600,color:"#e5e7eb",letterSpacing:"-0.01em",whiteSpace:"nowrap"}}>KSF Command Center</span>
+      </div>
 
-      {/* ── Main content ── */}
-      <main style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative"}}>
+      {/* Divider */}
+      <div style={{height:1,background:"rgba(255,255,255,0.05)",margin:"0 10px 6px"}}/>
+
+      {/* Nav */}
+      <nav style={{flex:1,overflowY:"auto",padding:"2px 6px"}}>
+        {NAV_ITEMS.map(item=>{
+          const Icon=NAV_ICONS[item.id];
+          const active=tab===item.id;
+          return (
+            <button key={item.id} onClick={()=>{setTab(item.id);if(mobile)setSidebarOpen(false);}}
+              style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:5,border:"none",background:active?"rgba(255,255,255,0.07)":"transparent",cursor:"pointer",fontFamily:"inherit",marginBottom:1,color:active?"#f0f2f8":"#6b7280",fontSize:12,fontWeight:active?500:400,textAlign:"left",transition:"background 0.1s,color 0.1s"}}
+              onMouseEnter={e=>{ if(!active){e.currentTarget.style.background="rgba(255,255,255,0.04)";e.currentTarget.style.color="#9ca3af";}}}
+              onMouseLeave={e=>{ if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#6b7280";}}}>
+              <span style={{flexShrink:0,display:"flex",alignItems:"center",opacity:active?1:0.55,color:active?"#a5b4fc":"currentColor"}}><Icon/></span>
+              <span style={{flex:1}}>{item.label}</span>
+              {item.id==="kernbot"&&<span style={{width:5,height:5,borderRadius:"50%",background:"#34d399",flexShrink:0}}/>}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Divider */}
+      <div style={{height:1,background:"rgba(255,255,255,0.05)",margin:"6px 10px 0"}}/>
+
+      {/* User footer */}
+      <div style={{padding:"10px 10px 12px",display:"flex",alignItems:"center",gap:8}}>
+        <div style={{width:24,height:24,borderRadius:"50%",background:shellUser.color+"22",border:`1px solid ${shellUser.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:600,fontSize:9,color:shellUser.color,flexShrink:0,letterSpacing:"0.02em"}}>
+          {shellUser.initials}
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{margin:0,fontSize:11,fontWeight:500,color:"#d1d5db",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.name}</p>
+          <p style={{margin:0,fontSize:10,color:"#4b5563",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.role}</p>
+        </div>
+        <button onClick={()=>setShellUser(null)} title="Sign out"
+          style={{width:22,height:22,borderRadius:4,background:"none",border:"none",color:"#4b5563",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,padding:0}}
+          onMouseEnter={e=>{e.currentTarget.style.color="#9ca3af";e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
+          onMouseLeave={e=>{e.currentTarget.style.color="#4b5563";e.currentTarget.style.background="none";}}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </aside>
+  );
+
+  return (
+    <div style={{display:"flex",height:"100vh",background:SHELL_COLORS.bg,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif",overflow:"hidden",position:"relative"}}>
+      {/* Desktop sidebar — hidden on mobile */}
+      <div className="ksf-sidebar-desktop" style={{display:"flex"}}>
+        <Sidebar/>
+      </div>
+
+      {/* Mobile overlay */}
+      {sidebarOpen&&(
+        <>
+          <div onClick={()=>setSidebarOpen(false)} style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.5)",zIndex:190}}/>
+          <Sidebar mobile/>
+        </>
+      )}
+
+      {/* Main */}
+      <main style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative",minWidth:0}}>
+        {/* Mobile top bar */}
+        <div className="ksf-mobile-bar" style={{display:"none",alignItems:"center",gap:10,padding:"10px 14px",borderBottom:"1px solid rgba(255,255,255,0.06)",flexShrink:0,background:"#0a0b0f"}}>
+          <button onClick={()=>setSidebarOpen(true)}
+            style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",padding:4,display:"flex",alignItems:"center"}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <span style={{fontSize:12,fontWeight:600,color:"#e5e7eb"}}>KSF Command Center</span>
+          <span style={{fontSize:11,color:"#6b7280",marginLeft:"auto"}}>{NAV_ITEMS.find(i=>i.id===tab)?.label}</span>
+        </div>
+
         {tab==="kernbot"  && <KernBotApp preloadUser={kbUser}/>}
         {tab==="dashboard"&& <ComingSoon label="Dashboard"/>}
         {tab==="rfi"      && <ComingSoon label="RFI Log"/>}
@@ -1624,6 +1686,13 @@ export default function KSFCommandCenter() {
         {tab==="owner"    && <ComingSoon label="Owner Pending"/>}
         {tab==="detailing"&& <ComingSoon label="Detailing"/>}
       </main>
+
+      <style>{`
+        @media (max-width: 640px) {
+          .ksf-sidebar-desktop { display: none !important; }
+          .ksf-mobile-bar { display: flex !important; }
+        }
+      `}</style>
     </div>
   );
 }
