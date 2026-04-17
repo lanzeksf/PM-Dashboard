@@ -698,18 +698,21 @@ function Bubble({m,isMe,userColor,userInitials,onView,onSourceClick}) {
   // Escalation notice: subtle purple pill, no background bubble
   const bg = isPM
     ? "rgba(139,92,246,0.13)"
-    : isMe
-      ? C.surface2
-      : C.surface;
+    : isBot&&m.confidence!=null&&m.confidence<80
+      ? C.warningDim
+      : isMe
+        ? C.surface2
+        : C.surface;
 
   const bdr = isPM
     ? "rgba(139,92,246,0.55)"
-    : m.unread&&isPM
-      ? C.warning
-      : C.border;
+    : isBot&&m.confidence!=null&&m.confidence<80
+      ? "rgba(251,191,36,0.28)"
+      : m.unread&&isPM
+        ? C.warning
+        : C.border;
 
-  // Low confidence: just a left border hint, no amber bubble
-  const lowConf = isBot && m.confidence!=null && m.confidence<80 && !m.escalationNotice;
+  const lowConf = false; // amber bg already handles this
 
   // Loren's messages get a left accent bar
   const leftBar = isPM && !m.escalationNotice;
@@ -752,7 +755,7 @@ function Bubble({m,isMe,userColor,userInitials,onView,onSourceClick}) {
           <div style={{
             background:bg,
             border:`1px solid ${bdr}`,
-            borderLeft:leftBar?`3px solid #a78bfa`:lowConf?`2px solid rgba(251,191,36,0.5)`:`1px solid ${bdr}`,
+            borderLeft:leftBar?`3px solid #a78bfa`:`1px solid ${bdr}`,
             borderRadius:isMe?"12px 3px 12px 12px":"3px 12px 12px 12px",
             padding:"11px 14px",
             fontSize:13,color:C.text,lineHeight:1.75,whiteSpace:"pre-wrap"
@@ -1649,7 +1652,7 @@ export default function KSFCommandCenter() {
       <div style={{padding:"18px 16px 14px", display:"flex", alignItems:"center", gap:10}}>
         {mobile&&(
           <button onClick={()=>setSidebarOpen(false)}
-            style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",padding:"2px 6px 2px 0",display:"flex",flexShrink:0}}>
+            style={{background:"none",border:"none",color:"#999999",cursor:"pointer",padding:"2px 6px 2px 0",display:"flex",flexShrink:0}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         )}
@@ -1669,10 +1672,10 @@ export default function KSFCommandCenter() {
           const active=tab===item.id;
           return (
             <button key={item.id} onClick={()=>{setTab(item.id);if(mobile)setSidebarOpen(false);}}
-              style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:6,border:"none",background:active?"rgba(255,255,255,0.08)":"transparent",cursor:"pointer",fontFamily:"inherit",marginBottom:1,color:active?"#ffffff":"#666666",fontSize:13,fontWeight:active?500:400,textAlign:"left",transition:"background 0.1s,color 0.1s"}}
+              style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:6,border:"none",background:active?"rgba(255,255,255,0.08)":"transparent",cursor:"pointer",fontFamily:"inherit",marginBottom:1,color:active?"#ffffff":"#999999",fontSize:13,fontWeight:active?500:400,textAlign:"left",transition:"background 0.1s,color 0.1s"}}
               onMouseEnter={e=>{ if(!active){e.currentTarget.style.background="rgba(255,255,255,0.04)";e.currentTarget.style.color="#aaaaaa";}}}
               onMouseLeave={e=>{ if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#6b7280";}}}>
-              <span style={{flexShrink:0,display:"flex",alignItems:"center",opacity:active?1:0.6,color:active?"#ffffff":"currentColor"}}><Icon/></span>
+              <span style={{flexShrink:0,display:"flex",alignItems:"center",opacity:active?1:0.75,color:active?"#ffffff":"currentColor"}}><Icon/></span>
               <span style={{flex:1}}>{item.label}</span>
               {item.id==="kernbot"&&<span style={{width:6,height:6,borderRadius:"50%",background:"#34d399",flexShrink:0}}/>}
             </button>
@@ -1722,11 +1725,11 @@ export default function KSFCommandCenter() {
         {/* Mobile top bar */}
         <div className="ksf-mobile-bar" style={{display:"none",alignItems:"center",gap:10,padding:"10px 14px",borderBottom:"1px solid rgba(255,255,255,0.06)",flexShrink:0,background:"#000000"}}>
           <button onClick={()=>setSidebarOpen(true)}
-            style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",padding:4,display:"flex",alignItems:"center"}}>
+            style={{background:"none",border:"none",color:"#999999",cursor:"pointer",padding:4,display:"flex",alignItems:"center"}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
           <span style={{fontSize:12,fontWeight:600,color:"#dddddd"}}>KSF Command Center</span>
-          <span style={{fontSize:11,color:"#6b7280",marginLeft:"auto"}}>{NAV_ITEMS.find(i=>i.id===tab)?.label}</span>
+          <span style={{fontSize:11,color:"#999999",marginLeft:"auto"}}>{NAV_ITEMS.find(i=>i.id===tab)?.label}</span>
         </div>
 
         {tab==="kernbot"  && <KernBotApp preloadUser={kbUser}/>}
