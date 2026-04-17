@@ -28,7 +28,7 @@ const NAV_ICONS = {
   dashboard:  ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
   kernbot:    ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="11"/><circle cx="8.5" cy="16" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="16" r="1.2" fill="currentColor" stroke="none"/></svg>,
   owner:      ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.35 2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
-  scope:      ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  scope:      ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
   changes:    ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M14.5 9.5a2.5 2 0 0 0-5 0c0 1.5 5 2 5 3.5a2.5 2 0 0 1-5 0"/><line x1="12" y1="7" x2="12" y2="9.5"/><line x1="12" y1="15" x2="12" y2="17"/></svg>,
   // Drafting triangle / set square — right angle triangle with ruler tick marks
   detailing:  ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20L20 20L4 4Z"/><line x1="4" y1="20" x2="4" y2="4"/><line x1="4" y1="20" x2="20" y2="20"/><line x1="8" y1="20" x2="8" y2="18"/><line x1="12" y1="20" x2="12" y2="18"/><line x1="16" y1="20" x2="16" y2="18"/><line x1="4" y1="12" x2="6" y2="12"/><line x1="4" y1="8" x2="6" y2="8"/><line x1="4" y1="16" x2="6" y2="16"/></svg>,
@@ -1211,7 +1211,7 @@ function ChatPane({chat,user,isAdmin,onEscalate,onResolve,onUnresolve,onSend,onS
   const send=async()=>{
     if((!input.trim()&&!attachments.length)||loading) return;
     const t=input.trim(), att=[...attachments]; setInput(""); clearAtt(); setLoading(true);
-    await onSend(chat.id,t,att); setLoading(false);
+    await onSend(t,att); setLoading(false);
   };
   const reply=()=>{
     if(!input.trim()&&!attachments.length) return;
@@ -1429,15 +1429,22 @@ function LoginScreen({onLogin}) {
 function KernBotApp({preloadUser}) {
   useStore();
   const [user,      setUser]      = useState(preloadUser||null);
-  const [chatId,    setChatId]    = useState(null);
   const [searchQ,   setSearchQ]   = useState("");
   const [escOpen,   setEscOpen]   = useState(false);
   const [escTarget, setEscTarget] = useState(null);
-  const escTargetRef = useRef(null); // always-current ref to avoid stale closure
+  const escTargetRef = useRef(null);
   const [renameId,  setRenameId]  = useState(null);
   const [renameQId, setRenameQId] = useState(null);
   const [adminView, setAdminView] = useState("chat");
   const [selQ,      setSelQ]      = useState(STORE.queue[0]?.id||null);
+
+  // Initialize chatId from preloadUser's existing chats, or null for empty state
+  const initChatId = () => {
+    if(!preloadUser) return null;
+    const mine = store.chats.filter(c=>c.owner===preloadUser.id);
+    return mine[0]?.id||null;
+  };
+  const [chatId, setChatId] = useState(initChatId);
 
   const isAdmin = user?.tier==="admin";
   const myChats = user ? store.chats.filter(c=>c.owner===user.id) : [];
@@ -1450,13 +1457,23 @@ function KernBotApp({preloadUser}) {
     setChatId(id); setAdminView("chat");
   };
 
-  // onSend now accepts attachments array
-  const handleSend = useCallback(async(id,text,attachments=[])=>{
+  // Auto-create a chat if none exists, then send — so typing and hitting Enter just works
+  const ensureChatAndSend = useCallback(async(text,attachments=[])=>{
+    let id = chatId;
+    if(!id || !store.chats.find(x=>x.id===id&&x.owner===user.id)){
+      id = "c"+Date.now();
+      const ts = nowStamp();
+      store.addChat({id,owner:user.id,title:"New conversation",createdAt:ts,lastActivity:ts,escalated:false,resolved:false,unread:false,msgs:[]});
+      setChatId(id);
+    }
+    await handleSendInner(id, text, attachments);
+  },[chatId, user]);
+
+  const handleSendInner = useCallback(async(id,text,attachments=[])=>{
     const um={id:nextId(),role:"user",text,attachments};
     const c=store.chats.find(x=>x.id===id); if(!c) return;
     const title=c.title==="New conversation"&&text?text.slice(0,44)+(text.length>44?"…":""):c.title==="New conversation"&&attachments.length?attachments[0].name:c.title;
     store.updateChat(id,{title,lastActivity:nowStamp(),msgs:[...c.msgs,um]});
-    // Build conversation history for context (last 10 messages)
     const history=c.msgs.filter(m=>!m.escalationNotice&&(m.role==="user"||m.role==="bot")).slice(-10);
     const resp = await callKernBot(text, history);
     const c2=store.chats.find(x=>x.id===id); if(!c2) return;
@@ -1614,7 +1631,7 @@ function KernBotApp({preloadUser}) {
       </div>
 
       {/* ── Main ── */}
-      {adminView==="chat"&&<ChatPane chat={activeChat} user={user} isAdmin={isAdmin} onEscalate={()=>openEsc(chatId)} onResolve={handleResolve} onUnresolve={handleUnresolve} onSend={handleSend} onSendReply={handleSendReply} onMarkRead={markRead}/>}
+      {adminView==="chat"&&<ChatPane chat={activeChat} user={user} isAdmin={isAdmin} onEscalate={()=>openEsc(chatId)} onResolve={handleResolve} onUnresolve={handleUnresolve} onSend={ensureChatAndSend} onSendReply={handleSendReply} onMarkRead={markRead}/>}
       {adminView==="queue"&&isAdmin&&<QueueDetail item={qItem} user={user} onSend={handleQSend} onResolve={handleQResolve} onUnresolve={handleQUnresolve}/>}
       {adminView==="standards"&&isAdmin&&<StdList user={user}/>}
 
