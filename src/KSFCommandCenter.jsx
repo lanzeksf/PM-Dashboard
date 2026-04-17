@@ -16,12 +16,12 @@ const SHELL_USERS = [
 ];
 
 const SHELL_COLORS = {
-  bg:"#141720", sidebar:"#0f1219", surface:"#1e2235",
-  border:"rgba(255,255,255,0.11)", borderHi:"rgba(255,255,255,0.18)",
-  text:"#f2f4fc", muted:"#a8b0cc", hint:"#6670a0",
-  accent:"#5b7cfa", accentDim:"rgba(91,124,250,0.18)",
+  bg:"#0d0d0d", sidebar:"#0a0a0a", surface:"#111111",
+  border:"rgba(255,255,255,0.08)", borderHi:"rgba(255,255,255,0.14)",
+  text:"#ededed", muted:"#888888", hint:"#555555",
+  accent:"#5b7cfa", accentDim:"rgba(91,124,250,0.15)",
   success:"#34d399", warning:"#fbbf24", danger:"#f87171",
-  pm:"#b197fc", pmDim:"rgba(177,151,252,0.15)",
+  pm:"#b197fc", pmDim:"rgba(177,151,252,0.12)",
 };
 
 const NAV_ICONS = {
@@ -76,8 +76,8 @@ function ComingSoon({label}) {
         <p style={{margin:"0 0 6px",fontSize:16,fontWeight:500,color:SHELL_COLORS.text}}>{label}</p>
         <p style={{margin:0,fontSize:13,color:SHELL_COLORS.hint,lineHeight:1.7}}>This module is coming soon.<br/>APIs and integrations will be connected here.</p>
       </div>
-      <div style={{marginTop:4,padding:"6px 16px",borderRadius:20,background:SHELL_COLORS.accentDim,border:`1px solid rgba(79,110,247,0.25)`}}>
-        <span style={{fontSize:11,color:"#a0b0ff"}}>In development</span>
+      <div style={{marginTop:4,padding:"6px 16px",borderRadius:20,background:"rgba(255,255,255,0.06)",border:`1px solid rgba(255,255,255,0.12)`}}>
+        <span style={{fontSize:11,color:"#888888"}}>In development</span>
       </div>
     </div>
   );
@@ -88,7 +88,7 @@ function ShellLogin({onLogin}) {
   return (
     <div style={{minHeight:"100vh",background:SHELL_COLORS.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"system-ui,-apple-system,sans-serif",padding:"2rem"}}>
       <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:"2.5rem"}}>
-        <div style={{width:48,height:48,borderRadius:12,background:"#1e2340",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{width:48,height:48,borderRadius:12,background:"#1a1a1a",border:"1px solid rgba(255,255,255,0.12)",display:"flex",alignItems:"center",justifyContent:"center"}}>
           <span style={{color:"#fff",fontWeight:800,fontSize:15,letterSpacing:"-0.5px"}}>KSF</span>
         </div>
         <div>
@@ -296,14 +296,14 @@ function useStore() {
 
 // ── Colors ─────────────────────────────────────────────────────────────────
 const C = {
-  bg:"#141720", sidebar:"#111420", surface:"#1e2235", surface2:"#252a40",
-  border:"rgba(255,255,255,0.11)", borderHi:"rgba(255,255,255,0.18)",
-  text:"#f2f4fc", muted:"#a8b0cc", hint:"#6670a0",
-  accent:"#5b7cfa", accentDim:"rgba(91,124,250,0.18)", accentText:"#8eaafe",
-  success:"#34d399", successDim:"rgba(52,211,153,0.15)",
-  warning:"#fbbf24", warningDim:"rgba(251,191,36,0.15)",
-  danger:"#f87171",  dangerDim:"rgba(248,113,113,0.15)",
-  pm:"#b197fc",      pmDim:"rgba(177,151,252,0.15)",
+  bg:"#0d0d0d", sidebar:"#0a0a0a", surface:"#161616", surface2:"#1e1e1e",
+  border:"rgba(255,255,255,0.08)", borderHi:"rgba(255,255,255,0.14)",
+  text:"#ededed", muted:"#888888", hint:"#555555",
+  accent:"#5b7cfa", accentDim:"rgba(91,124,250,0.15)", accentText:"#8eaafe",
+  success:"#34d399", successDim:"rgba(52,211,153,0.12)",
+  warning:"#fbbf24", warningDim:"rgba(251,191,36,0.12)",
+  danger:"#f87171",  dangerDim:"rgba(248,113,113,0.12)",
+  pm:"#b197fc",      pmDim:"rgba(177,151,252,0.12)",
 };
 
 const USERS_LIST = [
@@ -1581,7 +1581,7 @@ export default function KSFCommandCenter() {
 
   const Sidebar = ({mobile=false}) => (
     <aside style={{
-      width:230, background:"#0a0b0f",
+      width:230, background:"#0a0a0a",
       borderRight:"1px solid rgba(255,255,255,0.06)",
       display:"flex", flexDirection:"column", flexShrink:0,
       ...(mobile ? {
@@ -1597,8 +1597,8 @@ export default function KSFCommandCenter() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         )}
-        <div style={{width:26,height:26,borderRadius:6,background:"rgba(91,124,250,0.2)",border:"1px solid rgba(91,124,250,0.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#8eaafe" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <div style={{width:26,height:26,borderRadius:6,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#cccccc" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
         <span style={{fontSize:14,fontWeight:700,color:"#f0f2f8",letterSpacing:"-0.02em",whiteSpace:"nowrap"}}>KSF Command Center</span>
       </div>
@@ -1613,10 +1613,10 @@ export default function KSFCommandCenter() {
           const active=tab===item.id;
           return (
             <button key={item.id} onClick={()=>{setTab(item.id);if(mobile)setSidebarOpen(false);}}
-              style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:6,border:"none",background:active?"rgba(255,255,255,0.08)":"transparent",cursor:"pointer",fontFamily:"inherit",marginBottom:1,color:active?"#f0f2f8":"#6b7280",fontSize:13,fontWeight:active?500:400,textAlign:"left",transition:"background 0.1s,color 0.1s"}}
-              onMouseEnter={e=>{ if(!active){e.currentTarget.style.background="rgba(255,255,255,0.04)";e.currentTarget.style.color="#9ca3af";}}}
+              style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:6,border:"none",background:active?"rgba(255,255,255,0.08)":"transparent",cursor:"pointer",fontFamily:"inherit",marginBottom:1,color:active?"#ffffff":"#666666",fontSize:13,fontWeight:active?500:400,textAlign:"left",transition:"background 0.1s,color 0.1s"}}
+              onMouseEnter={e=>{ if(!active){e.currentTarget.style.background="rgba(255,255,255,0.04)";e.currentTarget.style.color="#aaaaaa";}}}
               onMouseLeave={e=>{ if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#6b7280";}}}>
-              <span style={{flexShrink:0,display:"flex",alignItems:"center",opacity:active?1:0.6,color:active?"#a5b4fc":"currentColor"}}><Icon/></span>
+              <span style={{flexShrink:0,display:"flex",alignItems:"center",opacity:active?1:0.6,color:active?"#ffffff":"currentColor"}}><Icon/></span>
               <span style={{flex:1}}>{item.label}</span>
               {item.id==="kernbot"&&<span style={{width:6,height:6,borderRadius:"50%",background:"#34d399",flexShrink:0}}/>}
             </button>
@@ -1633,12 +1633,12 @@ export default function KSFCommandCenter() {
           {shellUser.initials}
         </div>
         <div style={{flex:1,minWidth:0}}>
-          <p style={{margin:0,fontSize:12,fontWeight:500,color:"#e5e7eb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.name}</p>
-          <p style={{margin:0,fontSize:11,color:"#4b5563",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.role}</p>
+          <p style={{margin:0,fontSize:12,fontWeight:500,color:"#dddddd",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.name}</p>
+          <p style={{margin:0,fontSize:11,color:"#555555",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.role}</p>
         </div>
         <button onClick={()=>setShellUser(null)} title="Sign out"
-          style={{width:24,height:24,borderRadius:4,background:"none",border:"none",color:"#4b5563",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,padding:0}}
-          onMouseEnter={e=>{e.currentTarget.style.color="#9ca3af";e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
+          style={{width:24,height:24,borderRadius:4,background:"none",border:"none",color:"#555555",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,padding:0}}
+          onMouseEnter={e=>{e.currentTarget.style.color="#aaaaaa";e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
           onMouseLeave={e=>{e.currentTarget.style.color="#4b5563";e.currentTarget.style.background="none";}}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
@@ -1664,12 +1664,12 @@ export default function KSFCommandCenter() {
       {/* Main */}
       <main style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative",minWidth:0}}>
         {/* Mobile top bar */}
-        <div className="ksf-mobile-bar" style={{display:"none",alignItems:"center",gap:10,padding:"10px 14px",borderBottom:"1px solid rgba(255,255,255,0.06)",flexShrink:0,background:"#0a0b0f"}}>
+        <div className="ksf-mobile-bar" style={{display:"none",alignItems:"center",gap:10,padding:"10px 14px",borderBottom:"1px solid rgba(255,255,255,0.06)",flexShrink:0,background:"#0a0a0a"}}>
           <button onClick={()=>setSidebarOpen(true)}
             style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",padding:4,display:"flex",alignItems:"center"}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
-          <span style={{fontSize:12,fontWeight:600,color:"#e5e7eb"}}>KSF Command Center</span>
+          <span style={{fontSize:12,fontWeight:600,color:"#dddddd"}}>KSF Command Center</span>
           <span style={{fontSize:11,color:"#6b7280",marginLeft:"auto"}}>{NAV_ITEMS.find(i=>i.id===tab)?.label}</span>
         </div>
 
