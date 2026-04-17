@@ -16,12 +16,12 @@ const SHELL_USERS = [
 ];
 
 const SHELL_COLORS = {
-  bg:"#0d0d0d", sidebar:"#0a0a0a", surface:"#111111",
-  border:"rgba(255,255,255,0.08)", borderHi:"rgba(255,255,255,0.14)",
-  text:"#ededed", muted:"#888888", hint:"#555555",
+  bg:"#0d0d0d", sidebar:"#0a0a0a", surface:"#1a1a1a",
+  border:"rgba(255,255,255,0.10)", borderHi:"rgba(255,255,255,0.18)",
+  text:"#ededed", muted:"#999999", hint:"#666666",
   accent:"#5b7cfa", accentDim:"rgba(91,124,250,0.15)",
   success:"#34d399", warning:"#fbbf24", danger:"#f87171",
-  pm:"#b197fc", pmDim:"rgba(177,151,252,0.12)",
+  pm:"#a78bfa", pmDim:"rgba(167,139,250,0.14)",
 };
 
 const NAV_ICONS = {
@@ -296,14 +296,14 @@ function useStore() {
 
 // ── Colors ─────────────────────────────────────────────────────────────────
 const C = {
-  bg:"#0d0d0d", sidebar:"#0a0a0a", surface:"#161616", surface2:"#1e1e1e",
-  border:"rgba(255,255,255,0.08)", borderHi:"rgba(255,255,255,0.14)",
-  text:"#ededed", muted:"#888888", hint:"#555555",
+  bg:"#0d0d0d", sidebar:"#0a0a0a", surface:"#1a1a1a", surface2:"#222222",
+  border:"rgba(255,255,255,0.10)", borderHi:"rgba(255,255,255,0.18)",
+  text:"#ededed", muted:"#999999", hint:"#666666",
   accent:"#5b7cfa", accentDim:"rgba(91,124,250,0.15)", accentText:"#8eaafe",
   success:"#34d399", successDim:"rgba(52,211,153,0.12)",
   warning:"#fbbf24", warningDim:"rgba(251,191,36,0.12)",
   danger:"#f87171",  dangerDim:"rgba(248,113,113,0.12)",
-  pm:"#b197fc",      pmDim:"rgba(177,151,252,0.12)",
+  pm:"#a78bfa",      pmDim:"rgba(167,139,250,0.16)",
 };
 
 const USERS_LIST = [
@@ -685,40 +685,97 @@ function SourcePanel({source,onClose}) {
 
 function Bubble({m,isMe,userColor,userInitials,onView,onSourceClick}) {
   const isPM=m.role==="pm", isBot=m.role==="bot";
-  const avBg=isMe?userColor+"30":isPM?C.pmDim:C.accentDim;
-  const avC =isMe?userColor:isPM?C.pm:C.accent;
+
+  // Avatar
+  const avBg=isMe?userColor+"28":isPM?"rgba(167,139,250,0.2)":C.surface2;
+  const avC =isMe?userColor:isPM?"#a78bfa":C.muted;
   const avL =isMe?userInitials:isPM?(m.name?.split(" ").map(w=>w[0]).join("").slice(0,2)||"LC"):"KB";
-  const bg  =m.escalationNotice?C.pmDim:isPM?C.pmDim:isBot&&m.confidence!=null&&m.confidence<80?C.warningDim:isMe?C.surface2:C.surface;
-  const bdr =m.escalationNotice?"rgba(177,151,252,0.3)":m.unread&&isPM?C.warning:isPM?"rgba(177,151,252,0.2)":isBot&&m.confidence!=null&&m.confidence<80?"rgba(251,191,36,0.18)":C.border;
+
+  // Bubble background + border
+  // User: neutral surface gray
+  // Bot: slightly different surface, or warning tint if low confidence
+  // PM (Loren): always clear purple — distinct from everything else
+  // Escalation notice: subtle purple pill, no background bubble
+  const bg = isPM
+    ? "rgba(139,92,246,0.13)"
+    : isBot&&m.confidence!=null&&m.confidence<80
+      ? C.warningDim
+      : isMe
+        ? C.surface2
+        : C.surface;
+
+  const bdr = isPM
+    ? "rgba(139,92,246,0.55)"
+    : isBot&&m.confidence!=null&&m.confidence<80
+      ? "rgba(251,191,36,0.25)"
+      : m.unread&&isPM
+        ? C.warning
+        : C.border;
+
+  // Loren's messages get a left accent bar
+  const leftBar = isPM && !m.escalationNotice;
+
+  // Parse escalation notice text to bold "Thread escalated" and underline PMQ code
+  const renderEscalationText = (text) => {
+    // Match PMQ-YYYY-NNNN pattern
+    const pmqMatch = text.match(/(PMQ-\d{4}-\d{4})/);
+    if(!pmqMatch) return <span style={{fontWeight:600}}>{text}</span>;
+    const parts = text.split(pmqMatch[1]);
+    return (
+      <span style={{fontWeight:600}}>
+        {parts[0]}
+        <span style={{textDecoration:"underline",textUnderlineOffset:"2px"}}>{pmqMatch[1]}</span>
+        {parts[1]}
+      </span>
+    );
+  };
+
   return (
     <div style={{display:"flex",gap:10,alignItems:"flex-start",flexDirection:isMe?"row-reverse":"row"}}>
-      <div style={{width:30,height:30,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1,background:avBg,border:`1px solid ${avC}33`}}>
+      <div style={{width:30,height:30,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",marginTop:1,background:avBg,border:`1px solid ${avC}44`}}>
         <span style={{fontSize:10,fontWeight:700,color:avC}}>{avL}</span>
       </div>
       <div style={{maxWidth:"82%",minWidth:0}}>
         <div style={{fontSize:11,marginBottom:4,display:"flex",alignItems:"center",gap:5,flexDirection:isMe?"row-reverse":"row"}}>
-          <span style={{color:isPM?C.pm:isBot?C.muted:C.hint,fontWeight:500}}>{isPM?(m.name||"Senior PM"):isBot?"Kern Bot":"You"}</span>
+          <span style={{color:isPM?"#a78bfa":isBot?C.muted:C.hint,fontWeight:500}}>
+            {isPM?(m.name||"Loren C."):isBot?"Kern Bot":"You"}
+          </span>
           {m.unread&&isPM&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:20,background:C.warningDim,color:C.warning,fontWeight:600}}>New</span>}
         </div>
-        <div style={{background:bg,border:`1px solid ${bdr}`,borderRadius:isMe?"12px 3px 12px 12px":"3px 12px 12px 12px",padding:"11px 14px",fontSize:13,color:C.text,lineHeight:1.75,whiteSpace:"pre-wrap"}}>
-          {m.escalationNotice&&<div style={{marginBottom:5}}><span style={{fontSize:10,fontWeight:500,padding:"2px 7px",borderRadius:20,background:C.pmDim,color:C.pm}}>Escalation notice</span></div>}
-          {m.text}
-          {m.attachments?.length>0&&<AttachDisplay attachments={m.attachments} onView={onView}/>}
-          {m.sources?.length>0&&(
-            <div style={{marginTop:10,display:"flex",flexWrap:"wrap",gap:5}}>
-              {m.sources.map((s,j)=>(
-                <button key={j} onClick={()=>onSourceClick&&onSourceClick(s)}
-                  style={{display:"inline-flex",alignItems:"center",gap:5,background:C.surface2,border:`1px solid ${C.border}`,borderRadius:6,padding:"3px 9px",cursor:"pointer",fontFamily:"inherit",transition:"all 0.12s"}}
-                  onMouseEnter={e=>{e.currentTarget.style.background=C.accentDim;e.currentTarget.style.borderColor="rgba(91,124,250,0.3)";}}
-                  onMouseLeave={e=>{e.currentTarget.style.background=C.surface2;e.currentTarget.style.borderColor=C.border;}}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={C.accentText} strokeWidth="1.5" strokeLinecap="round"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={C.accentText} strokeWidth="1.5"/></svg>
-                  <span style={{fontSize:10,color:C.accentText,fontWeight:500}}>{s.doc}</span>
-                  {s.section&&<span style={{fontSize:10,color:C.muted}}>{s.section}</span>}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+
+        {/* Escalation notice — inline pill style, no bubble */}
+        {m.escalationNotice ? (
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"7px 12px",background:"rgba(139,92,246,0.10)",border:"1px solid rgba(139,92,246,0.3)",borderRadius:8,fontSize:13,color:"#c4b5fd",lineHeight:1.5}}>
+            <span style={{fontSize:10,fontWeight:600,padding:"1px 6px",borderRadius:4,background:"rgba(139,92,246,0.2)",color:"#a78bfa",letterSpacing:"0.03em"}}>ESCALATED</span>
+            {renderEscalationText(m.text)}
+          </div>
+        ) : (
+          <div style={{
+            background:bg,
+            border:`1px solid ${bdr}`,
+            borderLeft:leftBar?`3px solid #a78bfa`:`1px solid ${bdr}`,
+            borderRadius:isMe?"12px 3px 12px 12px":"3px 12px 12px 12px",
+            padding:"11px 14px",
+            fontSize:13,color:C.text,lineHeight:1.75,whiteSpace:"pre-wrap"
+          }}>
+            {m.text}
+            {m.attachments?.length>0&&<AttachDisplay attachments={m.attachments} onView={onView}/>}
+            {m.sources?.length>0&&(
+              <div style={{marginTop:10,display:"flex",flexWrap:"wrap",gap:5}}>
+                {m.sources.map((s,j)=>(
+                  <button key={j} onClick={()=>onSourceClick&&onSourceClick(s)}
+                    style={{display:"inline-flex",alignItems:"center",gap:5,background:C.surface2,border:`1px solid ${C.border}`,borderRadius:6,padding:"3px 9px",cursor:"pointer",fontFamily:"inherit",transition:"all 0.12s"}}
+                    onMouseEnter={e=>{e.currentTarget.style.background=C.accentDim;e.currentTarget.style.borderColor="rgba(91,124,250,0.3)";}}
+                    onMouseLeave={e=>{e.currentTarget.style.background=C.surface2;e.currentTarget.style.borderColor=C.border;}}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={C.accentText} strokeWidth="1.5" strokeLinecap="round"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={C.accentText} strokeWidth="1.5"/></svg>
+                    <span style={{fontSize:10,color:C.accentText,fontWeight:500}}>{s.doc}</span>
+                    {s.section&&<span style={{fontSize:10,color:C.muted}}>{s.section}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {isBot&&m.confidence!=null&&!m.escalationNotice&&<div style={{marginTop:5}}><ConfBadge s={m.confidence}/></div>}
       </div>
     </div>
