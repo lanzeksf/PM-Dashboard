@@ -25,35 +25,32 @@ const SHELL_COLORS = {
 };
 
 const NAV_ICONS = {
-  dashboard:  ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
-  kernbot:    ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="11"/><circle cx="8.5" cy="16" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="16" r="1.2" fill="currentColor" stroke="none"/></svg>,
-  owner:      ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.35 2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
-  scope:      ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-  changes:    ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M14.5 9.5a2.5 2 0 0 0-5 0c0 1.5 5 2 5 3.5a2.5 2 0 0 1-5 0"/><line x1="12" y1="7" x2="12" y2="9.5"/><line x1="12" y1="15" x2="12" y2="17"/></svg>,
-  detailing:  ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M3 21V7l9-4 9 4v14"/><line x1="9" y1="21" x2="9" y2="13"/><line x1="15" y1="21" x2="15" y2="13"/><rect x="9" y="13" width="6" height="4"/></svg>,
-  rfi:        ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-  // AISC W-shape cross-section: wide top flange, fillet taper into thin web, wide bottom flange
-  fab: ()=><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-    {/* Top flange */}
+  dashboard:  ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
+  kernbot:    ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="11"/><circle cx="8.5" cy="16" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="16" r="1.2" fill="currentColor" stroke="none"/></svg>,
+  owner:      ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.35 2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
+  scope:      ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  changes:    ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M14.5 9.5a2.5 2 0 0 0-5 0c0 1.5 5 2 5 3.5a2.5 2 0 0 1-5 0"/><line x1="12" y1="7" x2="12" y2="9.5"/><line x1="12" y1="15" x2="12" y2="17"/></svg>,
+  // Drafting triangle / set square — right angle triangle with ruler tick marks
+  detailing:  ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20L20 20L4 4Z"/><line x1="4" y1="20" x2="4" y2="4"/><line x1="4" y1="20" x2="20" y2="20"/><line x1="8" y1="20" x2="8" y2="18"/><line x1="12" y1="20" x2="12" y2="18"/><line x1="16" y1="20" x2="16" y2="18"/><line x1="4" y1="12" x2="6" y2="12"/><line x1="4" y1="8" x2="6" y2="8"/><line x1="4" y1="16" x2="6" y2="16"/></svg>,
+  // Clean chat bubble — simple and complete
+  rfi:        ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  // AISC W-shape: top flange, diagonal fillets, thin web, bottom flange
+  fab: ()=><svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <line x1="1" y1="2.5" x2="19" y2="2.5"/>
     <line x1="1" y1="4.5" x2="19" y2="4.5"/>
     <line x1="1" y1="2.5" x2="1" y2="4.5"/>
     <line x1="19" y1="2.5" x2="19" y2="4.5"/>
-    {/* Left fillet: taper from flange edge to web */}
     <line x1="1" y1="4.5" x2="8.5" y2="6"/>
     <line x1="19" y1="4.5" x2="11.5" y2="6"/>
-    {/* Web */}
     <line x1="8.5" y1="6" x2="8.5" y2="14"/>
     <line x1="11.5" y1="6" x2="11.5" y2="14"/>
-    {/* Right fillet: taper from web back to flange */}
     <line x1="8.5" y1="14" x2="1" y2="15.5"/>
     <line x1="11.5" y1="14" x2="19" y2="15.5"/>
-    {/* Bottom flange */}
     <line x1="1" y1="15.5" x2="1" y2="17.5"/>
     <line x1="19" y1="15.5" x2="19" y2="17.5"/>
     <line x1="1" y1="17.5" x2="19" y2="17.5"/>
   </svg>,
-  field:      ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  field:      ()=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
 };
 
 const NAV_ITEMS = [
@@ -1584,7 +1581,7 @@ export default function KSFCommandCenter() {
 
   const Sidebar = ({mobile=false}) => (
     <aside style={{
-      width:210, background:"#0a0b0f",
+      width:230, background:"#0a0b0f",
       borderRight:"1px solid rgba(255,255,255,0.06)",
       display:"flex", flexDirection:"column", flexShrink:0,
       ...(mobile ? {
@@ -1593,57 +1590,57 @@ export default function KSFCommandCenter() {
       } : {})
     }}>
       {/* Brand */}
-      <div style={{padding:"16px 14px 12px", display:"flex", alignItems:"center", gap:8}}>
+      <div style={{padding:"18px 16px 14px", display:"flex", alignItems:"center", gap:10}}>
         {mobile&&(
           <button onClick={()=>setSidebarOpen(false)}
             style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",padding:"2px 6px 2px 0",display:"flex",flexShrink:0}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         )}
-        <div style={{width:22,height:22,borderRadius:5,background:"rgba(91,124,250,0.2)",border:"1px solid rgba(91,124,250,0.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#8eaafe" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <div style={{width:26,height:26,borderRadius:6,background:"rgba(91,124,250,0.2)",border:"1px solid rgba(91,124,250,0.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#8eaafe" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
-        <span style={{fontSize:12,fontWeight:600,color:"#e5e7eb",letterSpacing:"-0.01em",whiteSpace:"nowrap"}}>KSF Command Center</span>
+        <span style={{fontSize:14,fontWeight:700,color:"#f0f2f8",letterSpacing:"-0.02em",whiteSpace:"nowrap"}}>KSF Command Center</span>
       </div>
 
       {/* Divider */}
-      <div style={{height:1,background:"rgba(255,255,255,0.05)",margin:"0 10px 6px"}}/>
+      <div style={{height:1,background:"rgba(255,255,255,0.05)",margin:"0 12px 8px"}}/>
 
       {/* Nav */}
-      <nav style={{flex:1,overflowY:"auto",padding:"2px 6px"}}>
+      <nav style={{flex:1,overflowY:"auto",padding:"2px 8px"}}>
         {NAV_ITEMS.map(item=>{
           const Icon=NAV_ICONS[item.id];
           const active=tab===item.id;
           return (
             <button key={item.id} onClick={()=>{setTab(item.id);if(mobile)setSidebarOpen(false);}}
-              style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:5,border:"none",background:active?"rgba(255,255,255,0.07)":"transparent",cursor:"pointer",fontFamily:"inherit",marginBottom:1,color:active?"#f0f2f8":"#6b7280",fontSize:12,fontWeight:active?500:400,textAlign:"left",transition:"background 0.1s,color 0.1s"}}
+              style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:6,border:"none",background:active?"rgba(255,255,255,0.08)":"transparent",cursor:"pointer",fontFamily:"inherit",marginBottom:1,color:active?"#f0f2f8":"#6b7280",fontSize:13,fontWeight:active?500:400,textAlign:"left",transition:"background 0.1s,color 0.1s"}}
               onMouseEnter={e=>{ if(!active){e.currentTarget.style.background="rgba(255,255,255,0.04)";e.currentTarget.style.color="#9ca3af";}}}
               onMouseLeave={e=>{ if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#6b7280";}}}>
-              <span style={{flexShrink:0,display:"flex",alignItems:"center",opacity:active?1:0.55,color:active?"#a5b4fc":"currentColor"}}><Icon/></span>
+              <span style={{flexShrink:0,display:"flex",alignItems:"center",opacity:active?1:0.6,color:active?"#a5b4fc":"currentColor"}}><Icon/></span>
               <span style={{flex:1}}>{item.label}</span>
-              {item.id==="kernbot"&&<span style={{width:5,height:5,borderRadius:"50%",background:"#34d399",flexShrink:0}}/>}
+              {item.id==="kernbot"&&<span style={{width:6,height:6,borderRadius:"50%",background:"#34d399",flexShrink:0}}/>}
             </button>
           );
         })}
       </nav>
 
       {/* Divider */}
-      <div style={{height:1,background:"rgba(255,255,255,0.05)",margin:"6px 10px 0"}}/>
+      <div style={{height:1,background:"rgba(255,255,255,0.05)",margin:"8px 12px 0"}}/>
 
       {/* User footer */}
-      <div style={{padding:"10px 10px 12px",display:"flex",alignItems:"center",gap:8}}>
-        <div style={{width:24,height:24,borderRadius:"50%",background:shellUser.color+"22",border:`1px solid ${shellUser.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:600,fontSize:9,color:shellUser.color,flexShrink:0,letterSpacing:"0.02em"}}>
+      <div style={{padding:"12px 12px 16px",display:"flex",alignItems:"center",gap:9}}>
+        <div style={{width:28,height:28,borderRadius:"50%",background:shellUser.color+"22",border:`1px solid ${shellUser.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:10,color:shellUser.color,flexShrink:0,letterSpacing:"0.02em"}}>
           {shellUser.initials}
         </div>
         <div style={{flex:1,minWidth:0}}>
-          <p style={{margin:0,fontSize:11,fontWeight:500,color:"#d1d5db",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.name}</p>
-          <p style={{margin:0,fontSize:10,color:"#4b5563",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.role}</p>
+          <p style={{margin:0,fontSize:12,fontWeight:500,color:"#e5e7eb",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.name}</p>
+          <p style={{margin:0,fontSize:11,color:"#4b5563",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shellUser.role}</p>
         </div>
         <button onClick={()=>setShellUser(null)} title="Sign out"
-          style={{width:22,height:22,borderRadius:4,background:"none",border:"none",color:"#4b5563",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,padding:0}}
+          style={{width:24,height:24,borderRadius:4,background:"none",border:"none",color:"#4b5563",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,padding:0}}
           onMouseEnter={e=>{e.currentTarget.style.color="#9ca3af";e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
           onMouseLeave={e=>{e.currentTarget.style.color="#4b5563";e.currentTarget.style.background="none";}}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
       </div>
     </aside>
