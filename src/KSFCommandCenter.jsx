@@ -16,9 +16,9 @@ const SHELL_USERS = [
 ];
 
 const SHELL_COLORS = {
-  bg:"#0d0d0d", sidebar:"#0a0a0a", surface:"#1a1a1a",
-  border:"rgba(255,255,255,0.10)", borderHi:"rgba(255,255,255,0.18)",
-  text:"#ededed", muted:"#999999", hint:"#666666",
+  bg:"#0a0a0a", sidebar:"#000000", surface:"#111111",
+  border:"rgba(255,255,255,0.13)", borderHi:"rgba(255,255,255,0.22)",
+  text:"#ededed", muted:"#aaaaaa", hint:"#777777",
   accent:"#5b7cfa", accentDim:"rgba(91,124,250,0.15)",
   success:"#34d399", warning:"#fbbf24", danger:"#f87171",
   pm:"#a78bfa", pmDim:"rgba(167,139,250,0.14)",
@@ -296,9 +296,9 @@ function useStore() {
 
 // ── Colors ─────────────────────────────────────────────────────────────────
 const C = {
-  bg:"#0d0d0d", sidebar:"#0a0a0a", surface:"#1a1a1a", surface2:"#222222",
-  border:"rgba(255,255,255,0.10)", borderHi:"rgba(255,255,255,0.18)",
-  text:"#ededed", muted:"#999999", hint:"#666666",
+  bg:"#0a0a0a", sidebar:"#000000", surface:"#111111", surface2:"#1a1a1a",
+  border:"rgba(255,255,255,0.13)", borderHi:"rgba(255,255,255,0.22)",
+  text:"#ededed", muted:"#aaaaaa", hint:"#777777",
   accent:"#5b7cfa", accentDim:"rgba(91,124,250,0.15)", accentText:"#8eaafe",
   success:"#34d399", successDim:"rgba(52,211,153,0.12)",
   warning:"#fbbf24", warningDim:"rgba(251,191,36,0.12)",
@@ -698,19 +698,18 @@ function Bubble({m,isMe,userColor,userInitials,onView,onSourceClick}) {
   // Escalation notice: subtle purple pill, no background bubble
   const bg = isPM
     ? "rgba(139,92,246,0.13)"
-    : isBot&&m.confidence!=null&&m.confidence<80
-      ? C.warningDim
-      : isMe
-        ? C.surface2
-        : C.surface;
+    : isMe
+      ? C.surface2
+      : C.surface;
 
   const bdr = isPM
     ? "rgba(139,92,246,0.55)"
-    : isBot&&m.confidence!=null&&m.confidence<80
-      ? "rgba(251,191,36,0.25)"
-      : m.unread&&isPM
-        ? C.warning
-        : C.border;
+    : m.unread&&isPM
+      ? C.warning
+      : C.border;
+
+  // Low confidence: just a left border hint, no amber bubble
+  const lowConf = isBot && m.confidence!=null && m.confidence<80 && !m.escalationNotice;
 
   // Loren's messages get a left accent bar
   const leftBar = isPM && !m.escalationNotice;
@@ -753,7 +752,7 @@ function Bubble({m,isMe,userColor,userInitials,onView,onSourceClick}) {
           <div style={{
             background:bg,
             border:`1px solid ${bdr}`,
-            borderLeft:leftBar?`3px solid #a78bfa`:`1px solid ${bdr}`,
+            borderLeft:leftBar?`3px solid #a78bfa`:lowConf?`2px solid rgba(251,191,36,0.5)`:`1px solid ${bdr}`,
             borderRadius:isMe?"12px 3px 12px 12px":"3px 12px 12px 12px",
             padding:"11px 14px",
             fontSize:13,color:C.text,lineHeight:1.75,whiteSpace:"pre-wrap"
@@ -1638,7 +1637,7 @@ export default function KSFCommandCenter() {
 
   const Sidebar = ({mobile=false}) => (
     <aside style={{
-      width:230, background:"#0a0a0a",
+      width:230, background:"#000000",
       borderRight:"1px solid rgba(255,255,255,0.06)",
       display:"flex", flexDirection:"column", flexShrink:0,
       ...(mobile ? {
@@ -1721,7 +1720,7 @@ export default function KSFCommandCenter() {
       {/* Main */}
       <main style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative",minWidth:0}}>
         {/* Mobile top bar */}
-        <div className="ksf-mobile-bar" style={{display:"none",alignItems:"center",gap:10,padding:"10px 14px",borderBottom:"1px solid rgba(255,255,255,0.06)",flexShrink:0,background:"#0a0a0a"}}>
+        <div className="ksf-mobile-bar" style={{display:"none",alignItems:"center",gap:10,padding:"10px 14px",borderBottom:"1px solid rgba(255,255,255,0.06)",flexShrink:0,background:"#000000"}}>
           <button onClick={()=>setSidebarOpen(true)}
             style={{background:"none",border:"none",color:"#6b7280",cursor:"pointer",padding:4,display:"flex",alignItems:"center"}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
