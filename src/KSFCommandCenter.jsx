@@ -153,7 +153,7 @@ function ShellLogin({onLogin}) {
       {/* Background photo */}
       <div style={{position:"absolute",inset:0,backgroundImage:`url(${BG_PHOTO})`,backgroundSize:"cover",backgroundPosition:"center center"}}/>
       {/* Dark overlay */}
-      <div style={{position:"absolute",inset:0,background:"linear-gradient(165deg,rgba(0,0,0,0.25) 0%,rgba(0,0,0,0.48) 45%,rgba(0,0,0,0.72) 100%)"}}/>
+      <div style={{position:"absolute",inset:0,background:"linear-gradient(165deg,rgba(0,0,0,0.08) 0%,rgba(0,0,0,0.28) 45%,rgba(0,0,0,0.55) 100%)"}}/>
       {/* Vignette */}
       <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 80% 80% at 50% 50%,transparent 35%,rgba(0,0,0,0.5) 100%)",pointerEvents:"none"}}/>
 
@@ -169,13 +169,12 @@ function ShellLogin({onLogin}) {
         <div className="ksfl-card" style={{
           background:"rgba(5,8,11,0.78)",
           backdropFilter:"blur(28px)", WebkitBackdropFilter:"blur(28px)",
-          border:"1px solid rgba(255,255,255,0.08)",
-          borderTop:"1px solid rgba(255,255,255,0.15)",
+          border:"none",
           borderRadius:14,
           boxShadow:"0 28px 80px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.04)",
           overflow:"hidden",
         }}>
-          <div style={{height:1,background:"linear-gradient(90deg,transparent,rgba(180,210,240,0.22) 35%,rgba(200,225,255,0.38) 50%,rgba(180,210,240,0.22) 65%,transparent)"}}/>
+          
 
           <div style={{padding:"26px 26px 24px"}}>
             {forgotSent ? (
