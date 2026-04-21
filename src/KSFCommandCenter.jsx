@@ -1761,17 +1761,44 @@ export default function KSFCommandCenter() {
       {/* Divider */}
       <div style={{height:1,background:"rgba(255,255,255,0.05)",margin:"0 12px 8px"}}/>
 
+      {/* Nav styles — CSS-driven hover so React re-renders never clobber hover state */}
+      <style>{`
+        .ksf-nav-btn {
+          width:100%; display:flex; align-items:center; gap:10px;
+          padding:8px 10px; border-radius:6px; border:none;
+          background:transparent; cursor:pointer; font-family:inherit;
+          margin-bottom:1px; color:#888; font-size:13px; font-weight:400;
+          text-align:left; transition:background 0.1s, color 0.1s;
+          border-left:2px solid transparent;
+        }
+        .ksf-nav-btn:hover {
+          background:rgba(255,255,255,0.08);
+          color:#e0e0e0;
+        }
+        .ksf-nav-btn.active {
+          background:rgba(255,255,255,0.14);
+          color:#ffffff;
+          font-weight:600;
+          border-left:2px solid rgba(255,255,255,0.7);
+        }
+        .ksf-nav-btn.active:hover {
+          background:rgba(255,255,255,0.16);
+        }
+        .ksf-nav-icon { flex-shrink:0; display:flex; align-items:center; opacity:0.6; }
+        .ksf-nav-btn:hover .ksf-nav-icon { opacity:0.85; }
+        .ksf-nav-btn.active .ksf-nav-icon { opacity:1; }
+      `}</style>
+
       {/* Nav */}
       <nav style={{flex:1,overflowY:"auto",padding:"2px 8px"}}>
         {NAV_ITEMS.map(item=>{
           const Icon=NAV_ICONS[item.id];
           const active=tab===item.id;
           return (
-            <button key={item.id} onClick={()=>{setTab(item.id);if(mobile)setSidebarOpen(false);}}
-              style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:6,border:"none",background:active?"rgba(255,255,255,0.08)":"transparent",cursor:"pointer",fontFamily:"inherit",marginBottom:1,color:active?"#ffffff":"#999999",fontSize:13,fontWeight:active?500:400,textAlign:"left",transition:"background 0.1s,color 0.1s"}}
-              onMouseEnter={e=>{ if(!active){e.currentTarget.style.background="rgba(255,255,255,0.04)";e.currentTarget.style.color="#aaaaaa";}}}
-              onMouseLeave={e=>{ if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color="#6b7280";}}}>
-              <span style={{flexShrink:0,display:"flex",alignItems:"center",opacity:active?1:0.75,color:active?"#ffffff":"currentColor"}}><Icon/></span>
+            <button key={item.id}
+              className={`ksf-nav-btn${active?" active":""}`}
+              onClick={()=>{setTab(item.id);if(mobile)setSidebarOpen(false);}}>
+              <span className="ksf-nav-icon"><Icon/></span>
               <span style={{flex:1}}>{item.label}</span>
               {item.id==="kernbot"&&<span style={{width:6,height:6,borderRadius:"50%",background:"#34d399",flexShrink:0}}/>}
             </button>
