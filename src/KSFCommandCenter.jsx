@@ -423,16 +423,42 @@ Critical rules — always apply these:
 
 Team: Loren C. (Senior PM, decision-maker), Tony S. (Structural), Luis A. + Jillian H. (Solar), Adam K. + Luis A. (Aerospace), Jacob T. (Field — keep it brief with him), Lanze A. (Manufacturing Engineer, shop floor).`;
 
-async function callKernBot(userMessage, conversationHistory=[]) {
+async function callKernBot(userMessage, conversationHistory=[], attachments=[]) {
   const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
   if(!apiKey) return {text:"API key not configured. Add VITE_ANTHROPIC_API_KEY to your environment variables.",sources:[],confidence:0};
+
+  // Build content array for the current user message — text + any image attachments
+  const buildUserContent = async (text, atts) => {
+    const content = [];
+    // Add images first so the model sees them before the text question
+    for(const att of atts) {
+      if(att.type?.startsWith("image/") || att.name?.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
+        try {
+          const b64 = att.dataUrl
+            ? att.dataUrl.split(",")[1]
+            : await new Promise((res,rej)=>{
+                const r=new FileReader();
+                r.onload=()=>res(r.result.split(",")[1]);
+                r.onerror=rej;
+                r.readAsDataURL(att.file||att);
+              });
+          const mediaType = att.type || "image/png";
+          content.push({type:"image",source:{type:"base64",media_type:mediaType,data:b64}});
+        } catch(e){ /* skip unreadable image */ }
+      }
+    }
+    if(text) content.push({type:"text",text});
+    return content.length===1&&content[0].type==="text" ? text : content;
+  };
+
+  const userContent = await buildUserContent(userMessage, attachments);
 
   const messages = [
     ...conversationHistory.map(m=>({
       role: m.role==="user"?"user":"assistant",
       content: m.text||""
     })),
-    {role:"user", content:userMessage}
+    {role:"user", content:userContent}
   ];
 
   try {
@@ -1361,6 +1387,21 @@ function ChatPane({chat,user,isAdmin,onEscalate,onResolve,onUnresolve,onSend,onS
   useEffect(()=>{setInput("");setLoading(false);clearAtt();},[chat?.id]);
   useEffect(()=>{if(chat?.unread)onMarkRead(chat.id);},[chat?.id,chat?.unread]);
   useEffect(()=>{if(taRef.current){taRef.current.style.height="auto";taRef.current.style.height=Math.min(taRef.current.scrollHeight,130)+"px";};},[input]);
+  // Auto-focus textarea when chat changes (new conversation or switching chats)
+  useEffect(()=>{ setTimeout(()=>taRef.current?.focus(),50); },[chat?.id]);
+
+  // Paste handler — intercepts clipboard images (screenshots, Ctrl+V)
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if(!items) return;
+    const imageItems = Array.from(items).filter(it=>it.type.startsWith("image/"));
+    if(imageItems.length===0) return;
+    e.preventDefault();
+    imageItems.forEach(item=>{
+      const file = item.getAsFile();
+      if(file) handleFiles([file].reduce((acc,f)=>{acc[0]=f;acc.length=1;return acc;}, {0:file,length:1}));
+    });
+  };
 
   const send=async()=>{
     if((!input.trim()&&!attachments.length)||loading) return;
@@ -1450,7 +1491,8 @@ function ChatPane({chat,user,isAdmin,onEscalate,onResolve,onUnresolve,onSend,onS
               <AttachTray attachments={attachments} onRemove={removeAt}/>
               <textarea ref={taRef} value={input} onChange={e=>setInput(e.target.value)}
                 onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();isEscalated?reply():send();}}}
-                placeholder={attachments.length>0?"Add a message (optional) or press Enter to send…":isEscalated?"Reply to the thread — Loren will see this…":msgs.length===0?"Ask anything, or attach drawings/photos/PDFs for context…":"Follow up or attach files…"}
+                onPaste={handlePaste}
+                placeholder={attachments.length>0?"Add a message (optional) or press Enter to send…":isEscalated?"Reply to the thread — Loren will see this…":msgs.length===0?"Ask anything — or paste / attach drawings, photos, PDFs…":"Follow up or attach files…"}
                 disabled={loading} rows={1}
                 style={{width:"100%",background:"none",border:"none",outline:"none",color:C.text,fontSize:13,fontFamily:"inherit",resize:"none",lineHeight:1.6,padding:"10px 12px",boxSizing:"border-box",display:"block",minHeight:40,maxHeight:130,overflowY:"auto"}}/>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 8px 7px",borderTop:`1px solid ${C.border}`}}>
@@ -1629,7 +1671,7 @@ function KernBotApp({preloadUser}) {
     const title=c.title==="New conversation"&&text?text.slice(0,44)+(text.length>44?"…":""):c.title==="New conversation"&&attachments.length?attachments[0].name:c.title;
     store.updateChat(id,{title,lastActivity:nowStamp(),msgs:[...c.msgs,um]});
     const history=c.msgs.filter(m=>!m.escalationNotice&&(m.role==="user"||m.role==="bot")).slice(-10);
-    const resp = await callKernBot(text, history);
+    const resp = await callKernBot(text, history, attachments);
     const c2=store.chats.find(x=>x.id===id); if(!c2) return;
     store.updateChat(id,{lastActivity:nowStamp(),msgs:[...c2.msgs,{id:nextId(),role:"bot",...resp}]});
   },[]);
