@@ -430,25 +430,24 @@ async function callKernBot(userMessage, conversationHistory=[], attachments=[]) 
   // Build content array for the current user message — text + any image attachments
   const buildUserContent = async (text, atts) => {
     const content = [];
-    // Add images first so the model sees them before the text question
     for(const att of atts) {
-      if(att.type?.startsWith("image/") || att.name?.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
-        try {
-          const b64 = att.dataUrl
-            ? att.dataUrl.split(",")[1]
-            : await new Promise((res,rej)=>{
-                const r=new FileReader();
-                r.onload=()=>res(r.result.split(",")[1]);
-                r.onerror=rej;
-                r.readAsDataURL(att.file||att);
-              });
-          const mediaType = att.type || "image/png";
-          content.push({type:"image",source:{type:"base64",media_type:mediaType,data:b64}});
-        } catch(e){ /* skip unreadable image */ }
-      }
+      const isImage = att.mimeType?.startsWith("image/") || att.name?.match(/\.(png|jpg|jpeg|gif|webp)$/i);
+      if(!isImage) continue;
+      try {
+        // useAttachments pre-converts to dataUrl — use it directly
+        const b64 = att.dataUrl
+          ? att.dataUrl.split(",")[1]
+          : null;
+        if(!b64) continue;
+        const mediaType = att.mimeType || "image/png";
+        content.push({type:"image",source:{type:"base64",media_type:mediaType,data:b64}});
+      } catch(e){ /* skip */ }
     }
     if(text) content.push({type:"text",text});
-    return content.length===1&&content[0].type==="text" ? text : content;
+    // If only text, send as plain string (simpler)
+    if(content.length===1 && content[0].type==="text") return text;
+    if(content.length===0) return text||"";
+    return content;
   };
 
   const userContent = await buildUserContent(userMessage, attachments);
@@ -1392,15 +1391,26 @@ function ChatPane({chat,user,isAdmin,onEscalate,onResolve,onUnresolve,onSend,onS
 
   // Paste handler — intercepts clipboard images (screenshots, Ctrl+V)
   const handlePaste = (e) => {
-    const items = e.clipboardData?.items;
-    if(!items) return;
-    const imageItems = Array.from(items).filter(it=>it.type.startsWith("image/"));
-    if(imageItems.length===0) return;
-    e.preventDefault();
-    imageItems.forEach(item=>{
-      const file = item.getAsFile();
-      if(file) handleFiles([file].reduce((acc,f)=>{acc[0]=f;acc.length=1;return acc;}, {0:file,length:1}));
-    });
+    const cd = e.clipboardData;
+    if(!cd) return;
+
+    // Try files first (some browsers expose it this way)
+    if(cd.files && cd.files.length>0) {
+      const imageFiles = Array.from(cd.files).filter(f=>f.type.startsWith("image/"));
+      if(imageFiles.length>0) {
+        e.preventDefault();
+        handleFiles(imageFiles);
+        return;
+      }
+    }
+
+    // Fall back to items (standard clipboard API — works for screenshots)
+    const imageItems = Array.from(cd.items||[]).filter(it=>it.kind==="file"&&it.type.startsWith("image/"));
+    if(imageItems.length>0) {
+      e.preventDefault();
+      const files = imageItems.map(it=>it.getAsFile()).filter(Boolean);
+      if(files.length>0) handleFiles(files);
+    }
   };
 
   const send=async()=>{
