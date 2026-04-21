@@ -399,28 +399,29 @@ const PROJECT_TYPES=["Aero","Solar","Structural","General question"];
 const URGENCY_OPTS =["Low","Medium","High"];
 const VERTICALS    =["All","Structural","Solar","Aero"];
 
-const KSF_SYSTEM_PROMPT = `You are Kern Bot, the internal assistant for Kern Steel Fabrication (KSF) in Bakersfield, CA. You work across three verticals: Structural steel fabrication and erection, Solar Carports, and Aerospace maintenance stands for Lockheed Martin and the US Air Force.
+const KSF_SYSTEM_PROMPT = `You are Kern Bot, the internal assistant for Kern Steel Fabrication (KSF) in Bakersfield, CA — structural steel fabrication and erection, solar carports, and aerospace maintenance stands for Lockheed Martin and the US Air Force.
 
 Your job is to help the KSF PM team get fast, accurate answers about fabrication procedures, AISC standards, AWS welding, RFIs, contracts, change orders, material specs, tolerances, and field issues.
 
-How to respond:
-- Talk like a knowledgeable colleague, not a textbook. Be direct and conversational.
-- If the user explicitly asks for a specific format — bullet points, a numbered list, a table, short answers — always follow that instruction. User formatting requests override everything else.
-- Otherwise, default to plain prose. No bullet-pointed reports, no bold headers unless the question genuinely calls for structure.
-- If a question is ambiguous and the answer would be meaningfully different depending on context, cover both cases in plain language rather than asking — e.g. if someone asks "hole size for a 1-1/2 bolt" without context, give both the standard bolt hole size and anchor rod hole size since they're different.
-- Cite standards naturally in the sentence — like "per AISC 360 Table J3.3" not as a separate block.
-- Keep it short. One or two paragraphs is usually right. The team is busy.
-- If you're not certain, say so plainly — "I'd check with Loren on this" or "this one needs EOR sign-off."
-- Never end with a confidence statement like "CONFIDENCE: HIGH". The UI handles that.
-- Never say "As an AI" or explain your limitations. Just answer.
+Tone and style — this is critical:
+- Write the way a sharp, experienced colleague talks. Not a textbook, not a report, not a manual. Think of how you'd answer a quick question from a coworker in the hallway — direct, specific, confident.
+- Write in flowing prose. No bullet points, no numbered lists, no bold section headers unless the user explicitly asks for that format or the question is genuinely a step-by-step procedure.
+- You can use **bold** to emphasize a critical term, a spec value, or a key distinction — but sparingly, only when it genuinely helps. Not for headers, not for every sentence.
+- Keep answers short. Two to four sentences is usually right. If something genuinely requires more, write it as natural paragraphs, not a structured breakdown.
+- Never write a "Quick Breakdown" or "Summary" header. Never write "Here's what you need to know:" or similar preamble. Just answer.
+- If a question is ambiguous, cover both interpretations in one or two sentences rather than asking for clarification.
+- Cite standards inline and naturally: "per AISC 360 Table J3.3" in the middle of a sentence, not as a standalone reference.
+- Never end with a confidence score or statement. The UI handles that separately.
+- Never say "As an AI" or disclaim your limitations. Just answer.
+- If you're uncertain, say so briefly and naturally: "I'd confirm this with Loren" or "this one needs EOR sign-off before you move."
 
-Critical rules:
-- Aerospace (Lockheed, USAF): any field modification needs a written Engineering Order. No exceptions, no verbal approvals.
-- Material substitutions: always need written EOR approval before fab starts.
+Critical rules — always apply these:
+- Aerospace (Lockheed, USAF): any field modification requires a written Engineering Order. No exceptions, no verbal approvals, ever.
+- Material substitutions: written EOR approval required before fabrication starts. No verbal approvals.
 - Solar carports: AHJ permit must be confirmed before construction starts.
-- When in doubt on anything Loren-level, say so and recommend escalating.
+- When something is Loren-level, say so and recommend escalating.
 
-Team: Loren C. (Senior PM, decision-maker), Tony S. (Structural), Luis A. + Jillian H. (Solar), Adam K. (Aerospace), Jacob T. (Field — keep it brief), Lanze A. (Manufacturing Engineer, shop floor optimization).`;
+Team: Loren C. (Senior PM, decision-maker), Tony S. (Structural), Luis A. + Jillian H. (Solar), Adam K. + Luis A. (Aerospace), Jacob T. (Field — keep it brief with him), Lanze A. (Manufacturing Engineer, shop floor).`;
 
 async function callKernBot(userMessage, conversationHistory=[]) {
   const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
@@ -837,9 +838,9 @@ function Bubble({m,isMe,userColor,userInitials,onView,onSourceClick}) {
             borderLeft:leftBar?`3px solid #a78bfa`:`1px solid ${bdr}`,
             borderRadius:isMe?"12px 3px 12px 12px":"3px 12px 12px 12px",
             padding:"11px 14px",
-            fontSize:13,color:C.text,lineHeight:1.75,whiteSpace:"pre-wrap"
+            fontSize:13,color:C.text,lineHeight:1.75
           }}>
-            {m.text}
+            <RenderMD text={m.text}/>
             {m.attachments?.length>0&&<AttachDisplay attachments={m.attachments} onView={onView}/>}
             {m.sources?.length>0&&(
               <div style={{marginTop:10,display:"flex",flexWrap:"wrap",gap:5}}>
@@ -863,7 +864,81 @@ function Bubble({m,isMe,userColor,userInitials,onView,onSourceClick}) {
   );
 }
 
-// ── Input Bar (shared by ChatPane and QueueDetail) ─────────────────────────
+// ── Markdown renderer — handles **bold**, *italic*, - bullets, line breaks ──
+function RenderMD({text}) {
+  if(!text) return null;
+
+  // Split into lines, then process each
+  const lines = text.split('\n');
+  const elements = [];
+  let i = 0;
+  let keyC = 0;
+
+  const parseInline = (str) => {
+    // Handle **bold** and *italic* inline
+    const parts = [];
+    const re = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
+    let last = 0, m;
+    while((m=re.exec(str))!==null) {
+      if(m.index>last) parts.push(str.slice(last,m.index));
+      if(m[2]) parts.push(<strong key={keyC++} style={{fontWeight:700,color:C.text}}>{m[2]}</strong>);
+      else if(m[3]) parts.push(<em key={keyC++} style={{fontStyle:"italic"}}>{m[3]}</em>);
+      last = m.index+m[0].length;
+    }
+    if(last<str.length) parts.push(str.slice(last));
+    return parts.length>1 ? parts : str;
+  };
+
+  while(i<lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Blank line — spacing
+    if(!trimmed) {
+      elements.push(<div key={keyC++} style={{height:8}}/>);
+      i++; continue;
+    }
+
+    // Bullet line: starts with - or * followed by space
+    if(/^[-*]\s/.test(trimmed)) {
+      // Collect consecutive bullet lines
+      const items = [];
+      while(i<lines.length && /^[-*]\s/.test(lines[i].trim())) {
+        items.push(lines[i].trim().replace(/^[-*]\s/,''));
+        i++;
+      }
+      elements.push(
+        <ul key={keyC++} style={{margin:"4px 0",paddingLeft:16,display:"flex",flexDirection:"column",gap:3}}>
+          {items.map((it,j)=><li key={j} style={{listStyle:"disc",lineHeight:1.65,paddingLeft:2}}>{parseInline(it)}</li>)}
+        </ul>
+      );
+      continue;
+    }
+
+    // Numbered list
+    if(/^\d+\.\s/.test(trimmed)) {
+      const items = [];
+      while(i<lines.length && /^\d+\.\s/.test(lines[i].trim())) {
+        items.push(lines[i].trim().replace(/^\d+\.\s/,''));
+        i++;
+      }
+      elements.push(
+        <ol key={keyC++} style={{margin:"4px 0",paddingLeft:18,display:"flex",flexDirection:"column",gap:3}}>
+          {items.map((it,j)=><li key={j} style={{lineHeight:1.65,paddingLeft:2}}>{parseInline(it)}</li>)}
+        </ol>
+      );
+      continue;
+    }
+
+    // Regular paragraph line
+    elements.push(<p key={keyC++} style={{margin:0,lineHeight:1.75}}>{parseInline(trimmed)}</p>);
+    i++;
+  }
+
+  return <div style={{display:"flex",flexDirection:"column",gap:2}}>{elements}</div>;
+}
+
+
 function InputBar({value,onChange,onKeyDown,onSend,disabled,placeholder,accentColor,hint,children}) {
   return (
     <div style={{background:C.surface,border:`1px solid ${accentColor||C.borderHi}`,borderRadius:10,overflow:"hidden"}}>
