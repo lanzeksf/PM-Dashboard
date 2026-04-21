@@ -6,13 +6,13 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SHELL_USERS = [
-  { id:"loren",   name:"Loren C.",   initials:"LC", color:"#a78bfa", role:"Senior PM",             tier:"admin"    },
-  { id:"lanze",   name:"Lanze A.",   initials:"LA", color:"#22c55e", role:"Manufacturing Engineer", tier:"standard" },
-  { id:"tony",    name:"Tony S.",    initials:"TS", color:"#38bdf8", role:"Structural Coordinator", tier:"standard" },
-  { id:"luis",    name:"Luis A.",    initials:"LU", color:"#f59e0b", role:"Solar APM",              tier:"standard" },
-  { id:"jillian", name:"Jillian H.", initials:"JH", color:"#f472b6", role:"Solar Coordinator",     tier:"standard" },
-  { id:"adam",    name:"Adam K.",    initials:"AK", color:"#fb923c", role:"Aerospace Engineer",     tier:"standard" },
-  { id:"jacob",   name:"Jacob T.",   initials:"JT", color:"#4ade80", role:"Field Coordinator",      tier:"standard" },
+  { id:"lanze",   name:"Lanze A.",   email:"lanze@kernsteel.com",    initials:"LA", color:"#22c55e", role:"Admin",                    tier:"admin"    },
+  { id:"loren",   name:"Loren C.",   email:"loren@kernsteel.com",    initials:"LC", color:"#a78bfa", role:"Senior PM",                tier:"admin"    },
+  { id:"tony",    name:"Tony S.",    email:"antonio@kernsteel.com",  initials:"TS", color:"#38bdf8", role:"Project Coordinator",      tier:"standard" },
+  { id:"luis",    name:"Luis A.",    email:"larrezola@kernsteel.com",initials:"LU", color:"#f59e0b", role:"Assistant Project Manager", tier:"standard" },
+  { id:"jillian", name:"Jillian H.", email:"jillian@kernsteel.com",  initials:"JH", color:"#f472b6", role:"Project Coordinator",      tier:"standard" },
+  { id:"adam",    name:"Adam K.",    email:"adam@kernsteel.com",     initials:"AK", color:"#fb923c", role:"Assistant Project Manager", tier:"standard" },
+  { id:"jacob",   name:"Jacob T.",   email:"jtiffany@kernsteel.com", initials:"JT", color:"#4ade80", role:"Field Coordinator",        tier:"standard" },
 ];
 
 const SHELL_COLORS = {
@@ -85,36 +85,115 @@ function ComingSoon({label}) {
 
 // ── Login Screen ─────────────────────────────────────────────────────────────
 function ShellLogin({onLogin}) {
+  const [email,      setEmail]      = useState("");
+  const [password,   setPassword]   = useState("");
+  const [showPw,     setShowPw]     = useState(false);
+  const [error,      setError]      = useState("");
+  const [view,       setView]       = useState("login");
+  const [forgotSent, setForgotSent] = useState(false);
+
+  const MASTER = import.meta.env.VITE_MASTER_PASSWORD || "KSF2026!";
+
+  const handleLogin = () => {
+    const em = email.trim().toLowerCase();
+    if(!em)       { setError("Please enter your work email."); return; }
+    if(!password) { setError("Please enter your password."); return; }
+    const user = SHELL_USERS.find(u=>u.email.toLowerCase()===em);
+    if(!user)     { setError("Email not recognized. Use your KSF work email."); return; }
+    if(password !== MASTER) { setError("Incorrect password. Please try again."); return; }
+    setError(""); onLogin(user);
+  };
+
+  const handleForgot = () => {
+    if(!email.trim()) { setError("Enter your work email so we know where to send the link."); return; }
+    setError(""); setForgotSent(true);
+  };
+
+  const inp = (hasErr=false) => ({
+    width:"100%", padding:"10px 12px", background:"#1a1a1a",
+    border:`1px solid ${hasErr?"rgba(248,113,113,0.5)":"rgba(255,255,255,0.1)"}`,
+    borderRadius:8, color:"#ededed", fontSize:14,
+    fontFamily:"inherit", boxSizing:"border-box", outline:"none", transition:"border-color 0.15s",
+  });
+
   return (
-    <div style={{minHeight:"100vh",background:SHELL_COLORS.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"system-ui,-apple-system,sans-serif",padding:"2rem"}}>
-      <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:"2.5rem"}}>
-        <div style={{width:48,height:48,borderRadius:12,background:"#1a1a1a",border:"1px solid rgba(255,255,255,0.12)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <span style={{color:"#fff",fontWeight:800,fontSize:15,letterSpacing:"-0.5px"}}>KSF</span>
+    <div style={{minHeight:"100vh",background:"#0a0a0a",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif",padding:"2rem"}}>
+      <div style={{width:"100%",maxWidth:400,background:"#111",border:"1px solid rgba(255,255,255,0.15)",borderRadius:14,overflow:"hidden",boxShadow:"0 24px 80px rgba(0,0,0,0.6)"}}>
+
+        {/* Brand */}
+        <div style={{padding:"22px 26px 18px",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",gap:11}}>
+          <div style={{width:32,height:32,borderRadius:7,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#ccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
+          <div>
+            <p style={{margin:0,fontSize:14,fontWeight:700,color:"#ededed",letterSpacing:"-0.02em"}}>KSF Command Center</p>
+            <p style={{margin:0,fontSize:11,color:"#555"}}>Kern Steel Fabrication</p>
+          </div>
         </div>
-        <div>
-          <p style={{margin:0,fontWeight:600,fontSize:20,color:SHELL_COLORS.text}}>Command Center</p>
-          <p style={{margin:0,fontSize:12,color:SHELL_COLORS.muted}}>Kern Steel Fabrication · Structural · Solar · Aerospace</p>
-        </div>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(148px,1fr))",gap:10,width:"100%",maxWidth:680}}>
-        {SHELL_USERS.map(u=>(
-          <button key={u.id} onClick={()=>onLogin(u)}
-            style={{background:SHELL_COLORS.surface,border:`1px solid ${SHELL_COLORS.border}`,borderRadius:13,padding:"18px 12px",cursor:"pointer",textAlign:"center",fontFamily:"inherit",transition:"border-color 0.15s",outline:"none"}}
-            onMouseEnter={e=>e.currentTarget.style.borderColor=u.color+"60"}
-            onMouseLeave={e=>e.currentTarget.style.borderColor=SHELL_COLORS.border}>
-            <div style={{width:42,height:42,borderRadius:"50%",background:u.color+"28",border:`1px solid ${u.color}40`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 10px"}}>
-              <span style={{fontSize:13,fontWeight:600,color:u.color}}>{u.initials}</span>
+
+        <div style={{padding:"22px 26px"}}>
+          {forgotSent ? (
+            <div style={{textAlign:"center",padding:"8px 0 4px"}}>
+              <div style={{width:44,height:44,borderRadius:"50%",background:"rgba(52,211,153,0.12)",border:"1px solid rgba(52,211,153,0.25)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+              <p style={{margin:"0 0 6px",fontSize:15,fontWeight:600,color:"#ededed"}}>Check your email</p>
+              <p style={{margin:"0 0 20px",fontSize:13,color:"#999",lineHeight:1.65}}>If <span style={{color:"#ededed"}}>{email}</span> is registered, a reset link is on its way.</p>
+              <button onClick={()=>{setForgotSent(false);setView("login");setError("");}} style={{width:"100%",padding:"10px",fontSize:13,background:"none",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#999",cursor:"pointer",fontFamily:"inherit"}}>← Back to sign in</button>
             </div>
-            <p style={{margin:0,fontWeight:500,fontSize:13,color:SHELL_COLORS.text}}>{u.name}</p>
-            <p style={{margin:"3px 0 0",fontSize:11,color:SHELL_COLORS.muted}}>{u.role}</p>
-            {u.tier==="admin"&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:20,background:SHELL_COLORS.pmDim,color:SHELL_COLORS.pm,display:"inline-block",marginTop:6}}>Admin</span>}
-          </button>
-        ))}
+          ) : view==="forgot" ? (
+            <>
+              <p style={{margin:"0 0 18px",fontSize:14,fontWeight:500,color:"#ededed"}}>Reset your password</p>
+              <div style={{marginBottom:error?10:18}}>
+                <label style={{display:"block",fontSize:11,color:"#555",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.07em"}}>Work email</label>
+                <input style={inp(!!error)} value={email} onChange={e=>{setEmail(e.target.value);setError("");}} placeholder="name@kernsteel.com" type="email"
+                  onFocus={e=>e.target.style.borderColor="rgba(91,124,250,0.5)"} onBlur={e=>e.target.style.borderColor="rgba(255,255,255,0.1)"} onKeyDown={e=>e.key==="Enter"&&handleForgot()}/>
+              </div>
+              {error&&<div style={{display:"flex",alignItems:"center",gap:7,padding:"8px 11px",marginBottom:14,background:"rgba(248,113,113,0.08)",border:"1px solid rgba(248,113,113,0.2)",borderRadius:7}}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#f87171" strokeWidth="1.8"/><line x1="12" y1="8" x2="12" y2="12" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="#f87171" strokeWidth="2" strokeLinecap="round"/></svg>
+                <span style={{fontSize:12,color:"#f87171"}}>{error}</span>
+              </div>}
+              <button onClick={handleForgot} style={{width:"100%",padding:"11px",fontSize:13,fontWeight:600,background:"#5b7cfa",border:"none",borderRadius:8,color:"#fff",cursor:"pointer",fontFamily:"inherit",marginBottom:14}}
+                onMouseEnter={e=>e.currentTarget.style.opacity="0.88"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>Send reset link</button>
+              <div style={{textAlign:"center"}}><button onClick={()=>{setView("login");setError("");}} style={{background:"none",border:"none",cursor:"pointer",color:"#555",fontSize:12,fontFamily:"inherit"}}
+                onMouseEnter={e=>e.currentTarget.style.color="#999"} onMouseLeave={e=>e.currentTarget.style.color="#555"}>← Back to sign in</button></div>
+            </>
+          ) : (
+            <>
+              <p style={{margin:"0 0 18px",fontSize:14,fontWeight:500,color:"#ededed"}}>Sign in to your account</p>
+              <div style={{marginBottom:12}}>
+                <label style={{display:"block",fontSize:11,color:"#555",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.07em"}}>Work email</label>
+                <input style={inp(!!error&&!password)} value={email} onChange={e=>{setEmail(e.target.value);setError("");}} placeholder="name@kernsteel.com" type="email"
+                  onFocus={e=>e.target.style.borderColor="rgba(91,124,250,0.5)"} onBlur={e=>e.target.style.borderColor="rgba(255,255,255,0.1)"} onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
+              </div>
+              <div style={{marginBottom:error?10:18}}>
+                <label style={{display:"block",fontSize:11,color:"#555",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.07em"}}>Password</label>
+                <div style={{position:"relative"}}>
+                  <input style={{...inp(!!error&&!!password),paddingRight:42}} value={password} onChange={e=>{setPassword(e.target.value);setError("");}} placeholder="Enter your password" type={showPw?"text":"password"}
+                    onFocus={e=>e.target.style.borderColor="rgba(91,124,250,0.5)"} onBlur={e=>e.target.style.borderColor=error?"rgba(248,113,113,0.5)":"rgba(255,255,255,0.1)"} onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
+                  <button onClick={()=>setShowPw(p=>!p)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#555",padding:2,display:"flex"}}>
+                    {showPw?<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    :<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
+                  </button>
+                </div>
+              </div>
+              {error&&<div style={{display:"flex",alignItems:"center",gap:7,padding:"8px 11px",marginBottom:14,background:"rgba(248,113,113,0.08)",border:"1px solid rgba(248,113,113,0.2)",borderRadius:7}}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#f87171" strokeWidth="1.8"/><line x1="12" y1="8" x2="12" y2="12" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="#f87171" strokeWidth="2" strokeLinecap="round"/></svg>
+                <span style={{fontSize:12,color:"#f87171"}}>{error}</span>
+              </div>}
+              <button onClick={handleLogin} style={{width:"100%",padding:"11px",fontSize:13,fontWeight:600,background:"#5b7cfa",border:"none",borderRadius:8,color:"#fff",cursor:"pointer",fontFamily:"inherit",marginBottom:14,transition:"opacity 0.15s"}}
+                onMouseEnter={e=>e.currentTarget.style.opacity="0.88"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>Sign in</button>
+              <div style={{textAlign:"center"}}><button onClick={()=>{setView("forgot");setError("");}} style={{background:"none",border:"none",cursor:"pointer",color:"#555",fontSize:12,fontFamily:"inherit"}}
+                onMouseEnter={e=>e.currentTarget.style.color="#999"} onMouseLeave={e=>e.currentTarget.style.color="#555"}>Forgot password?</button></div>
+            </>
+          )}
+        </div>
       </div>
-      <p style={{marginTop:"2rem",fontSize:11,color:SHELL_COLORS.hint}}>Microsoft 365 SSO will replace this at deployment</p>
+      <p style={{marginTop:18,fontSize:11,color:"#333"}}>KSF Command Center · Internal use only</p>
     </div>
   );
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KERN BOT — full embedded module
