@@ -167,9 +167,8 @@ function ShellLogin({onLogin}) {
 
         {/* Card */}
         <div className="ksfl-card" style={{
-          background:"rgba(5,8,11,0.82)",
-          borderRadius:14,
-          boxShadow:"0 0 0 1px rgba(5,8,11,0.82), 0 0 40px 20px rgba(5,8,11,0.6), 0 28px 80px rgba(0,0,0,0.7)",
+          background:"rgba(5,8,11,0.88)",
+          boxShadow:"none",
           overflow:"hidden",
         }}>
           
