@@ -114,7 +114,7 @@ function ShellLogin({onLogin}) {
   const inpStyle = {
     width:"100%", padding:"10px 13px",
     background:"rgba(255,255,255,0.06)",
-    border:"1px solid rgba(255,255,255,0.1)",
+    border:"1px solid rgba(255,255,255,0.07)",
     borderRadius:8, color:"#fff", fontSize:13,
     fontFamily:"inherit", boxSizing:"border-box",
     outline:"none", transition:"border-color 0.15s, box-shadow 0.15s",
@@ -192,7 +192,7 @@ function ShellLogin({onLogin}) {
                   <input className="ksfl-inp" style={{...inpStyle}} value={email} onChange={e=>{setEmail(e.target.value);setError("");}} placeholder="name@kernsteel.com" type="email" onKeyDown={e=>e.key==="Enter"&&handleForgot()}/>
                 </div>
                 {error&&<div style={{padding:"8px 11px",marginBottom:12,background:"rgba(248,113,113,0.1)",border:"1px solid rgba(248,113,113,0.2)",borderRadius:7,fontSize:12,color:"#fca5a5"}}>{error}</div>}
-                <button className="ksfl-btn" onClick={handleForgot} style={{width:"100%",padding:"11px",fontSize:13,fontWeight:500,background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.18)",borderRadius:8,color:"#fff",cursor:"pointer",fontFamily:"inherit",marginBottom:14,transition:"background 0.15s"}}>Send reset link</button>
+                <button className="ksfl-btn" onClick={handleForgot} style={{width:"100%",padding:"11px",fontSize:13,fontWeight:500,background:"rgba(255,255,255,0.12)",border:"none",borderRadius:8,color:"#fff",cursor:"pointer",fontFamily:"inherit",marginBottom:14,transition:"background 0.15s"}}>Send reset link</button>
                 <div style={{textAlign:"center"}}><button onClick={()=>{setView("login");setError("");}} style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.28)",fontSize:12,fontFamily:"inherit"}}>← Back to sign in</button></div>
               </>
             ) : (
@@ -215,7 +215,7 @@ function ShellLogin({onLogin}) {
                   </div>
                 </div>
                 {error&&<div style={{padding:"8px 11px",marginBottom:14,background:"rgba(248,113,113,0.1)",border:"1px solid rgba(248,113,113,0.2)",borderRadius:7,fontSize:12,color:"#fca5a5"}}>{error}</div>}
-                <button className="ksfl-btn" onClick={handleLogin} style={{width:"100%",padding:"11px",fontSize:13,fontWeight:500,background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:8,color:"#fff",cursor:"pointer",fontFamily:"inherit",marginBottom:14,letterSpacing:"0.02em",transition:"background 0.15s"}}>Sign in</button>
+                <button className="ksfl-btn" onClick={handleLogin} style={{width:"100%",padding:"11px",fontSize:13,fontWeight:500,background:"rgba(255,255,255,0.12)",border:"none",borderRadius:8,color:"#fff",cursor:"pointer",fontFamily:"inherit",marginBottom:14,letterSpacing:"0.02em",transition:"background 0.15s"}}>Sign in</button>
                 <div style={{textAlign:"center"}}><button onClick={()=>{setView("forgot");setError("");}} style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.28)",fontSize:12,fontFamily:"inherit"}}>Forgot password?</button></div>
               </>
             )}
