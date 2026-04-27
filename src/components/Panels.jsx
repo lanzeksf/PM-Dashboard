@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { C, MI, VERTICALS, fmtRel } from "../core/utils.js";
+import { C, MI, VERTICALS, fmtRel } from "../core/utils.jsx";
 import { VerBadge, UrgBadge, CtxMenu } from "./UI.jsx";
 import { store, useStore } from "../core/store.js";
 

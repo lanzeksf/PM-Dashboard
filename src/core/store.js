@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { makePMQ, nowStamp, daysAgo, hoursAgo } from "./utils.js";
+import { makePMQ, nowStamp, daysAgo, hoursAgo } from "./utils.jsx";
 
 // ── Seed data ─────────────────────────────────────────────────────────────────
 const STORE = {

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
-import { C, nowStamp, nextId, nextPMQ, USERS_LIST } from "../core/utils.js";
+import { C, nowStamp, nextId, nextPMQ, USERS_LIST } from "../core/utils.jsx";
 import { store } from "../core/store.js";
 import { useStore } from "../core/store.js";
 import { callKernBot } from "./kernBot.js";
@@ -172,7 +172,7 @@ export function KernBotApp({ preloadUser }) {
   });
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: C.bg, fontFamily: "system-ui,-apple-system,sans-serif", overflow: "hidden", position: "relative" }}>
+    <div style={{ display: "flex", flex: 1, height: "100%", background: C.bg, fontFamily: "system-ui,-apple-system,sans-serif", overflow: "hidden", position: "relative" }}>
 
       {/* ── Sidebar ─────────────────────────────────────────────────────── */}
       <div style={{ width: 240, background: C.sidebar, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden" }}>
@@ -275,4 +275,4 @@ export function KernBotApp({ preloadUser }) {
 }
 
 // Re-export for Shell.jsx compatibility
-export { USERS_LIST } from "../core/utils.js";
+export { USERS_LIST } from "../core/utils.jsx";

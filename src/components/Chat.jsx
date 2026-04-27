@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { C, MI, URGENCY_OPTS, PROJECT_TYPES } from "../core/utils.js";
+import { C, MI, URGENCY_OPTS, PROJECT_TYPES } from "../core/utils.jsx";
 import { ConfBadge } from "./UI.jsx";
 import { AttachDisplay } from "./Files.jsx";
 

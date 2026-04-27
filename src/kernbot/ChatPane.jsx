@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { C, MI } from "../core/utils.js";
+import { C, MI } from "../core/utils.jsx";
 import { Bubble } from "../components/Chat.jsx";
 import { AttachTray, useAttachments } from "../components/Files.jsx";
 import { Viewer } from "../components/Files.jsx";

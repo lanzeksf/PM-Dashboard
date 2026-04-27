@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { C, MI, fmtDate } from "../core/utils.js";
+import { C, MI, fmtDate } from "../core/utils.jsx";
 import { UrgBadge } from "../components/UI.jsx";
 import { Bubble } from "../components/Chat.jsx";
 import { AttachTray, useAttachments } from "../components/Files.jsx";

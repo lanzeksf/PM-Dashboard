@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { C, MI, isImage, isPDF, fmtBytes, readFileAsDataURL, MAX_FILE_SIZE, MAX_ATTACHMENTS } from "../core/utils.js";
+import { C, MI, isImage, isPDF, fmtBytes, readFileAsDataURL, MAX_FILE_SIZE, MAX_ATTACHMENTS } from "../core/utils.jsx";
 
 // ── useAttachments hook ───────────────────────────────────────────────────────
 export function useAttachments() {

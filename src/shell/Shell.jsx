@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { USERS_LIST, C } from "../core/utils.js";
+import { USERS_LIST, C } from "../core/utils.jsx";
 
 // ── Shell constants ───────────────────────────────────────────────────────────
 export const SHELL_COLORS = { bg: "#05080b" };

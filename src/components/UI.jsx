@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import { C, MI } from "../core/utils.js";
+import { C, MI } from "../core/utils.jsx";
 
 // ── Confidence badge ──────────────────────────────────────────────────────────
 export function ConfBadge({ s }) {
