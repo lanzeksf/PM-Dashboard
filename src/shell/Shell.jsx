@@ -1,20 +1,16 @@
 import React, { useState } from "react";
 import { USERS_LIST, C } from "../core/utils.jsx";
+import SHELL_USERS from "../../users.config.json";
 
 // ── Shell constants ───────────────────────────────────────────────────────────
 export const SHELL_COLORS = { bg: "#05080b" };
 
 export const BG_PHOTO = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2334d399'/%3E%3Cstop offset='100%25' stop-color='%23040b12'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3C/svg%3E";
 
-export const SHELL_USERS = [
-  { id: "loren",   name: "Loren C.",   role: "Senior PM",              initials: "LC", color: "#a78bfa", email: "loren@kernsteel.com",   password: "ksf123" },
-  { id: "lanze",   name: "Lanze A.",   role: "Manufacturing Engineer", initials: "LA", color: "#22c55e", email: "lanze@kernsteel.com",   password: "ksf123" },
-  { id: "tony",    name: "Tony S.",    role: "Structural Coordinator", initials: "TS", color: "#38bdf8", email: "tony@kernsteel.com",    password: "ksf123" },
-  { id: "luis",    name: "Luis A.",    role: "Solar APM",              initials: "LU", color: "#f59e0b", email: "luis@kernsteel.com",    password: "ksf123" },
-  { id: "jillian", name: "Jillian H.", role: "Solar Coordinator",      initials: "JH", color: "#f472b6", email: "jillian@kernsteel.com", password: "ksf123" },
-  { id: "adam",    name: "Adam K.",    role: "Aerospace Engineer",     initials: "AK", color: "#fb923c", email: "adam@kernsteel.com",    password: "ksf123" },
-  { id: "jacob",   name: "Jacob T.",   role: "Field Coordinator",      initials: "JT", color: "#4ade80", email: "jacob@kernsteel.com",   password: "ksf123" },
-];
+// SHELL_USERS is loaded from users.config.json at the project root.
+// That file is gitignored — edit it to add/remove/change login credentials
+// without touching source code. When a real auth backend is added, remove
+// the import above and replace the handleLogin lookup below.
 
 // ── Nav icons (inline SVG components) ────────────────────────────────────────
 const Icon = ({ children }) => (

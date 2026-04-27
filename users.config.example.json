@@ -1,0 +1,11 @@
+[
+  {
+    "id": "your-id",
+    "name": "First L.",
+    "role": "Job Title",
+    "initials": "FL",
+    "color": "#a78bfa",
+    "email": "name@kernsteel.com",
+    "password": "changeme"
+  }
+]
