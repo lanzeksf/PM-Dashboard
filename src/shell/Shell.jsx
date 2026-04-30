@@ -1,10 +1,29 @@
 import React, { useState } from "react";
-import { USERS_LIST, C } from "../core/utils.jsx";
+import { USERS_LIST, ROLE_MODULES, C } from "../core/utils.jsx";
 
 // ── Shell constants ───────────────────────────────────────────────────────────
 export const SHELL_COLORS = { bg: "#05080b" };
 
-// ── Nav icons (inline SVG components) ────────────────────────────────────────
+// ── All nav items (filtered per user by ROLE_MODULES) ────────────────────────
+// queue + standards are internal KernBotApp views, not shell-level tabs.
+// They appear in ROLE_MODULES for permission checking but are excluded from shell nav.
+const SHELL_ONLY_TABS = new Set(["queue", "standards"]);
+
+const ALL_NAV_ITEMS = [
+  { id: "kernbot",      label: "Kern Bot" },
+  { id: "dashboard",    label: "Dashboard" },
+  { id: "owner",        label: "Owner Pending" },
+  { id: "scope",        label: "Scope Tracker" },
+  { id: "changes",      label: "Change Orders" },
+  { id: "detailing",    label: "Detailing" },
+  { id: "rfi",          label: "RFI Log" },
+  { id: "fab",          label: "Fabrication & Shipping" },
+  { id: "field",        label: "Field Needs" },
+  { id: "user_mgmt",    label: "User Management" },
+  { id: "system_config",label: "System Config" },
+];
+
+// ── Nav icons ─────────────────────────────────────────────────────────────────
 const Icon = ({ children }) => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
     {children}
@@ -12,33 +31,25 @@ const Icon = ({ children }) => (
 );
 
 const NAV_ICONS = {
-  kernbot:   () => <Icon><path d="M4 6h16M4 12h10M4 18h16" /></Icon>,
-  dashboard: () => <Icon><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></Icon>,
-  rfi:       () => <Icon><path d="M4 7h16M8 12h8M7 17h10" /></Icon>,
-  scope:     () => <Icon><circle cx="12" cy="12" r="6" /><path d="M12 6v12M6 12h12" /></Icon>,
-  changes:   () => <Icon><path d="M5 12h14M12 5l7 7-7 7" /></Icon>,
-  fab:       () => <Icon><path d="M4 7h16v10H4z" /><path d="M4 7l8 5 8-5" /></Icon>,
-  field:     () => <Icon><circle cx="12" cy="12" r="5" /><path d="M12 7v10M7 12h10" /></Icon>,
-  owner:     () => <Icon><path d="M5 5h14v14H5z" /><path d="M9 9h6v6H9z" /></Icon>,
-  detailing: () => <Icon><path d="M6 20h12M7 4h10l-1 5H8z" /></Icon>,
+  kernbot:      () => <Icon><path d="M4 6h16M4 12h10M4 18h16" /></Icon>,
+  dashboard:    () => <Icon><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></Icon>,
+  queue:        () => <Icon><path d="M4 6h16M4 12h10M4 18h7" /><circle cx="19" cy="18" r="3" /></Icon>,
+  owner:        () => <Icon><path d="M5 5h14v14H5z" /><path d="M9 9h6v6H9z" /></Icon>,
+  scope:        () => <Icon><circle cx="12" cy="12" r="6" /><path d="M12 6v12M6 12h12" /></Icon>,
+  changes:      () => <Icon><path d="M5 12h14M12 5l7 7-7 7" /></Icon>,
+  detailing:    () => <Icon><path d="M6 20h12M7 4h10l-1 5H8z" /></Icon>,
+  rfi:          () => <Icon><path d="M4 7h16M8 12h8M7 17h10" /></Icon>,
+  fab:          () => <Icon><path d="M4 7h16v10H4z" /><path d="M4 7l8 5 8-5" /></Icon>,
+  field:        () => <Icon><circle cx="12" cy="12" r="5" /><path d="M12 7v10M7 12h10" /></Icon>,
+  standards:    () => <Icon><path d="M4 19.5A2.5 2.5 0 016.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" /></Icon>,
+  user_mgmt:    () => <Icon><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></Icon>,
+  system_config:() => <Icon><circle cx="12" cy="12" r="3" /><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41" /></Icon>,
 };
 
-export const NAV_ITEMS = [
-  { id: "kernbot",   label: "Kern Bot" },
-  { id: "dashboard", label: "Dashboard" },
-  { id: "rfi",       label: "RFI Log" },
-  { id: "scope",     label: "Scope Tracker" },
-  { id: "changes",   label: "Change Orders" },
-  { id: "fab",       label: "Fabrication & Shipping" },
-  { id: "field",     label: "Field Needs" },
-  { id: "owner",     label: "Owner Pending" },
-  { id: "detailing", label: "Detailing" },
-];
-
 // ── Coming soon placeholder ───────────────────────────────────────────────────
-export function ComingSoon({ label }) {
+function ComingSoon({ label }) {
   return (
-    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100%", background: SHELL_COLORS.bg, color: "#f7fafc" }}>
+    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: SHELL_COLORS.bg, color: "#f7fafc" }}>
       <div style={{ maxWidth: 540, padding: 24, textAlign: "center" }}>
         <p style={{ margin: 0, fontSize: 32, fontWeight: 700, letterSpacing: "-0.03em" }}>{label}</p>
         <p style={{ margin: "14px 0 0", fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.7 }}>
@@ -49,92 +60,179 @@ export function ComingSoon({ label }) {
   );
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────────────
-function ShellSidebar({ tab, setTab, mobile = false, onClose }) {
+// ── User picker (landing screen) ──────────────────────────────────────────────
+function UserPicker({ onLogin }) {
+  return (
+    <div style={{ minHeight: "100vh", background: "#05080b", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif", padding: "2rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 9, background: "#1e2340", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#cccccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </div>
+        <div>
+          <p style={{ margin: 0, fontWeight: 700, fontSize: 18, color: "#f0f2f8", letterSpacing: "-0.02em" }}>KSF Command Center</p>
+          <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.35)" }}>Select your profile to continue</p>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, width: "100%", maxWidth: 700 }}>
+        {USERS_LIST.map(u => (
+          <button key={u.id} onClick={() => onLogin(u)}
+            style={{ background: "#111111", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "18px 14px", cursor: "pointer", textAlign: "center", fontFamily: "inherit", transition: "border-color 0.15s, background 0.15s", outline: "none" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = u.color + "60"; e.currentTarget.style.background = "#161616"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.background = "#111111"; }}
+          >
+            {/* Avatar */}
+            <div style={{ width: 44, height: 44, borderRadius: "50%", background: u.color + "22", border: `1.5px solid ${u.color}44`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: u.color }}>{u.initials}</span>
+            </div>
+
+            {/* Name + position */}
+            <p style={{ margin: 0, fontWeight: 600, fontSize: 13, color: "#ededed" }}>{u.name}</p>
+            <p style={{ margin: "3px 0 8px", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{u.position}</p>
+
+            {/* Badges */}
+            <div style={{ display: "flex", gap: 4, justifyContent: "center", flexWrap: "wrap" }}>
+              {u.badge && (
+                <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: u.badge.bg, color: u.badge.color, border: `1px solid ${u.badge.color}33` }}>
+                  {u.badge.label}
+                </span>
+              )}
+              {u.department && (
+                <span style={{ fontSize: 10, fontWeight: 500, padding: "2px 8px", borderRadius: 20, background: u.department.bg, color: u.department.color }}>
+                  {u.department.label}
+                </span>
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <p style={{ marginTop: 28, fontSize: 10, color: "rgba(255,255,255,0.15)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Internal use only</p>
+    </div>
+  );
+}
+
+// ── Shell sidebar ─────────────────────────────────────────────────────────────
+function ShellSidebar({ user, tab, setTab, onSignOut, mobile = false, onClose }) {
+  const userModules = ROLE_MODULES[user.role] || [];
+  const visibleNav  = ALL_NAV_ITEMS.filter(item => userModules.includes(item.id) && !SHELL_ONLY_TABS.has(item.id));
+
   return (
     <aside style={{ width: 230, background: "#000000", borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", flexShrink: 0, ...(mobile ? { position: "absolute", inset: "0 auto 0 0", zIndex: 200, boxShadow: "4px 0 24px rgba(0,0,0,0.5)" } : {}) }}>
-      <div style={{ padding: "18px 16px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+      {/* Header */}
+      <div style={{ padding: "16px 14px 12px", display: "flex", alignItems: "center", gap: 10 }}>
         {mobile && (
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", padding: "2px 6px 2px 0", display: "flex", flexShrink: 0 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         )}
-        <div style={{ width: 26, height: 26, borderRadius: 6, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#cccccc" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#cccccc" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </div>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "#f0f2f8", letterSpacing: "-0.02em", whiteSpace: "nowrap" }}>KSF Command Center</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#f0f2f8", letterSpacing: "-0.02em", whiteSpace: "nowrap" }}>KSF Command Center</span>
       </div>
 
-      <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "0 12px 8px" }} />
+      <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "0 12px 6px" }} />
 
       <style>{`
-        .ksf-nav-btn { width:100%;display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-family:inherit;margin-bottom:1px;color:#888;font-size:13px;font-weight:400;text-align:left;transition:background .1s,color .1s;border-left:2px solid transparent; }
-        .ksf-nav-btn:hover { background:rgba(255,255,255,0.08);color:#e0e0e0; }
-        .ksf-nav-btn.active { background:rgba(255,255,255,0.14);color:#ffffff;font-weight:600;border-left:2px solid rgba(255,255,255,0.7); }
-        .ksf-nav-btn.active:hover { background:rgba(255,255,255,0.16); }
-        .ksf-nav-icon { flex-shrink:0;display:flex;align-items:center;opacity:0.6; }
-        .ksf-nav-btn:hover .ksf-nav-icon { opacity:0.85; }
-        .ksf-nav-btn.active .ksf-nav-icon { opacity:1; }
+        .ksf-nav-btn { width:100%;display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-family:inherit;margin-bottom:1px;color:#888;font-size:13px;font-weight:400;text-align:left;transition:background .1s,color .1s;border-left:2px solid transparent; }
+        .ksf-nav-btn:hover { background:rgba(255,255,255,0.07);color:#e0e0e0; }
+        .ksf-nav-btn.active { background:rgba(255,255,255,0.13);color:#ffffff;font-weight:600;border-left:2px solid rgba(255,255,255,0.7); }
+        .ksf-nav-icon { flex-shrink:0;display:flex;align-items:center;opacity:0.55; }
+        .ksf-nav-btn:hover .ksf-nav-icon,.ksf-nav-btn.active .ksf-nav-icon { opacity:1; }
       `}</style>
 
+      {/* Nav */}
       <nav style={{ flex: 1, overflowY: "auto", padding: "2px 8px" }}>
-        {NAV_ITEMS.map(item => {
+        {visibleNav.map(item => {
           const NavIcon = NAV_ICONS[item.id];
           const active  = tab === item.id;
           return (
             <button key={item.id} className={`ksf-nav-btn${active ? " active" : ""}`}
               onClick={() => { setTab(item.id); if (mobile) onClose?.(); }}>
-              <span className="ksf-nav-icon"><NavIcon /></span>
+              <span className="ksf-nav-icon">{NavIcon && <NavIcon />}</span>
               <span style={{ flex: 1 }}>{item.label}</span>
               {item.id === "kernbot" && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399", flexShrink: 0 }} />}
             </button>
           );
         })}
       </nav>
+
+      <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "6px 12px 0" }} />
+
+      {/* User footer */}
+      <div style={{ padding: "10px 12px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ width: 28, height: 28, borderRadius: "50%", background: user.color + "22", border: `1px solid ${user.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 10, color: user.color, flexShrink: 0 }}>
+          {user.initials}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "#ddd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</p>
+          <p style={{ margin: 0, fontSize: 11, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.position}</p>
+        </div>
+        <button onClick={onSignOut} title="Sign out"
+          style={{ width: 26, height: 26, borderRadius: 6, background: "none", border: "none", color: "#555", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, padding: 0, transition: "all 0.15s" }}
+          onMouseEnter={e => { e.currentTarget.style.color = "#aaa"; e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = "#555"; e.currentTarget.style.background = "none"; }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
+      </div>
     </aside>
   );
 }
 
 // ── Root shell ────────────────────────────────────────────────────────────────
-// KernBotApp is passed in as a prop to avoid a circular import with store/utils
 export default function KSFCommandCenter({ KernBotApp }) {
+  const [user,        setUser]        = useState(null);
   const [tab,         setTab]         = useState("kernbot");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Auth placeholder — defaults to admin user until login is implemented
-  const currentUser = USERS_LIST.find(u => u.tier === "admin") || USERS_LIST[0];
+  // Landing — show user picker until a user is selected
+  if (!user) return <UserPicker onLogin={u => { setUser(u); setTab("kernbot"); }} />;
+
+  const handleSignOut = () => { setUser(null); setTab("kernbot"); setSidebarOpen(false); };
 
   return (
     <div style={{ display: "flex", height: "100vh", background: SHELL_COLORS.bg, fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif", overflow: "hidden", position: "relative" }}>
+
+      {/* Desktop sidebar */}
       <div className="ksf-sidebar-desktop" style={{ display: "flex" }}>
-        <ShellSidebar tab={tab} setTab={setTab} />
+        <ShellSidebar user={user} tab={tab} setTab={setTab} onSignOut={handleSignOut} />
       </div>
 
+      {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <>
-          <div onClick={() => setSidebarOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 190 }} />
-          <ShellSidebar mobile tab={tab} setTab={setTab} onClose={() => setSidebarOpen(false)} />
+          <div onClick={() => setSidebarOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 190 }} />
+          <ShellSidebar mobile user={user} tab={tab} setTab={setTab} onSignOut={handleSignOut} onClose={() => setSidebarOpen(false)} />
         </>
       )}
 
       <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", minWidth: 0 }}>
+        {/* Mobile top bar */}
         <div className="ksf-mobile-bar" style={{ display: "none", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0, background: "#000" }}>
           <button onClick={() => setSidebarOpen(true)} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", padding: 4, display: "flex", alignItems: "center" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
           </button>
           <span style={{ fontSize: 12, fontWeight: 600, color: "#ddd" }}>KSF Command Center</span>
-          <span style={{ fontSize: 11, color: "#999", marginLeft: "auto" }}>{NAV_ITEMS.find(i => i.id === tab)?.label}</span>
+          <span style={{ fontSize: 11, color: "#999", marginLeft: "auto" }}>
+            {ALL_NAV_ITEMS.find(i => i.id === tab)?.label}
+          </span>
         </div>
 
-        {tab === "kernbot"   && <KernBotApp preloadUser={currentUser} />}
-        {tab === "dashboard" && <ComingSoon label="Dashboard" />}
-        {tab === "rfi"       && <ComingSoon label="RFI Log" />}
-        {tab === "scope"     && <ComingSoon label="Scope Tracker" />}
-        {tab === "changes"   && <ComingSoon label="Change Orders" />}
-        {tab === "fab"       && <ComingSoon label="Fabrication & Shipping" />}
-        {tab === "field"     && <ComingSoon label="Field Needs" />}
-        {tab === "owner"     && <ComingSoon label="Owner Pending" />}
-        {tab === "detailing" && <ComingSoon label="Detailing" />}
+        {/* Tab content — Kern Bot handles its own routing for kernbot/queue/standards */}
+        {tab === "kernbot"      && <KernBotApp preloadUser={user} />}
+        {tab === "dashboard"    && <ComingSoon label="Dashboard" />}
+        {tab === "owner"        && <ComingSoon label="Owner Pending" />}
+        {tab === "scope"        && <ComingSoon label="Scope Tracker" />}
+        {tab === "changes"      && <ComingSoon label="Change Orders" />}
+        {tab === "detailing"    && <ComingSoon label="Detailing" />}
+        {tab === "rfi"          && <ComingSoon label="RFI Log" />}
+        {tab === "fab"          && <ComingSoon label="Fabrication & Shipping" />}
+        {tab === "field"        && <ComingSoon label="Field Needs" />}
+        {tab === "user_mgmt"    && <ComingSoon label="User Management" />}
+        {tab === "system_config"&& <ComingSoon label="System Config" />}
       </main>
 
       <style>{`
