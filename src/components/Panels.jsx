@@ -141,7 +141,7 @@ function StdEditor({ std, onSave, onCancel, isNew }) {
 }
 
 // ── Standards list ────────────────────────────────────────────────────────────
-export function StdList({ user }) {
+export function StdList({ user, canWrite = false }) {
   useStore();
   const standards = store.standards;
   const [editing, setEditing] = useState(null);
@@ -174,10 +174,12 @@ export function StdList({ user }) {
           <p style={{ margin: 0, fontWeight: 500, fontSize: 13, color: C.text }}>Standards library</p>
           <p style={{ margin: 0, fontSize: 10, color: C.hint }}>Tier 0 — highest priority in bot responses</p>
         </div>
-        <button onClick={() => setIsNew(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: C.accentDim, border: `1px solid rgba(79,110,247,0.3)`, borderRadius: 7, color: C.accentText, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-          New
-        </button>
+        {canWrite && (
+          <button onClick={() => setIsNew(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: C.accentDim, border: `1px solid rgba(79,110,247,0.3)`, borderRadius: 7, color: C.accentText, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+            New
+          </button>
+        )}
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "11px" }}>
         {standards.filter(s => s.status === "active").map(s => (
@@ -191,23 +193,27 @@ export function StdList({ user }) {
                 </div>
                 <p style={{ margin: 0, fontSize: 10, color: C.hint }}>{s.updatedBy} · {s.updatedAt}</p>
               </div>
-              <div style={{ position: "relative", flexShrink: 0 }}>
-                <button onClick={() => setMenuId(menuId === s.id ? null : s.id)} style={{ background: "none", border: "none", cursor: "pointer", color: C.hint, padding: "2px 6px", fontSize: 14 }}>···</button>
-                {menuId === s.id && (
-                  <CtxMenu onClose={() => setMenuId(null)} style={{ right: 0, top: 22 }} items={[
-                    { icon: "rename",  label: "Edit",    fn: () => setEditing(s) },
-                    "---",
-                    { icon: "archive", label: "Archive", fn: () => store.updateStd(s.id, { status: "archived" }) },
-                  ]} />
-                )}
-              </div>
+              {canWrite && (
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  <button onClick={() => setMenuId(menuId === s.id ? null : s.id)} style={{ background: "none", border: "none", cursor: "pointer", color: C.hint, padding: "2px 6px", fontSize: 14 }}>···</button>
+                  {menuId === s.id && (
+                    <CtxMenu onClose={() => setMenuId(null)} style={{ right: 0, top: 22 }} items={[
+                      { icon: "rename",  label: "Edit",    fn: () => setEditing(s) },
+                      "---",
+                      { icon: "archive", label: "Archive", fn: () => store.updateStd(s.id, { status: "archived" }) },
+                    ]} />
+                  )}
+                </div>
+              )}
             </div>
             <p style={{ margin: 0, fontSize: 11, color: C.muted, lineHeight: 1.65, whiteSpace: "pre-line" }}>
               {s.body.slice(0, 180)}{s.body.length > 180 ? "…" : ""}
             </p>
-            <button onClick={() => setEditing(s)} style={{ marginTop: 7, fontSize: 11, color: C.accent, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
-              Edit / update →
-            </button>
+            {canWrite && (
+              <button onClick={() => setEditing(s)} style={{ marginTop: 7, fontSize: 11, color: C.accent, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
+                Edit / update →
+              </button>
+            )}
           </div>
         ))}
       </div>
