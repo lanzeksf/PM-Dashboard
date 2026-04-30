@@ -33,7 +33,8 @@ export function KernBotApp({ preloadUser }) {
   };
   const [chatId, setChatId] = useState(initChatId);
 
-  const isAdmin = user?.tier === "admin";
+  const isAdmin  = user?.tier === "admin" || user?.tier === "sr_pm";
+  const canWrite = user?.stdWrite === true;
   const myChats = user ? store.chats.filter(c => c.owner === user.id) : [];
 
   // ── Chat actions ──────────────────────────────────────────────────────────
@@ -238,12 +239,15 @@ export function KernBotApp({ preloadUser }) {
                   {qResolved.map(q => <QueueRow key={q.id} q={q} active={q.id === selQ && adminView === "queue"} onSelect={id => { setSelQ(id); setAdminView("queue"); }} onRename={id => setRenameQId(id)} onResolve={handleQResolve} onUnresolve={handleQUnresolve} onRemove={removeQueue} />)}
                 </>
               )}
-              <button onClick={() => setAdminView("standards")} style={{ width: "100%", marginTop: 7, background: adminView === "standards" ? "rgba(79,110,247,0.1)" : "none", border: `1px solid ${adminView === "standards" ? "rgba(79,110,247,0.28)" : "transparent"}`, borderRadius: 6, padding: "5px 7px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit" }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={adminView === "standards" ? C.accentText : C.hint} strokeWidth="1.5" strokeLinecap="round" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={adminView === "standards" ? C.accentText : C.hint} strokeWidth="1.5" /></svg>
-                <span style={{ fontSize: 11, color: adminView === "standards" ? C.accentText : C.hint }}>Standards library</span>
-              </button>
             </div>
           )}
+          <div style={{ marginTop: isAdmin ? 0 : 6 }}>
+            {!isAdmin && <div style={{ height: 1, background: C.border, margin: "6px 0 2px" }} />}
+            <button onClick={() => setAdminView("standards")} style={{ width: "100%", marginTop: 4, background: adminView === "standards" ? "rgba(79,110,247,0.1)" : "none", border: `1px solid ${adminView === "standards" ? "rgba(79,110,247,0.28)" : "transparent"}`, borderRadius: 6, padding: "5px 7px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit" }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={adminView === "standards" ? C.accentText : C.hint} strokeWidth="1.5" strokeLinecap="round" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={adminView === "standards" ? C.accentText : C.hint} strokeWidth="1.5" /></svg>
+              <span style={{ fontSize: 11, color: adminView === "standards" ? C.accentText : C.hint }}>Standards library</span>
+            </button>
+          </div>
         </div>
 
         {/* User profile footer */}
@@ -264,7 +268,7 @@ export function KernBotApp({ preloadUser }) {
       {/* ── Main panel ──────────────────────────────────────────────────── */}
       {adminView === "chat"      && <ChatPane chat={activeChat} user={user} isAdmin={isAdmin} onEscalate={() => openEsc(chatId)} onResolve={handleResolve} onUnresolve={handleUnresolve} onSend={ensureChatAndSend} onSendReply={handleSendReply} onMarkRead={markRead} />}
       {adminView === "queue"     && isAdmin && <QueueDetail item={qItem} user={user} onSend={handleQSend} onResolve={handleQResolve} onUnresolve={handleQUnresolve} />}
-      {adminView === "standards" && isAdmin && <StdList user={user} />}
+      {adminView === "standards" && <StdList user={user} canWrite={canWrite} />}
 
       {/* ── Modals ──────────────────────────────────────────────────────── */}
       {escOpen    && <EscalateModal msgs={store.chats.find(c => c.id === (escTargetRef.current || chatId))?.msgs || []} onSubmit={submitEscalation} onClose={() => { escTargetRef.current = null; setEscOpen(false); setEscTarget(null); }} />}
