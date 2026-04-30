@@ -70,15 +70,90 @@ export const readFileAsDataURL = file => new Promise((res, rej) => {
 export const MAX_FILE_SIZE   = 8 * 1024 * 1024; // 8 MB
 export const MAX_ATTACHMENTS = 6;
 
+// ── Module access map ─────────────────────────────────────────────────────────
+// Defines which nav tabs each role can see.
+// "standards_write" is a permission flag, not a nav tab — checked separately.
+export const ROLE_MODULES = {
+  admin: [
+    "kernbot", "dashboard", "queue", "owner", "scope", "changes",
+    "detailing", "rfi", "fab", "field", "standards", "user_mgmt", "system_config",
+  ],
+  sr_pm: [
+    "kernbot", "dashboard", "queue", "owner", "scope", "changes",
+    "detailing", "rfi", "fab", "field", "standards", "user_mgmt",
+  ],
+  apm: [
+    "kernbot", "dashboard", "owner", "scope", "changes",
+    "detailing", "rfi", "fab", "field", "standards",
+  ],
+  coordinator: [
+    "kernbot", "dashboard", "owner", "scope", "changes",
+    "detailing", "rfi", "fab", "field", "standards",
+  ],
+  mfg_eng: [
+    "kernbot", "dashboard", "fab", "standards",
+  ],
+  field: [
+    "kernbot", "dashboard", "owner", "scope", "changes", "fab", "field", "standards",
+  ],
+};
+
 // ── Users ─────────────────────────────────────────────────────────────────────
+// tier:         controls queue access + reply rights ("admin" | "sr_pm" | "standard")
+// role:         maps to ROLE_MODULES key
+// canRespond:   can reply to KB queue items
+// stdWrite:     can create/edit standards
+// department:   shown as tag on user picker card (null = no tag)
 export const USERS_LIST = [
-  { id: "loren",   name: "Loren C.",   initials: "LC", color: "#a78bfa", position: "Senior PM",             tier: "admin",    canRespond: true  },
-  { id: "lanze",   name: "Lanze A.",   initials: "LA", color: "#22c55e", position: "Manufacturing Engineer", tier: "standard", canRespond: false },
-  { id: "tony",    name: "Tony S.",    initials: "TS", color: "#38bdf8", position: "Structural Coordinator", tier: "standard", canRespond: false },
-  { id: "luis",    name: "Luis A.",    initials: "LU", color: "#f59e0b", position: "Solar APM",              tier: "standard", canRespond: false },
-  { id: "jillian", name: "Jillian H.", initials: "JH", color: "#f472b6", position: "Solar Coordinator",     tier: "standard", canRespond: false },
-  { id: "adam",    name: "Adam K.",    initials: "AK", color: "#fb923c", position: "Aerospace Engineer",     tier: "standard", canRespond: false },
-  { id: "jacob",   name: "Jacob T.",   initials: "JT", color: "#4ade80", position: "Field Coordinator",      tier: "standard", canRespond: false },
+  {
+    id: "lanze",   name: "Lanze A.",   initials: "LA", color: "#22c55e",
+    position: "Manufacturing Engineer", role: "admin",
+    tier: "admin",  canRespond: true,  stdWrite: true,
+    badge: { label: "Admin", color: "#a78bfa", bg: "rgba(167,139,250,0.15)" },
+    department: null,
+  },
+  {
+    id: "loren",   name: "Loren C.",   initials: "LC", color: "#a78bfa",
+    position: "Senior PM", role: "sr_pm",
+    tier: "sr_pm",  canRespond: true,  stdWrite: true,
+    badge: { label: "Senior PM", color: "#c4b5fd", bg: "rgba(196,181,253,0.12)" },
+    department: null,
+  },
+  {
+    id: "tony",    name: "Tony S.",    initials: "TS", color: "#38bdf8",
+    position: "Project Coordinator", role: "coordinator",
+    tier: "standard", canRespond: false, stdWrite: false,
+    badge: null,
+    department: { label: "Structural", color: "#888", bg: "#2a2a2a" },
+  },
+  {
+    id: "luis",    name: "Luis A.",    initials: "LU", color: "#f59e0b",
+    position: "Assistant Project Manager", role: "apm",
+    tier: "standard", canRespond: false, stdWrite: false,
+    badge: null,
+    department: { label: "Solar", color: "#888", bg: "#2a2a2a" },
+  },
+  {
+    id: "jillian", name: "Jillian H.", initials: "JH", color: "#f472b6",
+    position: "Project Coordinator", role: "coordinator",
+    tier: "standard", canRespond: false, stdWrite: false,
+    badge: null,
+    department: { label: "Solar", color: "#888", bg: "#2a2a2a" },
+  },
+  {
+    id: "adam",    name: "Adam K.",    initials: "AK", color: "#fb923c",
+    position: "Assistant Project Manager", role: "apm",
+    tier: "standard", canRespond: false, stdWrite: false,
+    badge: null,
+    department: { label: "Aero", color: "#888", bg: "#2a2a2a" },
+  },
+  {
+    id: "jacob",   name: "Jacob T.",   initials: "JT", color: "#4ade80",
+    position: "Field Coordinator", role: "field",
+    tier: "standard", canRespond: false, stdWrite: false,
+    badge: null,
+    department: null,
+  },
 ];
 
 // ── Icon map (SVG elements) ───────────────────────────────────────────────────
