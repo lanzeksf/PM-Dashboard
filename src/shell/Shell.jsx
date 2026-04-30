@@ -25,24 +25,37 @@ const ALL_NAV_ITEMS = [
 
 // ── Nav icons ─────────────────────────────────────────────────────────────────
 const Icon = ({ children }) => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
     {children}
   </svg>
 );
 
 const NAV_ICONS = {
+  // Chat/lines icon
   kernbot:      () => <Icon><path d="M4 6h16M4 12h10M4 18h16" /></Icon>,
+  // Four-quadrant dashboard
   dashboard:    () => <Icon><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></Icon>,
+  // List with alert dot
   queue:        () => <Icon><path d="M4 6h16M4 12h10M4 18h7" /><circle cx="19" cy="18" r="3" /></Icon>,
-  owner:        () => <Icon><path d="M5 5h14v14H5z" /><path d="M9 9h6v6H9z" /></Icon>,
+  // Owner pending — inbox tray
+  owner:        () => <Icon><polyline points="22 12 16 12 14 15 10 15 8 12 2 12" /><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z" /></Icon>,
+  // Crosshair / scope
   scope:        () => <Icon><circle cx="12" cy="12" r="6" /><path d="M12 6v12M6 12h12" /></Icon>,
-  changes:      () => <Icon><path d="M5 12h14M12 5l7 7-7 7" /></Icon>,
-  detailing:    () => <Icon><path d="M6 20h12M7 4h10l-1 5H8z" /></Icon>,
-  rfi:          () => <Icon><path d="M4 7h16M8 12h8M7 17h10" /></Icon>,
-  fab:          () => <Icon><path d="M4 7h16v10H4z" /><path d="M4 7l8 5 8-5" /></Icon>,
-  field:        () => <Icon><circle cx="12" cy="12" r="5" /><path d="M12 7v10M7 12h10" /></Icon>,
+  // Dollar sign for Change Orders
+  changes:      () => <Icon><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></Icon>,
+  // Compass/drafting for Detailing
+  detailing:    () => <Icon><circle cx="12" cy="12" r="2" /><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></Icon>,
+  // Circle with question mark for RFI Log
+  rfi:          () => <Icon><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></Icon>,
+  // Wide flange beam (I-beam cross section) for Fabrication
+  fab:          () => <Icon><line x1="4" y1="5" x2="20" y2="5" /><line x1="4" y1="19" x2="20" y2="19" /><line x1="12" y1="5" x2="12" y2="19" /></Icon>,
+  // Hard hat for Field Needs
+  field:        () => <Icon><path d="M2 18a1 1 0 001 1h18a1 1 0 001-1v-1H2v1z" /><path d="M12 2a8 8 0 018 8v6H4V10a8 8 0 018-8z" /><line x1="7" y1="17" x2="7" y2="12" /><line x1="17" y1="17" x2="17" y2="12" /></Icon>,
+  // Book for Standards
   standards:    () => <Icon><path d="M4 19.5A2.5 2.5 0 016.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" /></Icon>,
+  // People for User Management
   user_mgmt:    () => <Icon><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></Icon>,
+  // Gear for System Config
   system_config:() => <Icon><circle cx="12" cy="12" r="3" /><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M20 12h2M2 12h2M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41" /></Icon>,
 };
 
@@ -135,7 +148,7 @@ function ShellSidebar({ user, tab, setTab, onSignOut, mobile = false, onClose })
       <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "0 12px 6px" }} />
 
       <style>{`
-        .ksf-nav-btn { width:100%;display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-family:inherit;margin-bottom:1px;color:#888;font-size:13px;font-weight:400;text-align:left;transition:background .1s,color .1s;border-left:2px solid transparent; }
+        .ksf-nav-btn { width:100%;display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-family:inherit;margin-bottom:2px;color:#888;font-size:13px;font-weight:400;text-align:left;transition:background .1s,color .1s;border-left:2px solid transparent; }
         .ksf-nav-btn:hover { background:rgba(255,255,255,0.07);color:#e0e0e0; }
         .ksf-nav-btn.active { background:rgba(255,255,255,0.13);color:#ffffff;font-weight:600;border-left:2px solid rgba(255,255,255,0.7); }
         .ksf-nav-icon { flex-shrink:0;display:flex;align-items:center;opacity:0.55; }
