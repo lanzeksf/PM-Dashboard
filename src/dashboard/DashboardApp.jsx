@@ -290,7 +290,19 @@ function ChangeOrdersContent({items,setTab}){
 }
 
 function KBInquiriesContent({items,setTab}){
-  if(items.length===0) return <EmptyState text="No open KernBot inquiries"/>;
+  if(items.length===0) return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"20px 16px",gap:10}}>
+      <div style={{width:48,height:48,borderRadius:"50%",background:C.successDim,border:`1.5px solid ${C.success}44`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.success} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 6L9 17l-5-5"/>
+        </svg>
+      </div>
+      <div style={{textAlign:"center"}}>
+        <p style={{margin:0,fontSize:13,fontWeight:600,color:C.success}}>Queue is clear</p>
+        <p style={{margin:"4px 0 0",fontSize:11,color:C.hint,lineHeight:1.5}}>No open KernBot inquiries.<br/>Escalations from the team will appear here.</p>
+      </div>
+    </div>
+  );
   return items.map(item=>{
     const uc=urgColor(item.urgency);
     return (
@@ -349,7 +361,20 @@ export default function DashboardApp({user,setTab}){
   const isField=user.role==="field";
   const lk=`ksf-dash-${user.id}`,hk=`ksf-dash-hidden-${user.id}`;
 
-  const [widgetOrder,setWidgetOrder]=useState(()=>{ try{const s=localStorage.getItem(lk);if(s)return JSON.parse(s);}catch{} return ROLE_LAYOUTS[user.role]||ROLE_LAYOUTS.apm; });
+  const [widgetOrder,setWidgetOrder]=useState(()=>{
+    try{
+      const s=localStorage.getItem(lk);
+      if(s){
+        const saved=JSON.parse(s);
+        // Safety: append any widgets in the role default that aren't in the saved layout.
+        // Handles the case where a new widget was added after the user's layout was already saved.
+        const roleDefault=ROLE_LAYOUTS[user.role]||ROLE_LAYOUTS.apm;
+        const missing=roleDefault.filter(id=>!saved.includes(id));
+        return missing.length>0?[...saved,...missing]:saved;
+      }
+    }catch{}
+    return ROLE_LAYOUTS[user.role]||ROLE_LAYOUTS.apm;
+  });
   const [hiddenWidgets,setHiddenWidgets]=useState(()=>{ try{const s=localStorage.getItem(hk);if(s)return JSON.parse(s);}catch{} return []; });
   const [editMode,setEditMode]=useState(false);
   const [dragId,setDragId]=useState(null);
