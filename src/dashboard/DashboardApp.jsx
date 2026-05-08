@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { C, fmtRel, daysAgo, hoursAgo } from "../core/utils.jsx";
 
 // ── Seed Data ─────────────────────────────────────────────────────────────────
@@ -14,33 +14,33 @@ const PROJECTS = [
 ];
 
 const OWNER_PENDING = [
-  { id: "op1", projectId: "p1", project: "Stockdale Tower",        subject: "Approve grid line revision — Column D4 relocation",  assignedTo: "tony",    createdAt: daysAgo(7) },
-  { id: "op2", projectId: "p2", project: "CSUB Science Building",  subject: "Confirm anchor bolt pattern — Grid B / Level 2",     assignedTo: "loren",   createdAt: daysAgo(3) },
-  { id: "op3", projectId: "p4", project: "Kern High Carports",     subject: "AHJ permit approval — Lot C expansion",              assignedTo: "luis",    createdAt: daysAgo(9) },
-  { id: "op4", projectId: "p5", project: "Dignity Health Parking", subject: "Owner sign-off on revised bay spacing",              assignedTo: "jillian", createdAt: daysAgo(2) },
-  { id: "op5", projectId: "p6", project: "F-35 Stand – Lot 4",     subject: "EO approval pending — field weld mod at Sta. 14",    assignedTo: "adam",    createdAt: daysAgo(6) },
+  { id: "op1", projectId: "p1", project: "Stockdale Tower",        subject: "Approve grid line revision — Column D4 relocation",  assignedTo: "tony",    createdAt: daysAgo(7),  source: "email" },
+  { id: "op2", projectId: "p2", project: "CSUB Science Building",  subject: "Confirm anchor bolt pattern — Grid B / Level 2",     assignedTo: "loren",   createdAt: daysAgo(3),  source: "manual" },
+  { id: "op3", projectId: "p4", project: "Kern High Carports",     subject: "AHJ permit approval — Lot C expansion",              assignedTo: "luis",    createdAt: daysAgo(9),  source: "email" },
+  { id: "op4", projectId: "p5", project: "Dignity Health Parking", subject: "Owner sign-off on revised bay spacing",              assignedTo: "jillian", createdAt: daysAgo(2),  source: "manual" },
+  { id: "op5", projectId: "p6", project: "F-35 Stand – Lot 4",     subject: "EO approval pending — field weld mod at Sta. 14",    assignedTo: "adam",    createdAt: daysAgo(6),  source: "projectsight" },
 ];
 
 const FIELD_NEEDS = [
-  { id: "fn1", projectId: "p1", project: "Stockdale Tower",        issue: "Missing anchor bolts at grid C3 — erection halted",  urgency: "High",   submittedBy: "jacob", assignedTo: "tony",  createdAt: hoursAgo(4), status: "Open" },
-  { id: "fn2", projectId: "p2", project: "CSUB Science Building",  issue: "Beam camber on W18×97 exceeds tolerance — hold fab", urgency: "High",   submittedBy: "jacob", assignedTo: "loren", createdAt: daysAgo(1),  status: "Open" },
-  { id: "fn3", projectId: "p3", project: "Ming Ave Retail Center", issue: "Column base plate elevation off 3/8\" at grid A1",    urgency: "Medium", submittedBy: "jacob", assignedTo: "tony",  createdAt: daysAgo(2),  status: "Open" },
-  { id: "fn4", projectId: "p4", project: "Kern High Carports",     issue: "Purlin spacing inconsistency vs. approved drawings", urgency: "Medium", submittedBy: "jacob", assignedTo: "luis",  createdAt: daysAgo(3),  status: "Open" },
+  { id: "fn1", projectId: "p1", project: "Stockdale Tower",        issue: "Missing anchor bolts at grid C3 — erection halted",  urgency: "High",   submittedBy: "jacob", assignedTo: "tony",  createdAt: hoursAgo(4), status: "Open", source: "manual" },
+  { id: "fn2", projectId: "p2", project: "CSUB Science Building",  issue: "Beam camber on W18×97 exceeds tolerance — hold fab", urgency: "High",   submittedBy: "jacob", assignedTo: "loren", createdAt: daysAgo(1),  status: "Open", source: "email" },
+  { id: "fn3", projectId: "p3", project: "Ming Ave Retail Center", issue: "Column base plate elevation off 3/8\" at grid A1",    urgency: "Medium", submittedBy: "jacob", assignedTo: "tony",  createdAt: daysAgo(2),  status: "Open", source: "manual" },
+  { id: "fn4", projectId: "p4", project: "Kern High Carports",     issue: "Purlin spacing inconsistency vs. approved drawings", urgency: "Medium", submittedBy: "jacob", assignedTo: "luis",  createdAt: daysAgo(3),  status: "Open", source: "manual" },
 ];
 
 const SCOPE_ITEMS = [
-  { id: "sc1", projectId: "p1", project: "Stockdale Tower",        description: "Added beam reinforcement — grid D4 per RFI-014",        amount: 18400, noticeDeadlineDays: 14, createdAt: daysAgo(16), notified: false },
-  { id: "sc2", projectId: "p2", project: "CSUB Science Building",  description: "Lateral brace addition — seismic upgrade Level 3",      amount: 34200, noticeDeadlineDays: 14, createdAt: daysAgo(5),  notified: false },
-  { id: "sc3", projectId: "p3", project: "Ming Ave Retail",        description: "Owner-directed connection change — Col. A1 base plate",  amount: 6800,  noticeDeadlineDays: 7,  createdAt: daysAgo(8),  notified: false },
-  { id: "sc4", projectId: "p5", project: "Dignity Health Parking", description: "Additional canopy bay added — south end",                amount: 52000, noticeDeadlineDays: 14, createdAt: daysAgo(3),  notified: true  },
+  { id: "sc1", projectId: "p1", project: "Stockdale Tower",        description: "Added beam reinforcement — grid D4 per RFI-014",        amount: 18400, noticeDeadlineDays: 14, createdAt: daysAgo(16), notified: false, source: "manual" },
+  { id: "sc2", projectId: "p2", project: "CSUB Science Building",  description: "Lateral brace addition — seismic upgrade Level 3",      amount: 34200, noticeDeadlineDays: 14, createdAt: daysAgo(5),  notified: false, source: "email" },
+  { id: "sc3", projectId: "p3", project: "Ming Ave Retail",        description: "Owner-directed connection change — Col. A1 base plate",  amount: 6800,  noticeDeadlineDays: 7,  createdAt: daysAgo(8),  notified: false, source: "manual" },
+  { id: "sc4", projectId: "p5", project: "Dignity Health Parking", description: "Additional canopy bay added — south end",                amount: 52000, noticeDeadlineDays: 14, createdAt: daysAgo(3),  notified: true,  source: "email" },
 ];
 
 const CHANGE_ORDERS = [
-  { id: "co1", projectId: "p1", project: "Stockdale Tower",        coNumber: "CO-007", description: "Grid D4 beam reinforcement + RFI-014 work",            amount: 18400, sentDate: daysAgo(12), dueDate: daysAgo(2),  status: "Unsigned" },
-  { id: "co2", projectId: "p2", project: "CSUB Science Building",  coNumber: "CO-003", description: "Seismic lateral brace upgrade — Level 3",              amount: 34200, sentDate: daysAgo(4),  dueDate: daysAgo(-3), status: "Unsigned" },
-  { id: "co3", projectId: "p3", project: "Ming Ave Retail",        coNumber: "CO-002", description: "Base plate connection change at Col. A1",               amount: 6800,  sentDate: daysAgo(9),  dueDate: daysAgo(-1), status: "Unsigned" },
-  { id: "co4", projectId: "p4", project: "Kern High Carports",     coNumber: "CO-005", description: "Lot C canopy extension — additional structural steel",   amount: 41500, sentDate: daysAgo(6),  dueDate: daysAgo(-5), status: "Unsigned" },
-  { id: "co5", projectId: "p6", project: "F-35 Stand – Lot 4",     coNumber: "CO-011", description: "Station 14 weld mod per EO-2026-044",                   amount: 28700, sentDate: daysAgo(3),  dueDate: daysAgo(-7), status: "Unsigned" },
+  { id: "co1", projectId: "p1", project: "Stockdale Tower",        coNumber: "CO-007", description: "Grid D4 beam reinforcement + RFI-014 work",           amount: 18400, sentDate: daysAgo(12), dueDate: daysAgo(2),  status: "Unsigned" },
+  { id: "co2", projectId: "p2", project: "CSUB Science Building",  coNumber: "CO-003", description: "Seismic lateral brace upgrade — Level 3",             amount: 34200, sentDate: daysAgo(4),  dueDate: daysAgo(-3), status: "Unsigned" },
+  { id: "co3", projectId: "p3", project: "Ming Ave Retail",        coNumber: "CO-002", description: "Base plate connection change at Col. A1",              amount: 6800,  sentDate: daysAgo(9),  dueDate: daysAgo(-1), status: "Unsigned" },
+  { id: "co4", projectId: "p4", project: "Kern High Carports",     coNumber: "CO-005", description: "Lot C canopy extension — additional structural steel",  amount: 41500, sentDate: daysAgo(6),  dueDate: daysAgo(-5), status: "Unsigned" },
+  { id: "co5", projectId: "p6", project: "F-35 Stand – Lot 4",     coNumber: "CO-011", description: "Station 14 weld mod per EO-2026-044",                  amount: 28700, sentDate: daysAgo(3),  dueDate: daysAgo(-7), status: "Unsigned" },
 ];
 
 const FAB_JOBS = [
@@ -53,12 +53,31 @@ const FAB_JOBS = [
   { id: "fj7", projectId: "p7", project: "USAF Ground Support",    vertical: "Aero",       totalPieces: 54,  shipped: 54,  inFab: 0,   queued: 0,   phase: "Complete"      },
 ];
 
+// ── Widget config ─────────────────────────────────────────────────────────────
+const WIDGET_META = {
+  project_health: { label: "Project Health",        size: "wide" },
+  fab_snapshot:   { label: "Fabrication Snapshot",  size: "wide" },
+  field_needs:    { label: "Field Needs",            size: "half" },
+  owner_pending:  { label: "Owner Pending",          size: "half" },
+  scope_items:    { label: "Unnotified Scope",       size: "half" },
+  change_orders:  { label: "Unsigned Change Orders", size: "half" },
+};
+
+const ROLE_LAYOUTS = {
+  admin:       ["project_health", "fab_snapshot", "field_needs", "owner_pending", "scope_items", "change_orders"],
+  sr_pm:       ["project_health", "fab_snapshot", "field_needs", "owner_pending", "scope_items", "change_orders"],
+  apm:         ["project_health", "field_needs", "owner_pending", "change_orders", "fab_snapshot", "scope_items"],
+  coordinator: ["project_health", "field_needs", "owner_pending", "change_orders", "fab_snapshot", "scope_items"],
+  mfg_eng:     ["fab_snapshot", "project_health", "field_needs"],
+  field:       ["field_needs", "fab_snapshot"],
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const firstName  = name => name.split(" ")[0];
-const daysSince  = iso  => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
-const daysUntil  = iso  => Math.floor((new Date(iso).getTime() - Date.now()) / 86400000);
-const fmtMoney   = n    => "$" + n.toLocaleString();
+const firstName = name => name.split(" ")[0];
+const daysSince = iso  => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+const daysUntil = iso  => Math.floor((new Date(iso).getTime() - Date.now()) / 86400000);
+const fmtMoney  = n    => "$" + n.toLocaleString();
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -83,54 +102,30 @@ const VertBadge = ({ v }) => {
   );
 };
 
-const ageColor = (iso, redDays = 5, yellowDays = 3) => {
-  const d = daysSince(iso);
-  if (d >= redDays)    return C.danger;
-  if (d >= yellowDays) return C.warning;
-  return C.muted;
+const SourcePill = ({ source }) => {
+  if (!source || source === "manual") return null;
+  const map = { email: { color: "#38bdf8", label: "EMAIL" }, projectsight: { color: "#a78bfa", label: "PS" } };
+  const s = map[source];
+  if (!s) return null;
+  return (
+    <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3,
+      background: s.color + "20", color: s.color, letterSpacing: "0.04em" }}>{s.label}</span>
+  );
 };
 
-const dueDateColor = iso => {
-  const d = daysUntil(iso);
-  if (d < 0)  return C.danger;
-  if (d <= 3) return C.warning;
-  return C.success;
-};
-const dueDateLabel = iso => {
-  const d = daysUntil(iso);
-  if (d < 0)   return `${Math.abs(d)}d overdue`;
-  if (d === 0) return "Due today";
-  if (d === 1) return "Due tomorrow";
-  return `Due in ${d}d`;
-};
-
-const scopeNoticeColor = item => {
-  const r = item.noticeDeadlineDays - daysSince(item.createdAt);
-  if (r <= 0) return C.danger;
-  if (r <= 3) return C.warning;
-  return C.muted;
-};
-const scopeNoticeLabel = item => {
-  const r = item.noticeDeadlineDays - daysSince(item.createdAt);
-  if (r <= 0) return `${Math.abs(r)}d past notice window`;
-  if (r <= 3) return `${r}d left to notify`;
-  return `${r}d remaining`;
-};
-
-// ── Filter data by user ───────────────────────────────────────────────────────
+const ageColor     = (iso, r = 5, y = 3) => { const d = daysSince(iso); return d >= r ? C.danger : d >= y ? C.warning : C.muted; };
+const dueDateColor = iso => { const d = daysUntil(iso); return d < 0 ? C.danger : d <= 3 ? C.warning : C.success; };
+const dueDateLabel = iso => { const d = daysUntil(iso); if (d < 0) return `${Math.abs(d)}d overdue`; if (d === 0) return "Due today"; return d === 1 ? "Due tomorrow" : `Due in ${d}d`; };
+const scopeColor   = item => { const r = item.noticeDeadlineDays - daysSince(item.createdAt); return r <= 0 ? C.danger : r <= 3 ? C.warning : C.muted; };
+const scopeLabel   = item => { const r = item.noticeDeadlineDays - daysSince(item.createdAt); if (r <= 0) return `${Math.abs(r)}d past window`; return r <= 3 ? `${r}d left` : `${r}d remaining`; };
 
 const filterByUser = user => {
   const isAdmin = user.tier === "admin" || user.tier === "sr_pm";
   const dept    = user.department?.label;
-
-  const myProjects = isAdmin
-    ? PROJECTS
-    : dept
-      ? PROJECTS.filter(p => p.vertical === dept || p.pm === user.id)
-      : PROJECTS.filter(p => p.pm === user.id);
-
+  const myProjects = isAdmin ? PROJECTS
+    : dept ? PROJECTS.filter(p => p.vertical === dept || p.pm === user.id)
+    : PROJECTS.filter(p => p.pm === user.id);
   const ids = new Set(myProjects.map(p => p.id));
-
   return {
     projects:     myProjects,
     ownerPending: OWNER_PENDING.filter(x => ids.has(x.projectId)),
@@ -145,92 +140,296 @@ const filterByUser = user => {
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 
-function SectionHeader({ title, count, countColor }) {
+function Widget({ title, count, countColor, editMode, isFirst, isLast,
+  onHide, onMoveUp, onMoveDown, children }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: C.muted }}>
-        {title}
-      </span>
-      {count !== undefined && (
-        <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 20,
-          background: (countColor || C.accent) + "22", color: countColor || C.accentText }}>
-          {count}
-        </span>
-      )}
+    <div style={{ background: C.surface, border: `1px solid ${editMode ? C.accent + "66" : C.border}`,
+      borderRadius: 12, display: "flex", flexDirection: "column", overflow: "hidden", transition: "border-color 0.2s" }}>
+      <div style={{ padding: "11px 14px", borderBottom: `1px solid ${C.border}`,
+        display: "flex", alignItems: "center", gap: 8, background: C.surface2, flexShrink: 0 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.07em",
+          textTransform: "uppercase", color: C.muted, flex: 1 }}>{title}</span>
+        {count !== undefined && (
+          <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
+            background: (countColor || C.accent) + "22", color: countColor || C.accentText }}>{count}</span>
+        )}
+        {editMode && (
+          <div style={{ display: "flex", gap: 4, marginLeft: 4 }}>
+            {[
+              { dir: -1, disabled: isFirst, icon: <path d="M18 15l-6-6-6 6"/> },
+              { dir:  1, disabled: isLast,  icon: <path d="M6 9l6 6 6-6"/> },
+            ].map(({ dir, disabled, icon }, i) => (
+              <button key={i} onClick={() => !disabled && (dir === -1 ? onMoveUp() : onMoveDown())}
+                style={{ width: 22, height: 22, borderRadius: 4, border: `1px solid ${C.border}`,
+                  background: "none", color: disabled ? C.hint : C.muted,
+                  cursor: disabled ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">{icon}</svg>
+              </button>
+            ))}
+            <button onClick={onHide}
+              style={{ width: 22, height: 22, borderRadius: 4, border: `1px solid ${C.danger}44`,
+                background: C.dangerDim, color: C.danger, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        )}
+      </div>
+      <div style={{ padding: "12px 14px", flex: 1, overflowY: "auto", maxHeight: 340 }}>
+        {children}
+      </div>
     </div>
   );
 }
 
-function Card({ children, style }) {
+function EmptyState({ text }) {
+  return <p style={{ margin: 0, fontSize: 12, color: C.hint, textAlign: "center", padding: "16px 0" }}>{text}</p>;
+}
+
+function ItemRow({ dotColor, onClick, children }) {
   return (
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px", ...style }}>
-      {children}
+    <div onClick={onClick}
+      style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 10px",
+        background: C.bg, border: `1px solid ${C.border}`, borderRadius: 7, marginBottom: 6,
+        cursor: "pointer", transition: "border-color 0.12s" }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = C.borderHi}
+      onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
+      <div style={{ width: 6, height: 6, borderRadius: "50%", background: dotColor, marginTop: 4, flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
     </div>
   );
 }
 
-function GoBtn({ label, onClick }) {
-  return (
-    <button onClick={onClick}
-      style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 6,
-        border: `1px solid ${C.border}`, background: C.surface2, color: C.accentText,
-        cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, fontFamily: "inherit" }}
-      onMouseEnter={e => { e.currentTarget.style.background = C.accentDim; e.currentTarget.style.borderColor = C.accent + "55"; }}
-      onMouseLeave={e => { e.currentTarget.style.background = C.surface2; e.currentTarget.style.borderColor = C.border; }}>
-      {label} →
-    </button>
-  );
-}
+// ── Widget content ────────────────────────────────────────────────────────────
 
-function ItemRow({ dotColor, title, meta, action }) {
+function ProjectHealthContent({ data, setTab }) {
+  const { projects, ownerPending, fieldNeeds, scopeItems, changeOrders } = data;
+  const riskLevel = proj => {
+    if (fieldNeeds.some(x  => x.projectId === proj.id && x.urgency === "High" && x.status === "Open")) return "High";
+    if (scopeItems.some(x  => x.projectId === proj.id && daysSince(x.createdAt) > x.noticeDeadlineDays)) return "High";
+    if (changeOrders.some(x => x.projectId === proj.id && x.status === "Unsigned" && daysUntil(x.dueDate) < 0)) return "High";
+    if (ownerPending.some(x => x.projectId === proj.id && daysSince(x.createdAt) >= 3)) return "Medium";
+    return "Low";
+  };
+  const rc = r => r === "High" ? C.danger : r === "Medium" ? C.warning : C.success;
+  const openCount = proj =>
+    ownerPending.filter(x => x.projectId === proj.id).length +
+    fieldNeeds.filter(x => x.projectId === proj.id && x.status === "Open").length +
+    scopeItems.filter(x => x.projectId === proj.id).length +
+    changeOrders.filter(x => x.projectId === proj.id && x.status === "Unsigned").length;
+  const topIssue = proj => {
+    const fn = fieldNeeds.find(x => x.projectId === proj.id && x.urgency === "High" && x.status === "Open");
+    if (fn) return { text: fn.issue, tab: "field", color: C.danger };
+    const sc = scopeItems.find(x => x.projectId === proj.id && daysSince(x.createdAt) > x.noticeDeadlineDays);
+    if (sc) return { text: `Scope past window: ${sc.description}`, tab: "scope", color: C.danger };
+    const co = changeOrders.find(x => x.projectId === proj.id && x.status === "Unsigned" && daysUntil(x.dueDate) < 0);
+    if (co) return { text: `${co.coNumber} unsigned — ${Math.abs(daysUntil(co.dueDate))}d overdue`, tab: "changes", color: C.warning };
+    const op = ownerPending.find(x => x.projectId === proj.id);
+    if (op) return { text: `Owner item ${daysSince(op.createdAt)}d waiting`, tab: "owner", color: ageColor(op.createdAt) };
+    return null;
+  };
+  if (projects.length === 0) return <EmptyState text="No active projects" />;
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 10,
-      paddingBottom: 10, borderBottom: `1px solid ${C.border}` }}>
-      <div style={{ width: 6, height: 6, borderRadius: "50%", background: dotColor,
-        marginTop: 5, flexShrink: 0 }} />
-      <div style={{ flex: 1, minWidth: 0 }}>{title}{meta}</div>
-      {action}
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 10 }}>
+      {projects.map(proj => {
+        const risk  = riskLevel(proj);
+        const color = rc(risk);
+        const count = openCount(proj);
+        const issue = topIssue(proj);
+        return (
+          <div key={proj.id} onClick={() => issue && setTab(issue.tab)}
+            style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8,
+              padding: "10px 12px", borderLeft: `3px solid ${color}`,
+              cursor: issue ? "pointer" : "default", transition: "border-color 0.12s" }}
+            onMouseEnter={e => { if (issue) e.currentTarget.style.borderColor = C.borderHi; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.borderLeftColor = color; }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.text, flex: 1,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{proj.name}</span>
+              <VertBadge v={proj.vertical} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: issue ? 7 : 0 }}>
+              <span style={{ fontSize: 10, color: C.hint, flex: 1,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {proj.client} · {fmtMoney(proj.contractValue)}
+              </span>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
+                background: color + "20", color }}>{risk}</span>
+              {count > 0 && <span style={{ fontSize: 10, color: C.muted, whiteSpace: "nowrap" }}>{count} open</span>}
+            </div>
+            {issue && (
+              <div style={{ background: issue.color + "0d", border: `1px solid ${issue.color}22`,
+                borderRadius: 5, padding: "5px 8px" }}>
+                <span style={{ fontSize: 10, color: issue.color, lineHeight: 1.4 }}>{issue.text}</span>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-// ── Alert Bar ─────────────────────────────────────────────────────────────────
+function FabContent({ jobs }) {
+  if (jobs.length === 0) return <EmptyState text="No active fab jobs" />;
+  const phaseColor = p => ({ "Complete": C.success, "Near Complete": "#34d399",
+    "Active Fab": C.accent, "Starting": C.warning, "Not Started": C.hint }[p] || C.muted);
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 10 }}>
+      {jobs.map(job => {
+        const pct    = Math.round((job.shipped / job.totalPieces) * 100);
+        const fabPct = Math.round(((job.shipped + job.inFab) / job.totalPieces) * 100);
+        const pc     = phaseColor(job.phase);
+        return (
+          <div key={job.id} style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: C.text, flex: 1,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.project}</span>
+              <VertBadge v={job.vertical} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
+                background: pc + "20", color: pc }}>{job.phase}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>{pct}%</span>
+            </div>
+            <div style={{ height: 5, borderRadius: 3, background: C.surface2,
+              overflow: "hidden", position: "relative", marginBottom: 5 }}>
+              <div style={{ position: "absolute", left: 0, top: 0, height: "100%",
+                width: `${fabPct}%`, background: C.accentDim, borderRadius: 3 }} />
+              <div style={{ position: "absolute", left: 0, top: 0, height: "100%",
+                width: `${pct}%`, background: pct === 100 ? C.success : C.accent, borderRadius: 3 }} />
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <span style={{ fontSize: 10, color: C.hint }}><span style={{ color: C.success,    fontWeight: 600 }}>{job.shipped}</span> shipped</span>
+              <span style={{ fontSize: 10, color: C.hint }}><span style={{ color: C.accentText, fontWeight: 600 }}>{job.inFab}</span> in fab</span>
+              <span style={{ fontSize: 10, color: C.hint }}><span style={{ color: C.muted,      fontWeight: 600 }}>{job.queued}</span> queued</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function FieldNeedsContent({ items, setTab, isField }) {
+  const open = items.filter(i => i.status === "Open");
+  if (open.length === 0) return <EmptyState text="No open field needs" />;
+  return open.map(item => {
+    const uc = item.urgency === "High" ? C.danger : item.urgency === "Medium" ? C.warning : C.muted;
+    return (
+      <ItemRow key={item.id} dotColor={uc} onClick={() => setTab("field")}>
+        <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.4 }}>{item.issue}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 10, color: C.muted }}>{item.project}</span>
+          <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 5px", borderRadius: 3,
+            background: uc + "20", color: uc }}>{item.urgency}</span>
+          <span style={{ fontSize: 10, color: C.hint }}>{fmtRel(item.createdAt)}</span>
+          <SourcePill source={item.source} />
+          {isField && <span style={{ fontSize: 10, color: C.muted }}>PM: {item.assignedTo}</span>}
+        </div>
+      </ItemRow>
+    );
+  });
+}
+
+function OwnerPendingContent({ items, setTab }) {
+  if (items.length === 0) return <EmptyState text="No items waiting on owner" />;
+  return items.map(item => {
+    const age   = daysSince(item.createdAt);
+    const color = ageColor(item.createdAt, 5, 3);
+    return (
+      <ItemRow key={item.id} dotColor={color} onClick={() => setTab("owner")}>
+        <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.4,
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.subject}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+          <span style={{ fontSize: 10, color: C.muted }}>{item.project}</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color }}>{age}d waiting</span>
+          <SourcePill source={item.source} />
+        </div>
+      </ItemRow>
+    );
+  });
+}
+
+function ScopeContent({ items, setTab }) {
+  if (items.length === 0) return <EmptyState text="No unnotified scope items" />;
+  return items.map(item => {
+    const color = scopeColor(item);
+    return (
+      <ItemRow key={item.id} dotColor={color} onClick={() => setTab("scope")}>
+        <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.4 }}>{item.description}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 10, color: C.muted }}>{item.project}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color }}>{scopeLabel(item)}</span>
+          <span style={{ fontSize: 10, color: C.success, fontWeight: 600 }}>{fmtMoney(item.amount)}</span>
+          <SourcePill source={item.source} />
+        </div>
+      </ItemRow>
+    );
+  });
+}
+
+function ChangeOrdersContent({ items, setTab }) {
+  const unsigned = items.filter(co => co.status === "Unsigned");
+  if (unsigned.length === 0) return <EmptyState text="No unsigned change orders" />;
+  return unsigned.map(co => {
+    const color = dueDateColor(co.dueDate);
+    return (
+      <ItemRow key={co.id} dotColor={color} onClick={() => setTab("changes")}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: C.accentText }}>{co.coNumber}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: C.success }}>{fmtMoney(co.amount)}</span>
+        </div>
+        <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.4 }}>{co.description}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 10, color: C.muted }}>{co.project}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color }}>{dueDateLabel(co.dueDate)}</span>
+          <span style={{ fontSize: 10, color: C.hint }}>Sent {fmtRel(co.sentDate)}</span>
+        </div>
+      </ItemRow>
+    );
+  });
+}
+
+// ── Alert bar ─────────────────────────────────────────────────────────────────
 
 function AlertBar({ data, setTab }) {
   const alerts = [];
-
   data.scopeItems.forEach(item => {
-    const age = daysSince(item.createdAt);
-    if (age > item.noticeDeadlineDays)
-      alerts.push({ text: `${item.project} — scope item is ${age - item.noticeDeadlineDays}d past the ${item.noticeDeadlineDays}-day notice window`, tab: "scope" });
+    if (daysSince(item.createdAt) > item.noticeDeadlineDays)
+      alerts.push({ text: `${item.project} — scope ${daysSince(item.createdAt) - item.noticeDeadlineDays}d past notice window`, tab: "scope" });
   });
   data.ownerPending.forEach(op => {
     if (daysSince(op.createdAt) >= 5)
-      alerts.push({ text: `${op.project} — owner item waiting ${daysSince(op.createdAt)} days without response`, tab: "owner" });
+      alerts.push({ text: `${op.project} — owner item waiting ${daysSince(op.createdAt)} days`, tab: "owner" });
   });
   data.fieldNeeds.forEach(fn => {
     if (fn.urgency === "High" && fn.status === "Open")
-      alerts.push({ text: `${fn.project} — HIGH field need open: ${fn.issue}`, tab: "field" });
+      alerts.push({ text: `${fn.project} — HIGH field need: ${fn.issue}`, tab: "field" });
   });
   data.changeOrders.forEach(co => {
     if (co.status === "Unsigned" && daysUntil(co.dueDate) < 0)
-      alerts.push({ text: `${co.project} — ${co.coNumber} unsigned and ${Math.abs(daysUntil(co.dueDate))}d overdue (${fmtMoney(co.amount)})`, tab: "changes" });
+      alerts.push({ text: `${co.project} — ${co.coNumber} unsigned, ${Math.abs(daysUntil(co.dueDate))}d overdue (${fmtMoney(co.amount)})`, tab: "changes" });
   });
-
   if (alerts.length === 0) return null;
-
   return (
     <div style={{ background: "rgba(248,113,113,0.07)", border: `1px solid ${C.danger}44`,
-      borderRadius: 10, padding: "12px 16px", marginBottom: 18 }}>
-      <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em",
+      borderRadius: 10, padding: "10px 16px", marginBottom: 16 }}>
+      <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em",
         textTransform: "uppercase", color: C.danger }}>
-        ⚠ {alerts.length} Critical Item{alerts.length !== 1 ? "s" : ""} Require Attention
+        ⚠ {alerts.length} Critical Item{alerts.length !== 1 ? "s" : ""}
       </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {alerts.map((a, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between" }}>
             <span style={{ fontSize: 12, color: C.danger, lineHeight: 1.4, flex: 1 }}>{a.text}</span>
-            <GoBtn label="Go" onClick={() => setTab(a.tab)} />
+            <button onClick={() => setTab(a.tab)}
+              style={{ fontSize: 11, fontWeight: 600, padding: "2px 10px", borderRadius: 5,
+                border: `1px solid ${C.danger}44`, background: C.dangerDim, color: C.danger,
+                cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
+              Go →
+            </button>
           </div>
         ))}
       </div>
@@ -238,261 +437,22 @@ function AlertBar({ data, setTab }) {
   );
 }
 
-// ── Owner Pending ─────────────────────────────────────────────────────────────
-
-function OwnerPendingSection({ items, setTab }) {
-  if (items.length === 0) return null;
+function HiddenTray({ hidden, onRestore }) {
+  if (hidden.length === 0) return null;
   return (
-    <Card style={{ marginBottom: 14 }}>
-      <SectionHeader title="Owner Pending" count={items.length} countColor={C.warning} />
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        {items.map(item => {
-          const age   = daysSince(item.createdAt);
-          const color = ageColor(item.createdAt, 5, 3);
-          return (
-            <ItemRow key={item.id}
-              dotColor={color}
-              title={<p style={{ margin: 0, fontSize: 13, color: C.text, lineHeight: 1.4,
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.subject}</p>}
-              meta={<div style={{ display: "flex", gap: 8, marginTop: 3 }}>
-                <span style={{ fontSize: 11, color: C.muted }}>{item.project}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color }}>{age}d waiting</span>
-              </div>}
-              action={<GoBtn label="Owner" onClick={() => setTab("owner")} />}
-            />
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
-// ── Field Needs ───────────────────────────────────────────────────────────────
-
-function FieldNeedsSection({ items, setTab, isField }) {
-  const open = items.filter(i => i.status === "Open");
-  if (open.length === 0) return null;
-  return (
-    <Card style={{ marginBottom: 14 }}>
-      <SectionHeader title="Field Needs" count={open.length} countColor={C.danger} />
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        {open.map(item => {
-          const urgColor = item.urgency === "High" ? C.danger : item.urgency === "Medium" ? C.warning : C.muted;
-          return (
-            <ItemRow key={item.id}
-              dotColor={urgColor}
-              title={<p style={{ margin: 0, fontSize: 13, color: C.text, lineHeight: 1.4 }}>{item.issue}</p>}
-              meta={<div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 11, color: C.muted }}>{item.project}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, padding: "1px 6px", borderRadius: 4,
-                  background: urgColor + "20", color: urgColor }}>{item.urgency}</span>
-                <span style={{ fontSize: 11, color: C.hint }}>{fmtRel(item.createdAt)}</span>
-                {isField && <span style={{ fontSize: 11, color: C.muted }}>PM: {item.assignedTo}</span>}
-              </div>}
-              action={<GoBtn label="Field" onClick={() => setTab("field")} />}
-            />
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
-// ── Scope Items ───────────────────────────────────────────────────────────────
-
-function ScopeSection({ items, setTab }) {
-  if (items.length === 0) return null;
-  return (
-    <Card style={{ marginBottom: 14 }}>
-      <SectionHeader title="Unnotified Scope Items" count={items.length} countColor={C.danger} />
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        {items.map(item => {
-          const color = scopeNoticeColor(item);
-          return (
-            <ItemRow key={item.id}
-              dotColor={color}
-              title={<p style={{ margin: 0, fontSize: 13, color: C.text, lineHeight: 1.4 }}>{item.description}</p>}
-              meta={<div style={{ display: "flex", gap: 8, marginTop: 3, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 11, color: C.muted }}>{item.project}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color }}>{scopeNoticeLabel(item)}</span>
-                <span style={{ fontSize: 11, color: C.success, fontWeight: 600 }}>{fmtMoney(item.amount)}</span>
-              </div>}
-              action={<GoBtn label="Scope" onClick={() => setTab("scope")} />}
-            />
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
-// ── Change Orders ─────────────────────────────────────────────────────────────
-
-function ChangeOrdersSection({ items, setTab }) {
-  const unsigned = items.filter(co => co.status === "Unsigned");
-  if (unsigned.length === 0) return null;
-  return (
-    <Card style={{ marginBottom: 14 }}>
-      <SectionHeader title="Unsigned Change Orders" count={unsigned.length} countColor={C.warning} />
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        {unsigned.map(co => {
-          const color = dueDateColor(co.dueDate);
-          return (
-            <ItemRow key={co.id}
-              dotColor={color}
-              title={<div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: C.accentText }}>{co.coNumber}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: C.success }}>{fmtMoney(co.amount)}</span>
-                </div>
-                <p style={{ margin: 0, fontSize: 13, color: C.text, lineHeight: 1.4 }}>{co.description}</p>
-              </div>}
-              meta={<div style={{ display: "flex", gap: 8, marginTop: 3, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 11, color: C.muted }}>{co.project}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color }}>{dueDateLabel(co.dueDate)}</span>
-                <span style={{ fontSize: 11, color: C.hint }}>Sent {fmtRel(co.sentDate)}</span>
-              </div>}
-              action={<GoBtn label="COs" onClick={() => setTab("changes")} />}
-            />
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
-// ── Fab Snapshot ──────────────────────────────────────────────────────────────
-
-function FabSnapshot({ jobs }) {
-  if (jobs.length === 0) return null;
-  const phaseColor = phase => ({
-    "Complete":      C.success,
-    "Near Complete": "#34d399",
-    "Active Fab":    C.accent,
-    "Starting":      C.warning,
-    "Not Started":   C.hint,
-  }[phase] || C.muted);
-
-  return (
-    <Card>
-      <SectionHeader title="Fabrication Snapshot" />
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {jobs.map(job => {
-          const pct    = Math.round((job.shipped / job.totalPieces) * 100);
-          const fabPct = Math.round(((job.shipped + job.inFab) / job.totalPieces) * 100);
-          const pc     = phaseColor(job.phase);
-          return (
-            <div key={job.id} style={{ paddingBottom: 12, borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: C.text,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.project}</span>
-                  <VertBadge v={job.vertical} />
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: 8 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
-                    background: pc + "20", color: pc }}>{job.phase}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, minWidth: 34, textAlign: "right" }}>{pct}%</span>
-                </div>
-              </div>
-              <div style={{ height: 6, borderRadius: 4, background: C.surface2, overflow: "hidden", position: "relative", marginBottom: 5 }}>
-                <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${fabPct}%`,
-                  background: C.accentDim, borderRadius: 4 }} />
-                <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${pct}%`,
-                  background: pct === 100 ? C.success : C.accent, borderRadius: 4 }} />
-              </div>
-              <div style={{ display: "flex", gap: 14 }}>
-                <span style={{ fontSize: 10, color: C.hint }}><span style={{ color: C.success, fontWeight: 600 }}>{job.shipped}</span> shipped</span>
-                <span style={{ fontSize: 10, color: C.hint }}><span style={{ color: C.accentText, fontWeight: 600 }}>{job.inFab}</span> in fab</span>
-                <span style={{ fontSize: 10, color: C.hint }}><span style={{ color: C.muted, fontWeight: 600 }}>{job.queued}</span> queued</span>
-                <span style={{ fontSize: 10, color: C.hint }}>of <span style={{ fontWeight: 600 }}>{job.totalPieces}</span> pcs</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
-// ── Project Health ────────────────────────────────────────────────────────────
-
-function ProjectHealthCards({ data, setTab }) {
-  const { projects, ownerPending, fieldNeeds, scopeItems, changeOrders } = data;
-
-  const riskLevel = proj => {
-    const hasHighFN     = fieldNeeds.some(x => x.projectId === proj.id && x.urgency === "High" && x.status === "Open");
-    const hasPastScope  = scopeItems.some(x => x.projectId === proj.id && daysSince(x.createdAt) > x.noticeDeadlineDays);
-    const hasOverdueCO  = changeOrders.some(x => x.projectId === proj.id && x.status === "Unsigned" && daysUntil(x.dueDate) < 0);
-    if (hasHighFN || hasPastScope || hasOverdueCO) return "High";
-    const hasAgingOP = ownerPending.some(x => x.projectId === proj.id && daysSince(x.createdAt) >= 3);
-    if (hasAgingOP) return "Medium";
-    return "Low";
-  };
-
-  const riskColor = r => r === "High" ? C.danger : r === "Medium" ? C.warning : C.success;
-
-  const topIssue = proj => {
-    const fn = fieldNeeds.find(x => x.projectId === proj.id && x.urgency === "High" && x.status === "Open");
-    if (fn) return { text: fn.issue, tab: "field", color: C.danger };
-    const sc = scopeItems.find(x => x.projectId === proj.id && daysSince(x.createdAt) > x.noticeDeadlineDays);
-    if (sc) return { text: `Unnotified scope past window: ${sc.description}`, tab: "scope", color: C.danger };
-    const co = changeOrders.find(x => x.projectId === proj.id && x.status === "Unsigned" && daysUntil(x.dueDate) < 0);
-    if (co) return { text: `${co.coNumber} unsigned — ${Math.abs(daysUntil(co.dueDate))}d overdue`, tab: "changes", color: C.warning };
-    const op = ownerPending.find(x => x.projectId === proj.id);
-    if (op) return { text: `Owner item waiting ${daysSince(op.createdAt)}d: ${op.subject}`, tab: "owner", color: ageColor(op.createdAt) };
-    return null;
-  };
-
-  const openCount = proj =>
-    ownerPending.filter(x => x.projectId === proj.id).length +
-    fieldNeeds.filter(x => x.projectId === proj.id && x.status === "Open").length +
-    scopeItems.filter(x => x.projectId === proj.id).length +
-    changeOrders.filter(x => x.projectId === proj.id && x.status === "Unsigned").length;
-
-  return (
-    <div>
-      <SectionHeader title="Project Health" count={projects.length} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {projects.map(proj => {
-          const risk  = riskLevel(proj);
-          const rc    = riskColor(risk);
-          const issue = topIssue(proj);
-          const count = openCount(proj);
-          return (
-            <div key={proj.id} style={{ background: C.surface, border: `1px solid ${C.border}`,
-              borderRadius: 10, padding: "12px 14px", borderLeft: `3px solid ${rc}` }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: C.text,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{proj.name}</span>
-                  <VertBadge v={proj.vertical} />
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, marginLeft: 8 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
-                    background: rc + "20", color: rc }}>{risk} Risk</span>
-                  {count > 0 && (
-                    <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 4,
-                      background: C.surface2, color: C.muted }}>{count} open</span>
-                  )}
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 8, marginBottom: issue ? 8 : 0 }}>
-                <span style={{ fontSize: 11, color: C.hint }}>{proj.client}</span>
-                <span style={{ fontSize: 11, color: C.hint }}>·</span>
-                <span style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}>{fmtMoney(proj.contractValue)}</span>
-              </div>
-              {issue && (
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 8,
-                  background: issue.color + "0d", border: `1px solid ${issue.color}22`,
-                  borderRadius: 6, padding: "6px 10px" }}>
-                  <span style={{ fontSize: 11, color: issue.color, flex: 1, lineHeight: 1.4 }}>{issue.text}</span>
-                  <GoBtn label="→" onClick={() => setTab(issue.tab)} />
-                </div>
-              )}
-            </div>
-          );
-        })}
+    <div style={{ marginTop: 16, padding: "12px 16px", background: C.surface,
+      border: `1px dashed ${C.border}`, borderRadius: 10 }}>
+      <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, letterSpacing: "0.07em",
+        textTransform: "uppercase", color: C.hint }}>Hidden Widgets</p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {hidden.map(id => (
+          <button key={id} onClick={() => onRestore(id)}
+            style={{ fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 6,
+              border: `1px solid ${C.accent}44`, background: C.accentDim, color: C.accentText,
+              cursor: "pointer", fontFamily: "inherit" }}>
+            + {WIDGET_META[id]?.label}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -501,84 +461,134 @@ function ProjectHealthCards({ data, setTab }) {
 // ── Root ──────────────────────────────────────────────────────────────────────
 
 export default function DashboardApp({ user, setTab }) {
-  const data    = filterByUser(user);
-  const isField = user.role === "field";
+  const data      = filterByUser(user);
+  const isField   = user.role === "field";
+  const layoutKey = `ksf-dash-${user.id}`;
+  const hiddenKey = `ksf-dash-hidden-${user.id}`;
 
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long", month: "long", day: "numeric",
+  const [widgetOrder, setWidgetOrder] = useState(() => {
+    try { const s = localStorage.getItem(layoutKey); if (s) return JSON.parse(s); } catch {}
+    return ROLE_LAYOUTS[user.role] || ROLE_LAYOUTS.apm;
   });
 
+  const [hiddenWidgets, setHiddenWidgets] = useState(() => {
+    try { const s = localStorage.getItem(hiddenKey); if (s) return JSON.parse(s); } catch {}
+    return [];
+  });
+
+  const [editMode, setEditMode] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(layoutKey, JSON.stringify(widgetOrder));
+      localStorage.setItem(hiddenKey, JSON.stringify(hiddenWidgets));
+    } catch {}
+  }, [widgetOrder, hiddenWidgets]);
+
+  const moveWidget    = (id, dir) => setWidgetOrder(prev => {
+    const arr = [...prev], i = arr.indexOf(id), t = i + dir;
+    if (i === -1 || t < 0 || t >= arr.length) return arr;
+    [arr[i], arr[t]] = [arr[t], arr[i]];
+    return arr;
+  });
+  const hideWidget    = id => { setWidgetOrder(p => p.filter(w => w !== id)); setHiddenWidgets(p => [...p, id]); };
+  const restoreWidget = id => { setHiddenWidgets(p => p.filter(w => w !== id)); setWidgetOrder(p => [...p, id]); };
+
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   const totalOpen =
     data.ownerPending.length +
     data.fieldNeeds.filter(f => f.status === "Open").length +
     data.scopeItems.length +
     data.changeOrders.filter(co => co.status === "Unsigned").length;
 
+  const renderWidget = (id, idx) => {
+    const size    = WIDGET_META[id]?.size || "half";
+    const isFirst = idx === 0;
+    const isLast  = idx === widgetOrder.length - 1;
+    const shared  = { editMode, isFirst, isLast, onHide: () => hideWidget(id), onMoveUp: () => moveWidget(id, -1), onMoveDown: () => moveWidget(id, 1) };
+    const wStyle  = { gridColumn: size === "wide" ? "1 / -1" : "span 1" };
+
+    switch (id) {
+      case "project_health":
+        return <div key={id} style={wStyle}><Widget {...shared} title="Project Health" count={data.projects.length}><ProjectHealthContent data={data} setTab={setTab} /></Widget></div>;
+      case "fab_snapshot":
+        return <div key={id} style={wStyle}><Widget {...shared} title="Fabrication Snapshot" count={data.fabJobs.length}><FabContent jobs={data.fabJobs} /></Widget></div>;
+      case "field_needs": {
+        const n = data.fieldNeeds.filter(f => f.status === "Open").length;
+        return <div key={id} style={wStyle}><Widget {...shared} title="Field Needs" count={n} countColor={n > 0 ? C.danger : undefined}><FieldNeedsContent items={data.fieldNeeds} setTab={setTab} isField={isField} /></Widget></div>;
+      }
+      case "owner_pending": {
+        const n = data.ownerPending.length;
+        return <div key={id} style={wStyle}><Widget {...shared} title="Owner Pending" count={n} countColor={n > 0 ? C.warning : undefined}><OwnerPendingContent items={data.ownerPending} setTab={setTab} /></Widget></div>;
+      }
+      case "scope_items": {
+        const n = data.scopeItems.length;
+        return <div key={id} style={wStyle}><Widget {...shared} title="Unnotified Scope" count={n} countColor={n > 0 ? C.danger : undefined}><ScopeContent items={data.scopeItems} setTab={setTab} /></Widget></div>;
+      }
+      case "change_orders": {
+        const n = data.changeOrders.filter(co => co.status === "Unsigned").length;
+        return <div key={id} style={wStyle}><Widget {...shared} title="Unsigned Change Orders" count={n} countColor={n > 0 ? C.warning : undefined}><ChangeOrdersContent items={data.changeOrders} setTab={setTab} /></Widget></div>;
+      }
+      default: return null;
+    }
+  };
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflowY: "auto",
       fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif" }}>
-      <div style={{ maxWidth: 1280, width: "100%", margin: "0 auto", padding: "24px 24px 48px" }}>
+      <div style={{ maxWidth: 1400, width: "100%", margin: "0 auto", padding: "20px 20px 48px" }}>
 
         {/* Header */}
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: C.text, letterSpacing: "-0.03em" }}>
-                {greeting()}, {firstName(user.name)}.
-              </h1>
-              <p style={{ margin: "4px 0 0", fontSize: 13, color: C.hint }}>{today}</p>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+          flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.text, letterSpacing: "-0.03em" }}>
+              {greeting()}, {firstName(user.name)}.
+            </h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+              <span style={{ fontSize: 12, color: C.hint }}>{today}</span>
+              {totalOpen > 0 && <>
+                <span style={{ fontSize: 12, color: C.hint }}>·</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: C.danger }}>{totalOpen} item{totalOpen !== 1 ? "s" : ""} need attention</span>
+              </>}
             </div>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {user.department && (() => {
-                  const vc = verticalColor(user.department.label);
-                  return (
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
-                      background: vc.bg, color: vc.color, border: `1px solid ${vc.color}33` }}>
-                      {user.department.label}
-                    </span>
-                  );
-                })()}
-                {user.badge && (
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
-                    background: user.badge.bg, color: user.badge.color, border: `1px solid ${user.badge.color}33` }}>
-                    {user.badge.label}
-                  </span>
-                )}
-              </div>
-              <span style={{ fontSize: 12, color: C.hint }}>{user.position}</span>
-              {totalOpen > 0 && (
-                <span style={{ fontSize: 11, fontWeight: 700, color: C.danger }}>
-                  {totalOpen} open item{totalOpen !== 1 ? "s" : ""} need attention
-                </span>
-              )}
-            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {user.department && (() => { const vc = verticalColor(user.department.label); return (
+              <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
+                background: vc.bg, color: vc.color, border: `1px solid ${vc.color}33` }}>{user.department.label}</span>
+            ); })()}
+            {user.badge && (
+              <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
+                background: user.badge.bg, color: user.badge.color, border: `1px solid ${user.badge.color}33` }}>
+                {user.badge.label}
+              </span>
+            )}
+            <button onClick={() => setEditMode(e => !e)}
+              style={{ fontSize: 12, fontWeight: 600, padding: "5px 14px", borderRadius: 7,
+                border: `1px solid ${editMode ? C.accent : C.border}`,
+                background: editMode ? C.accentDim : C.surface,
+                color: editMode ? C.accentText : C.muted,
+                cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+              {editMode ? "✓ Done" : "Edit Dashboard"}
+            </button>
           </div>
         </div>
 
-        {/* Alert Bar */}
         <AlertBar data={data} setTab={setTab} />
 
-        {/* Two-column body */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 18 }} className="ksf-dash-grid">
-          <div>
-            {!isField && <OwnerPendingSection items={data.ownerPending} setTab={setTab} />}
-            <FieldNeedsSection items={data.fieldNeeds} setTab={setTab} isField={isField} />
-            {!isField && <ScopeSection items={data.scopeItems} setTab={setTab} />}
-            {!isField && <ChangeOrdersSection items={data.changeOrders} setTab={setTab} />}
-            <FabSnapshot jobs={data.fabJobs} />
-          </div>
-          {!isField && (
-            <div>
-              <ProjectHealthCards data={data} setTab={setTab} />
-            </div>
-          )}
+        {/* Widget grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }} className="ksf-widget-grid">
+          {widgetOrder.map((id, idx) => renderWidget(id, idx))}
         </div>
+
+        {editMode && <HiddenTray hidden={hiddenWidgets} onRestore={restoreWidget} />}
       </div>
 
       <style>{`
-        @media (min-width: 900px)  { .ksf-dash-grid { grid-template-columns: 1fr 1fr !important; } }
-        @media (min-width: 1200px) { .ksf-dash-grid { grid-template-columns: 58% 1fr !important; } }
+        @media (max-width: 768px) {
+          .ksf-widget-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
     </div>
   );
