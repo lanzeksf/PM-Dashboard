@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { USERS_LIST, ROLE_MODULES, C } from "../core/utils.jsx";
 import DashboardApp from "../dashboard/DashboardApp.jsx";
+import RFIApp from "../rfi/RFIApp.jsx";
 
 export const SHELL_COLORS = { bg: "#05080b" };
 const SHELL_ONLY_TABS = new Set(["queue", "standards"]);
@@ -166,7 +167,7 @@ export default function KSFCommandCenter({ KernBotApp }) {
         {tab === "scope"         && <ComingSoon label="Scope Tracker"/>}
         {tab === "changes"       && <ComingSoon label="Change Orders"/>}
         {tab === "detailing"     && <ComingSoon label="Detailing"/>}
-        {tab === "rfi"           && <ComingSoon label="RFI Log"/>}
+        {tab === "rfi"           && <RFIApp user={user}/>}
         {tab === "fab"           && <ComingSoon label="Fabrication & Shipping"/>}
         {tab === "field"         && <ComingSoon label="Field Needs"/>}
         {tab === "user_mgmt"     && <ComingSoon label="User Management"/>}
