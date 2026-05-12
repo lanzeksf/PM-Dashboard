@@ -57,7 +57,7 @@ async function get(path) {
 export async function getProjects() {
   const results = await Promise.all(
     PORTFOLIOS.map(async ({ id, vertical }) => {
-      const data = await get(`/${id}/projects`);
+      const data = await get(`/portfolios/${id}/projects`);
       const list = Array.isArray(data) ? data : data?.projects ?? [];
       return list.map(p => ({ ...p, portfolioId: id, vertical }));
     })
@@ -67,13 +67,13 @@ export async function getProjects() {
 
 // Returns RFIs for a specific project.
 export async function getRFIs(portfolioId, projectId) {
-  const data = await get(`/${portfolioId}/${projectId}/rfis`);
+  const data = await get(`/portfolios/${portfolioId}/projects/${projectId}/rfis`);
   return Array.isArray(data) ? data : data?.rfis ?? [];
 }
 
 // Returns submittals for a specific project.
 export async function getSubmittals(portfolioId, projectId) {
-  const data = await get(`/${portfolioId}/${projectId}/submittals`);
+  const data = await get(`/portfolios/${portfolioId}/projects/${projectId}/submittals`);
   return Array.isArray(data) ? data : data?.submittals ?? [];
 }
 
@@ -81,7 +81,7 @@ export async function getSubmittals(portfolioId, projectId) {
 // silently falls back to mock data if none succeed.
 export async function getIssues(portfolioId, projectId) {
   const candidates = [
-    `/${portfolioId}/${projectId}/issues`,
+    `/portfolios/${portfolioId}/projects/${projectId}/issues`,
     `/projects/${projectId}/issues`,
     `/portfolios/${portfolioId}/issues?projectId=${projectId}`,
   ];
