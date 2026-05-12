@@ -1,1 +1,11 @@
-{"buildCommand":"npm run build","outputDirectory":"dist","framework":"vite"}
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/projectsight-api/projectsight-v1.0/:path*",
+      "destination": "https://api-usw2.trimblepaas.com/projectsight-v1.0/:path*"
+    }
+  ]
+}
