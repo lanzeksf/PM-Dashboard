@@ -77,15 +77,26 @@ export async function getSubmittals(portfolioId, projectId) {
   return Array.isArray(data) ? data : data?.submittals ?? [];
 }
 
-// Returns issues for a specific project. Falls back to mock data if endpoint is unavailable.
+// Returns issues for a specific project. Tries multiple endpoint patterns in order,
+// silently falls back to mock data if none succeed.
 export async function getIssues(portfolioId, projectId) {
-  try {
-    const data = await get(`/${portfolioId}/${projectId}/issues`);
-    return Array.isArray(data) ? data : data?.issues ?? [];
-  } catch (e) {
-    if (/404|400|405|501/.test(e.message)) {
-      return MOCK_ISSUES;
-    }
-    throw e;
+  const candidates = [
+    `/${portfolioId}/${projectId}/issues`,
+    `/projects/${projectId}/issues`,
+    `/portfolios/${portfolioId}/issues?projectId=${projectId}`,
+  ];
+
+  for (const path of candidates) {
+    try {
+      const res = await fetch(`${BASE}${path}`, { method: "GET", headers: authHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        console.log(`[ProjectSight] Issues endpoint OK: ${path}`);
+        return Array.isArray(data) ? data : data?.issues ?? [];
+      }
+    } catch { /* network error — try next candidate */ }
   }
+
+  console.log("[ProjectSight] Issues endpoint not available — using mock data");
+  return MOCK_ISSUES;
 }

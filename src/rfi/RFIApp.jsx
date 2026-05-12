@@ -924,7 +924,7 @@ export default function RFIApp({ user }) {
           borderBottom: `1px solid ${C.border}`, paddingBottom: 0 }}>
           {[
             { id: "dashboard", label: "RFI Dashboard" },
-            { id: "triage",    label: "Detailer Triage" },
+            { id: "triage",    label: "Issue Triage" },
           ].map(t => {
             const isActive = rfiTab === t.id;
             const badge = t.id === "triage" && triageIssues.length;
@@ -1003,11 +1003,9 @@ export default function RFIApp({ user }) {
         {rfiTab === "triage" && (
           <>
             {hasMockIssues && (
-              <div style={{ padding: "10px 14px", background: "rgba(251,191,36,0.07)",
-                border: `1px solid ${C.warning}44`, borderRadius: 8, marginBottom: 16,
-                fontSize: 12, color: C.warning, lineHeight: 1.5 }}>
-                ⚠ Issues API endpoint not yet confirmed — showing sample data
-              </div>
+              <p style={{ margin: "0 0 14px", fontSize: 11, color: C.hint }}>
+                Sample data — Issues endpoint pending confirmation
+              </p>
             )}
 
             {isAdmin && flaggedIssues.length > 0 && (
