@@ -76,6 +76,7 @@ function buildHeaders(token) {
 // ── HTTP helper ───────────────────────────────────────────────────────────────
 
 async function get(path) {
+  console.log("Fetching:", `${BASE}${path}`);
   let token = await getToken();
   let res   = await fetch(`${BASE}${path}`, { method: "GET", headers: buildHeaders(token) });
   if (res.status === 401 || res.status === 403) {
