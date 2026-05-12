@@ -46,7 +46,7 @@ async function fetchToken() {
   const res = await fetch("https://id.trimble.com/oauth/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=client_credentials&client_id=${encodeURIComponent(key)}&client_secret=${encodeURIComponent(secret)}`,
+    body: `grant_type=client_credentials&client_id=${encodeURIComponent(key)}&client_secret=${encodeURIComponent(secret)}&scope=openid`,
   });
   if (!res.ok) {
     const body = await res.text();
