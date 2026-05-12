@@ -36,16 +36,53 @@ const MOCK_ISSUES = [
   },
 ];
 
-function authHeaders() {
+// ── OAuth token cache ─────────────────────────────────────────────────────────
+
+let _tokenCache = null; // { accessToken, expiresAt }
+
+async function fetchToken() {
+  const key    = import.meta.env.VITE_PROJECTSIGHT_CONSUMER_KEY;
+  const secret = import.meta.env.VITE_PROJECTSIGHT_CONSUMER_SECRET;
+  const res = await fetch("https://id.trimble.com/oauth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=client_credentials&client_id=${encodeURIComponent(key)}&client_secret=${encodeURIComponent(secret)}`,
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Trimble auth failed ${res.status}: ${body}`);
+  }
+  const data = await res.json();
+  _tokenCache = {
+    accessToken: data.access_token,
+    expiresAt:   Date.now() + (data.expires_in - 30) * 1000,
+  };
+  return _tokenCache.accessToken;
+}
+
+async function getToken() {
+  if (_tokenCache && Date.now() < _tokenCache.expiresAt) return _tokenCache.accessToken;
+  return fetchToken();
+}
+
+function buildHeaders(token) {
   return {
-    "Authorization": `Bearer ${import.meta.env.VITE_PROJECTSIGHT_ACCESS_TOKEN}`,
+    "Authorization": `Bearer ${token}`,
     "x-api-key":     import.meta.env.VITE_PROJECTSIGHT_USAGE_PLAN_KEY,
     "Content-Type":  "application/json",
   };
 }
 
+// ── HTTP helper ───────────────────────────────────────────────────────────────
+
 async function get(path) {
-  const res = await fetch(`${BASE}${path}`, { method: "GET", headers: authHeaders() });
+  let token = await getToken();
+  let res   = await fetch(`${BASE}${path}`, { method: "GET", headers: buildHeaders(token) });
+  if (res.status === 401 || res.status === 403) {
+    _tokenCache = null;
+    token = await getToken();
+    res   = await fetch(`${BASE}${path}`, { method: "GET", headers: buildHeaders(token) });
+  }
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`ProjectSight ${res.status}: ${body}`);
@@ -88,7 +125,13 @@ export async function getIssues(portfolioId, projectId) {
 
   for (const path of candidates) {
     try {
-      const res = await fetch(`${BASE}${path}`, { method: "GET", headers: authHeaders() });
+      let token = await getToken();
+      let res   = await fetch(`${BASE}${path}`, { method: "GET", headers: buildHeaders(token) });
+      if (res.status === 401 || res.status === 403) {
+        _tokenCache = null;
+        token = await getToken();
+        res   = await fetch(`${BASE}${path}`, { method: "GET", headers: buildHeaders(token) });
+      }
       if (res.ok) {
         const data = await res.json();
         console.log(`[ProjectSight] Issues endpoint OK: ${path}`);
