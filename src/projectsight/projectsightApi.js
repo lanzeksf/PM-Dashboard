@@ -155,11 +155,10 @@ export async function getProjects() {
   console.log("[ProjectSight] getProjects() called — starting live fetch");
   console.log("[ProjectSight] Fetching live projects...");
   try {
-    console.log("[ProjectSight] Fetching account ID...");
     const accountId = await getAccountId();
-    console.log("[ProjectSight] Got account ID:", accountId);
+    console.log("[ProjectSight] Account ID:", accountId);
     const portData = await get(`/accounts/${accountId}/portfolios`);
-    console.log("[ProjectSight] Raw portfolios response:", JSON.stringify(portData).slice(0, 500));
+    console.log("[ProjectSight] Raw portfolios:", JSON.stringify(portData).slice(0, 400));
     const portfolios = Array.isArray(portData) ? portData : portData?.portfolios ?? [];
     console.log("[ProjectSight] Portfolios parsed:", portfolios.length);
 
@@ -186,7 +185,8 @@ export async function getProjects() {
     console.log("[ProjectSight] Live projects sample:", flat.slice(0,2).map(p => ({ id: p.id, name: p.name })));
     return flat.length > 0 ? flat : MOCK_PROJECTS;
   } catch (e) {
-    console.warn("[ProjectSight] getProjects() failed, using mock:", e.message);
+    console.error("[ProjectSight] getProjects() FAILED:", e.message, e.stack);
+    console.log("[ProjectSight] Falling back to MOCK_PROJECTS");
     return MOCK_PROJECTS;
   }
 }
