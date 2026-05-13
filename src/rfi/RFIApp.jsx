@@ -911,6 +911,7 @@ export default function RFIApp({ user }) {
     visible.forEach(p => {
       const pid = String(p.id);
       setRfiLoading(prev => ({ ...prev, [pid]: true }));
+      console.log("[RFI] Fetching RFIs for project:", p.id, p.name);
       getRFIs(p.portfolioId, p.id)
         .then(rfis => {
           setPsRFIs(prev => ({ ...prev, [pid]: rfis }));
