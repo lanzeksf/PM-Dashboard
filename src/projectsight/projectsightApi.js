@@ -171,7 +171,7 @@ export async function getProjects() {
                        : "Structural";
         try {
           console.log("[ProjectSight] Fetching projects for portfolio:", pId, name);
-          const projData = await get(`/accounts/${accountId}/portfolios/${pId}/projects`);
+          const projData = await get(`/${pId}/projects`);
           const projects = Array.isArray(projData) ? projData : projData?.projects ?? [];
           return projects.map(p => ({ ...p, portfolioId: pId, vertical }));
         } catch (e) {
