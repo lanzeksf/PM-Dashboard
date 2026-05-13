@@ -292,11 +292,11 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
             {rfis.length === 0 ? (
               <p style={{ margin: 0, fontSize: 12, color: C.success }}>✓ No open RFIs for this project.</p>
             ) : (
-              <div style={{ overflowX: "auto" }}>
+              <div style={{ overflowX: "auto", maxHeight: 320, overflowY: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                      {["", "RFI #", "Subject", "Submitted", "Due", "Days Open", "Status", ""].map((h, i) => (
+                      {["", "RFI #", "Subject", "Submitted", "Due", "Days Open", "Status"].map((h, i) => (
                         <th key={i} style={{ padding: "6px 10px", textAlign: "left", fontSize: 10,
                           fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
                           color: C.hint, whiteSpace: "nowrap" }}>{h}</th>
@@ -312,7 +312,14 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
                           onMouseEnter={e => e.currentTarget.style.background = C.surface2}
                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                           <td style={{ padding: "8px 10px" }}><BandDot band={band} /></td>
-                          <td style={{ padding: "8px 10px", color: C.accentText, fontWeight: 600, whiteSpace: "nowrap" }}>{rfiNum(r)}</td>
+                          <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
+                            <a href={psRFILink(p.portfolioId, p.id, r)} target="_blank" rel="noopener noreferrer"
+                              style={{ color: C.accentText, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
+                              onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
+                              onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}>
+                              {rfiNum(r)}
+                            </a>
+                          </td>
                           <td style={{ padding: "8px 10px", color: C.text, maxWidth: 240, overflow: "hidden",
                             textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={rfiSubject(r)}>{rfiSubject(r)}</td>
                           <td style={{ padding: "8px 10px", color: C.muted, whiteSpace: "nowrap" }}>{fmtD(rfiSubmitted(r))}</td>
@@ -321,14 +328,6 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
                           <td style={{ padding: "8px 10px" }}>
                             <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
                               background: sc.bg, color: sc.color, whiteSpace: "nowrap" }}>{rfiStatusVal(r)}</span>
-                          </td>
-                          <td style={{ padding: "8px 10px" }}>
-                            <a href={psRFILink(p.portfolioId, p.id, r)} target="_blank" rel="noopener noreferrer"
-                              style={{ fontSize: 11, padding: "4px 10px", borderRadius: 5,
-                                border: `1px solid ${C.accent}44`, background: C.accentDim,
-                                color: C.accentText, textDecoration: "none", whiteSpace: "nowrap" }}>
-                              Open in PS →
-                            </a>
                           </td>
                         </tr>
                       );
@@ -357,20 +356,19 @@ const impChipStyle = imp => ({
 
 function RFITable({ rfis }) {
   const mkFilter = () => ({
-    jobNumber:  { value: "",    not: false },
-    project:    { value: "all", not: false },
-    detailer:   { value: "all", not: false },
-    discipline: { value: "all", not: false },
-    status:     { value: "all", not: false },
-    importance: { value: "all", not: false },
-    band:       { value: "all", not: false },
+    jobNumber:  "",
+    project:    "all",
+    detailer:   "all",
+    discipline: "all",
+    status:     "all",
+    importance: "all",
+    band:       "all",
   });
 
   const [filter, setFilter] = useState(mkFilter);
   const [sort,   setSort]   = useState({ col: "due", dir: "asc" });
 
-  const setF      = (key, patch) => setFilter(f => ({ ...f, [key]: { ...f[key], ...patch } }));
-  const toggleNot = key => setFilter(f => ({ ...f, [key]: { ...f[key], not: !f[key].not } }));
+  const setF = (key, value) => setFilter(f => ({ ...f, [key]: value }));
 
   const projectOpts  = useMemo(() => [...new Set(rfis.map(r => r._project.name))].sort(), [rfis]);
   const detailerOpts = useMemo(() => [...new Set(rfis.map(r => rfiDetailer(r)))].sort(), [rfis]);
@@ -378,32 +376,28 @@ function RFITable({ rfis }) {
   const activeChips = useMemo(() => {
     const chips = [];
     const { jobNumber, project, detailer, discipline, status, importance, band } = filter;
-    if (jobNumber.value)          chips.push({ key: "jobNumber",  label: `${jobNumber.not  ? "NOT " : ""}Job: "${jobNumber.value}"` });
-    if (project.value    !== "all") chips.push({ key: "project",    label: `${project.not    ? "NOT " : ""}Project: ${project.value}` });
-    if (detailer.value   !== "all") chips.push({ key: "detailer",   label: `${detailer.not   ? "NOT " : ""}Detailer: ${detailer.value}` });
-    if (discipline.value !== "all") chips.push({ key: "discipline", label: `${discipline.not ? "NOT " : ""}Discipline: ${discipline.value}` });
-    if (status.value     !== "all") chips.push({ key: "status",     label: `${status.not     ? "NOT " : ""}Status: ${status.value}` });
-    if (importance.value !== "all") chips.push({ key: "importance", label: `${importance.not ? "NOT " : ""}Importance: ${importance.value}` });
-    if (band.value       !== "all") chips.push({ key: "band",       label: `${band.not       ? "NOT " : ""}Age: ${BAND_LABEL[band.value]}` });
+    if (jobNumber)          chips.push({ key: "jobNumber",  label: `Job: "${jobNumber}"` });
+    if (project    !== "all") chips.push({ key: "project",    label: `Project: ${project}` });
+    if (detailer   !== "all") chips.push({ key: "detailer",   label: `Detailer: ${detailer}` });
+    if (discipline !== "all") chips.push({ key: "discipline", label: `Discipline: ${discipline}` });
+    if (status     !== "all") chips.push({ key: "status",     label: `Status: ${status}` });
+    if (importance !== "all") chips.push({ key: "importance", label: `Importance: ${importance}` });
+    if (band       !== "all") chips.push({ key: "band",       label: `Age: ${BAND_LABEL[band]}` });
     return chips;
   }, [filter]);
 
   const clearChip = key => setFilter(f => ({
-    ...f, [key]: { value: key === "jobNumber" ? "" : "all", not: false },
+    ...f, [key]: key === "jobNumber" ? "" : "all",
   }));
 
   const filtered = useMemo(() => {
     let list = [...rfis];
-    const { jobNumber } = filter;
-    if (jobNumber.value) {
-      const q = jobNumber.value.toLowerCase();
-      list = list.filter(r => jobNumber.not
-        ? !rfiJobNum(r).toLowerCase().includes(q)
-        :  rfiJobNum(r).toLowerCase().includes(q));
+    if (filter.jobNumber) {
+      const q = filter.jobNumber.toLowerCase();
+      list = list.filter(r => rfiJobNum(r).toLowerCase().includes(q));
     }
     const applyEq = (key, get) => {
-      const { value, not } = filter[key];
-      if (value !== "all") list = list.filter(r => not ? get(r) !== value : get(r) === value);
+      if (filter[key] !== "all") list = list.filter(r => get(r) === filter[key]);
     };
     applyEq("project",    r => r._project.name);
     applyEq("detailer",   r => rfiDetailer(r));
@@ -452,16 +446,7 @@ function RFITable({ rfis }) {
     { key: "age",        label: "Days Open",  sortable: true  },
     { key: "importance", label: "Importance", sortable: true  },
     { key: "status",     label: "Status",     sortable: true  },
-    { key: "action",     label: "",           sortable: false },
   ];
-
-  const notBtn = active => ({
-    fontSize: 10, padding: "3px 6px", borderRadius: 4, fontFamily: "inherit",
-    fontWeight: 700, lineHeight: 1, cursor: "pointer",
-    border:     `1px solid ${active ? C.danger : C.border}`,
-    background: active ? "rgba(248,113,113,0.15)" : C.surface,
-    color:      active ? C.danger : C.hint,
-  });
 
   const selSt = active => ({
     fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", cursor: "pointer",
@@ -484,77 +469,56 @@ function RFITable({ rfis }) {
             color: C.hint, marginRight: 4, flexShrink: 0 }}>All Open RFIs</span>
 
           {/* Job # */}
-          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            <input type="text" value={filter.jobNumber.value} placeholder="Job #…"
-              onChange={e => setF("jobNumber", { value: e.target.value })}
-              style={{ ...selSt(!!filter.jobNumber.value), width: 88 }} />
-            <button style={notBtn(filter.jobNumber.not)} onClick={() => toggleNot("jobNumber")}>NOT</button>
-          </div>
+          <input type="text" value={filter.jobNumber} placeholder="Job #…"
+            onChange={e => setF("jobNumber", e.target.value)}
+            style={{ ...selSt(!!filter.jobNumber), width: 88 }} />
 
           {/* Project */}
-          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            <select value={filter.project.value} onChange={e => setF("project", { value: e.target.value })}
-              style={selSt(filter.project.value !== "all")}>
-              <option value="all">Project: All</option>
-              {projectOpts.map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
-            <button style={notBtn(filter.project.not)} onClick={() => toggleNot("project")}>NOT</button>
-          </div>
+          <select value={filter.project} onChange={e => setF("project", e.target.value)}
+            style={selSt(filter.project !== "all")}>
+            <option value="all">Project: All</option>
+            {projectOpts.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
 
           {/* Detailer */}
-          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            <select value={filter.detailer.value} onChange={e => setF("detailer", { value: e.target.value })}
-              style={selSt(filter.detailer.value !== "all")}>
-              <option value="all">Detailer: All</option>
-              {detailerOpts.map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
-            <button style={notBtn(filter.detailer.not)} onClick={() => toggleNot("detailer")}>NOT</button>
-          </div>
+          <select value={filter.detailer} onChange={e => setF("detailer", e.target.value)}
+            style={selSt(filter.detailer !== "all")}>
+            <option value="all">Detailer: All</option>
+            {detailerOpts.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
 
           {/* Discipline */}
-          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            <select value={filter.discipline.value} onChange={e => setF("discipline", { value: e.target.value })}
-              style={selSt(filter.discipline.value !== "all")}>
-              <option value="all">Discipline: All</option>
-              {["Structural", "Solar", "Aero"].map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
-            <button style={notBtn(filter.discipline.not)} onClick={() => toggleNot("discipline")}>NOT</button>
-          </div>
+          <select value={filter.discipline} onChange={e => setF("discipline", e.target.value)}
+            style={selSt(filter.discipline !== "all")}>
+            <option value="all">Discipline: All</option>
+            {["Structural", "Solar", "Aero"].map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
 
           {/* Status */}
-          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            <select value={filter.status.value} onChange={e => setF("status", { value: e.target.value })}
-              style={selSt(filter.status.value !== "all")}>
-              <option value="all">Status: All</option>
-              {["Draft", "Submitted", "Under Review", "Answered", "Closed"].map(o =>
-                <option key={o} value={o}>{o}</option>)}
-            </select>
-            <button style={notBtn(filter.status.not)} onClick={() => toggleNot("status")}>NOT</button>
-          </div>
+          <select value={filter.status} onChange={e => setF("status", e.target.value)}
+            style={selSt(filter.status !== "all")}>
+            <option value="all">Status: All</option>
+            {["Draft", "Submitted", "Under Review", "Answered", "Closed"].map(o =>
+              <option key={o} value={o}>{o}</option>)}
+          </select>
 
           {/* Importance */}
-          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            <select value={filter.importance.value} onChange={e => setF("importance", { value: e.target.value })}
-              style={selSt(filter.importance.value !== "all")}>
-              <option value="all">Importance: All</option>
-              {["Low", "Normal", "High", "Urgent"].map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
-            <button style={notBtn(filter.importance.not)} onClick={() => toggleNot("importance")}>NOT</button>
-          </div>
+          <select value={filter.importance} onChange={e => setF("importance", e.target.value)}
+            style={selSt(filter.importance !== "all")}>
+            <option value="all">Importance: All</option>
+            {["Low", "Normal", "High", "Urgent"].map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
 
           {/* Age Band */}
-          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            <select value={filter.band.value} onChange={e => setF("band", { value: e.target.value })}
-              style={selSt(filter.band.value !== "all")}>
-              <option value="all">Age Band: All</option>
-              <option value="overdue">Overdue</option>
-              <option value="soon3">Due ≤ 3d</option>
-              <option value="soon7">Due ≤ 7d</option>
-              <option value="ontrack">On Track</option>
-              <option value="nodate">No Date</option>
-            </select>
-            <button style={notBtn(filter.band.not)} onClick={() => toggleNot("band")}>NOT</button>
-          </div>
+          <select value={filter.band} onChange={e => setF("band", e.target.value)}
+            style={selSt(filter.band !== "all")}>
+            <option value="all">Age Band: All</option>
+            <option value="overdue">Overdue</option>
+            <option value="soon3">Due ≤ 3d</option>
+            <option value="soon7">Due ≤ 7d</option>
+            <option value="ontrack">On Track</option>
+            <option value="nodate">No Date</option>
+          </select>
 
           <span style={{ marginLeft: "auto", fontSize: 11, color: C.hint, flexShrink: 0, whiteSpace: "nowrap" }}>
             {filtered.length} / {rfis.length} RFI{rfis.length !== 1 ? "s" : ""}
@@ -636,8 +600,14 @@ function RFITable({ rfis }) {
                         <VertBadge v={rfiDisc(r)} />
                       </div>
                     </td>
-                    <td style={{ padding: "10px 12px", color: C.accentText, fontWeight: 600, whiteSpace: "nowrap" }}>
-                      {rfiNum(r)}
+                    <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>
+                      <a href={psRFILink(r._project.portfolioId, r._project.id, r)}
+                        target="_blank" rel="noopener noreferrer"
+                        style={{ color: C.accentText, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
+                        onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
+                        onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}>
+                        {rfiNum(r)}
+                      </a>
                     </td>
                     <td style={{ padding: "10px 12px", maxWidth: 220 }}>
                       <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis",
@@ -670,15 +640,6 @@ function RFITable({ rfis }) {
                         background: sc.bg, color: sc.color, whiteSpace: "nowrap" }}>
                         {normalizeStatus(r)}
                       </span>
-                    </td>
-                    <td style={{ padding: "10px 12px" }}>
-                      <a href={psRFILink(r._project.portfolioId, r._project.id, r)}
-                        target="_blank" rel="noopener noreferrer"
-                        style={{ fontSize: 11, padding: "4px 10px", borderRadius: 5,
-                          border: `1px solid ${C.accent}44`, background: C.accentDim,
-                          color: C.accentText, textDecoration: "none", whiteSpace: "nowrap" }}>
-                        Open in PS →
-                      </a>
                     </td>
                   </tr>
                 );
