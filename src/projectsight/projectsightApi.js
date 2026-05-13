@@ -123,10 +123,12 @@ function buildHeaders(token) {
 async function getAccountId() {
   if (_accountId) return _accountId;
   const data = await get("/accounts");
+  console.log("[ProjectSight] /accounts raw response:", JSON.stringify(data).slice(0, 300));
   const accounts = Array.isArray(data) ? data : data?.accounts ?? [];
+  console.log("[ProjectSight] Accounts parsed:", accounts.length, accounts[0]);
   _accountId = accounts[0]?.id ?? accounts[0]?.accountId ?? accounts[0]?.guid;
+  console.log("[ProjectSight] Account ID resolved:", _accountId);
   if (!_accountId) throw new Error("No account ID returned from /accounts");
-  console.log("[ProjectSight] Account ID:", _accountId);
   return _accountId;
 }
 
