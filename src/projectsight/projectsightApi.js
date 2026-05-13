@@ -152,11 +152,16 @@ async function get(path) {
 
 // Returns all projects across all portfolios, each with a `vertical` field.
 export async function getProjects() {
+  console.log("[ProjectSight] getProjects() called — starting live fetch");
   console.log("[ProjectSight] Fetching live projects...");
   try {
+    console.log("[ProjectSight] Fetching account ID...");
     const accountId = await getAccountId();
+    console.log("[ProjectSight] Got account ID:", accountId);
     const portData = await get(`/accounts/${accountId}/portfolios`);
+    console.log("[ProjectSight] Raw portfolios response:", JSON.stringify(portData).slice(0, 500));
     const portfolios = Array.isArray(portData) ? portData : portData?.portfolios ?? [];
+    console.log("[ProjectSight] Portfolios parsed:", portfolios.length);
 
     const results = await Promise.all(
       portfolios.map(async (portfolio) => {
@@ -166,6 +171,7 @@ export async function getProjects() {
                        : name.toLowerCase().includes("aero")  ? "Aero"
                        : "Structural";
         try {
+          console.log("[ProjectSight] Fetching projects for portfolio:", pId, name);
           const projData = await get(`/accounts/${accountId}/portfolios/${pId}/projects`);
           const projects = Array.isArray(projData) ? projData : projData?.projects ?? [];
           return projects.map(p => ({ ...p, portfolioId: pId, vertical }));
