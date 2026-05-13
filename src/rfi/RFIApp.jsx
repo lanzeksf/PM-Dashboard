@@ -197,6 +197,8 @@ function StatCard({ label, value, color }) {
 // ── Project health cards ──────────────────────────────────────────────────────
 
 function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject, setExpandedProject }) {
+  const [showAll, setShowAll] = useState(false);
+
   if (!projects.length) {
     return (
       <p style={{ margin: 0, padding: "32px 0", textAlign: "center", fontSize: 13, color: C.hint }}>
@@ -205,10 +207,12 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
     );
   }
 
+  const visible = showAll ? projects : projects.slice(0, 12);
+
   return (
     <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px,1fr))", gap: 12, marginBottom: 12 }}>
-        {projects.map(p => {
+        {visible.map(p => {
           const pid      = String(p.id);
           const loading  = rfiLoading[pid];
           const error    = rfiErrors[pid];
@@ -274,6 +278,15 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
           );
         })}
       </div>
+
+      {!showAll && projects.length > 12 && (
+        <button onClick={() => setShowAll(true)}
+          style={{ display: "block", width: "100%", padding: "8px", marginBottom: 12,
+            background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
+            color: C.hint, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+          Show all {projects.length} projects →
+        </button>
+      )}
 
       {expandedProject && (() => {
         const p    = projects.find(x => String(x.id) === expandedProject);

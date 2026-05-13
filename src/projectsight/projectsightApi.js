@@ -173,6 +173,7 @@ export async function getProjects() {
           console.log("[ProjectSight] Fetching projects for portfolio:", pId, name);
           const projData = await get(`/${pId}/projects`);
           const projects = Array.isArray(projData) ? projData : projData?.projects ?? [];
+          if (projects.length > 0) console.log("[ProjectSight] Sample project object:", JSON.stringify(projects[0]).slice(0, 300));
           return projects.map(p => ({ ...p, portfolioId: pId, vertical }));
         } catch (e) {
           console.warn(`[ProjectSight] Could not load projects for portfolio ${pId}:`, e.message);
