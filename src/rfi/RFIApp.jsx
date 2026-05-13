@@ -44,9 +44,9 @@ const rfiSubject   = r => r.title ?? r.subject ?? r.description ?? "(No subject)
 const rfiStatusVal = r => r.status ?? r.statusName ?? "Unknown";
 const rfiSubmitted = r => r.submittedDate ?? r.dateSubmitted ?? r.createdDate ?? r.createDate ?? null;
 const rfiDue       = r => r.dueDate ?? r.dateRequired ?? r.responseDueDate ?? null;
-const rfiNum       = r => r.number ?? r.rfiNumber ?? r.sequenceNumber ?? r.id ?? "—";
-const rfiIdVal     = r => String(r.id ?? r.rfiId ?? r.number ?? "");
-const rfiJobNum    = r => r.jobNumber ?? r.sequenceNumber ?? "—";
+const rfiNum       = r => r.Number ?? r.number ?? r.rfiNumber ?? r.sequenceNumber ?? r.id ?? "—";
+const rfiIdVal     = r => String(r.id ?? r.rfiId ?? r.Number ?? r.number ?? "");
+const rfiJobNum    = r => r.Number ?? r.jobNumber ?? r.sequenceNumber ?? "—";
 const rfiDetailer  = r => r.assignedCompany ?? r.submittedBy ?? r.createdBy ?? "Unknown";
 const rfiImp       = r => r.importance ?? r.priority ?? r.urgency ?? null;
 const rfiDisc      = r => r.discipline ?? r._project?.vertical ?? "Unknown";
@@ -213,7 +213,7 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
     <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px,1fr))", gap: 12, marginBottom: 12 }}>
         {visible.map(p => {
-          const pid      = String(p.id);
+          const pid      = String(p.ProjectID);
           const loading  = rfiLoading[pid];
           const error    = rfiErrors[pid];
           const rfis     = psRFIs[pid] || [];
@@ -234,7 +234,7 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
               onMouseLeave={e => { if (!isExp) e.currentTarget.style.borderColor = C.border; }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: C.text, flex: 1,
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.Name}</span>
                 <VertBadge v={p.vertical} />
               </div>
               {loading ? (
@@ -289,14 +289,14 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
       )}
 
       {expandedProject && (() => {
-        const p    = projects.find(x => String(x.id) === expandedProject);
+        const p    = projects.find(x => String(x.ProjectID) === expandedProject);
         if (!p) return null;
         const rfis = (psRFIs[expandedProject] || []).filter(isOpenRFI);
         return (
           <div style={{ background: C.surface, border: `1px solid ${C.accent}44`, borderRadius: 10,
             padding: "16px 20px", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: C.text, flex: 1 }}>{p.name} — Open RFIs</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.text, flex: 1 }}>{p.Name} — Open RFIs</span>
               <VertBadge v={p.vertical} />
               <button onClick={() => setExpandedProject(null)}
                 style={{ background: "none", border: "none", color: C.hint, cursor: "pointer",
@@ -326,7 +326,7 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                           <td style={{ padding: "8px 10px" }}><BandDot band={band} /></td>
                           <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
-                            <a href={psRFILink(p.portfolioId, p.id, r)} target="_blank" rel="noopener noreferrer"
+                            <a href={psRFILink(p.portfolioId, p.ProjectID, r)} target="_blank" rel="noopener noreferrer"
                               style={{ color: C.accentText, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
                               onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
                               onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}>
@@ -383,7 +383,7 @@ function RFITable({ rfis }) {
 
   const setF = (key, value) => setFilter(f => ({ ...f, [key]: value }));
 
-  const projectOpts  = useMemo(() => [...new Set(rfis.map(r => r._project.name))].sort(), [rfis]);
+  const projectOpts  = useMemo(() => [...new Set(rfis.map(r => r._project.Name))].sort(), [rfis]);
   const detailerOpts = useMemo(() => [...new Set(rfis.map(r => rfiDetailer(r)))].sort(), [rfis]);
 
   const activeChips = useMemo(() => {
@@ -412,7 +412,7 @@ function RFITable({ rfis }) {
     const applyEq = (key, get) => {
       if (filter[key] !== "all") list = list.filter(r => get(r) === filter[key]);
     };
-    applyEq("project",    r => r._project.name);
+    applyEq("project",    r => r._project.Name);
     applyEq("detailer",   r => rfiDetailer(r));
     applyEq("discipline", r => rfiDisc(r));
     applyEq("status",     r => normalizeStatus(r));
@@ -423,7 +423,7 @@ function RFITable({ rfis }) {
     list.sort((a, b) => {
       switch (sort.col) {
         case "jobnum":     return dir * rfiJobNum(a).localeCompare(rfiJobNum(b));
-        case "project":    return dir * a._project.name.localeCompare(b._project.name);
+        case "project":    return dir * a._project.Name.localeCompare(b._project.Name);
         case "detailer":   return dir * rfiDetailer(a).localeCompare(rfiDetailer(b));
         case "submitted":  return dir * (new Date(rfiSubmitted(a) || 0) - new Date(rfiSubmitted(b) || 0));
         case "due": {
@@ -597,7 +597,7 @@ function RFITable({ rfis }) {
                 const ics  = impChipStyle(imp);
                 const sc   = statusChipStyle(normalizeStatus(r));
                 return (
-                  <tr key={`${r._project.id}-${rfiIdVal(r)}`}
+                  <tr key={`${r._project.ProjectID}-${rfiIdVal(r)}`}
                     style={{ borderBottom: `1px solid ${C.border}` }}
                     onMouseEnter={e => e.currentTarget.style.background = C.surface2}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -609,12 +609,12 @@ function RFITable({ rfis }) {
                     </td>
                     <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{r._project.name}</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{r._project.Name}</span>
                         <VertBadge v={rfiDisc(r)} />
                       </div>
                     </td>
                     <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>
-                      <a href={psRFILink(r._project.portfolioId, r._project.id, r)}
+                      <a href={psRFILink(r._project.portfolioId, r._project.ProjectID, r)}
                         target="_blank" rel="noopener noreferrer"
                         style={{ color: C.accentText, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
                         onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
@@ -684,7 +684,7 @@ function TriageIssueCard({ issue, project, analysis, analyzing, verified, onAnal
             {issue.title || "(No title)"}
           </span>
           {project && <VertBadge v={project.vertical} />}
-          {project && <span style={{ fontSize: 10, color: C.muted }}>{project.name}</span>}
+          {project && <span style={{ fontSize: 10, color: C.muted }}>{project.Name}</span>}
           {isMock && (
             <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
               background: "rgba(251,191,36,0.12)", color: C.warning, letterSpacing: "0.05em" }}>
@@ -808,7 +808,7 @@ function TriageIssueCard({ issue, project, analysis, analyzing, verified, onAnal
         {/* Triage actions */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {project && (
-            <a href={psIssueLink(project.portfolioId, project.id, issue)}
+            <a href={psIssueLink(project.portfolioId, project.ProjectID, issue)}
               target="_blank" rel="noopener noreferrer"
               style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
                 border: `1px solid ${C.accent}44`, background: C.accentDim,
@@ -915,7 +915,7 @@ export default function RFIApp({ user }) {
     getProjects()
       .then(projects => {
         setPsProjects(projects);
-        console.log("[RFI] Projects in state:", projects.slice(0,2).map(p => ({ id: p.id, name: p.name })));
+        console.log("[RFI] Projects in state:", projects.slice(0,2).map(p => ({ id: p.ProjectID, name: p.Name })));
         setProjectsLoading(false);
       })
       .catch(err      => { setProjectsError(err.message); setProjectsLoading(false); });
@@ -926,10 +926,10 @@ export default function RFIApp({ user }) {
     if (!psProjects.length) return;
     const visible = psProjects.filter(p => userCanSeeVertical(user, p.vertical));
     visible.forEach(p => {
-      const pid = String(p.id);
+      const pid = String(p.ProjectID);
       setRfiLoading(prev => ({ ...prev, [pid]: true }));
-      console.log("[RFI] Fetching RFIs for project:", p.id, p.name);
-      getRFIs(p.portfolioId, p.id)
+      console.log("[RFI] Fetching RFIs for project:", p.ProjectID, p.Name);
+      getRFIs(p.portfolioId, p.ProjectID)
         .then(rfis => {
           setPsRFIs(prev => ({ ...prev, [pid]: rfis }));
           setRfiLoading(prev => ({ ...prev, [pid]: false }));
@@ -938,7 +938,7 @@ export default function RFIApp({ user }) {
           setRfiErrors(prev => ({ ...prev, [pid]: err.message }));
           setRfiLoading(prev => ({ ...prev, [pid]: false }));
         });
-      getIssues(p.portfolioId, p.id)
+      getIssues(p.portfolioId, p.ProjectID)
         .then(issues => setPsIssues(prev => ({ ...prev, [pid]: issues })))
         .catch(() => {});
     });
@@ -953,7 +953,7 @@ export default function RFIApp({ user }) {
   // Derived: all RFIs across visible projects, decorated with _project
   const allRFIs = useMemo(() =>
     visibleProjects.flatMap(p =>
-      (psRFIs[String(p.id)] || []).map(r => ({ ...r, _project: p }))
+      (psRFIs[String(p.ProjectID)] || []).map(r => ({ ...r, _project: p }))
     ),
     [visibleProjects, psRFIs]
   );
@@ -966,7 +966,7 @@ export default function RFIApp({ user }) {
 
   const allIssues = useMemo(() =>
     visibleProjects.flatMap(p =>
-      (psIssues[String(p.id)] || []).map(i => ({ ...i, _project: p }))
+      (psIssues[String(p.ProjectID)] || []).map(i => ({ ...i, _project: p }))
     ).filter(i => !resolvedSet.has(i.id)),
     [visibleProjects, psIssues, resolvedSet]
   );

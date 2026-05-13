@@ -1,13 +1,13 @@
 const BASE = "/projectsight-api/projectsight-v1.0";
 
 const MOCK_PROJECTS = [
-  { id: "proj-001", name: "Dignity Health — Parking Structure B",          portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
-  { id: "proj-002", name: "Tejon Ranch Commerce Center — Building 4",      portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
-  { id: "proj-003", name: "Bakersfield College — Science Building",         portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
-  { id: "proj-004", name: "IKEA Distribution Center — Mezzanine",          portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
-  { id: "proj-005", name: "Edwards AFB — Solar Carport Phase 1",           portfolioId: "54bfcdfd-5be5-4e20-b70b-ea11f2549510", vertical: "Solar",      _isMock: true },
-  { id: "proj-006", name: "Rosamond Unified School District — Carport Array", portfolioId: "54bfcdfd-5be5-4e20-b70b-ea11f2549510", vertical: "Solar",   _isMock: true },
-  { id: "proj-007", name: "Antelope Valley Mall — EV Carport",             portfolioId: "54bfcdfd-5be5-4e20-b70b-ea11f2549510", vertical: "Solar",      _isMock: true },
+  { ProjectID: "proj-001", Name: "Dignity Health — Parking Structure B",          portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
+  { ProjectID: "proj-002", Name: "Tejon Ranch Commerce Center — Building 4",      portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
+  { ProjectID: "proj-003", Name: "Bakersfield College — Science Building",         portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
+  { ProjectID: "proj-004", Name: "IKEA Distribution Center — Mezzanine",          portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
+  { ProjectID: "proj-005", Name: "Edwards AFB — Solar Carport Phase 1",           portfolioId: "54bfcdfd-5be5-4e20-b70b-ea11f2549510", vertical: "Solar",      _isMock: true },
+  { ProjectID: "proj-006", Name: "Rosamond Unified School District — Carport Array", portfolioId: "54bfcdfd-5be5-4e20-b70b-ea11f2549510", vertical: "Solar",   _isMock: true },
+  { ProjectID: "proj-007", Name: "Antelope Valley Mall — EV Carport",             portfolioId: "54bfcdfd-5be5-4e20-b70b-ea11f2549510", vertical: "Solar",      _isMock: true },
 ];
 
 const MOCK_RFIS = {
