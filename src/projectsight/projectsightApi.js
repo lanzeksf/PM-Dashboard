@@ -1,10 +1,5 @@
 const BASE = "/projectsight-api/projectsight-v1.0";
 
-const PORTFOLIOS = [
-  { id: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", name: "Kern Steel Fabrications, Inc", vertical: "Structural" },
-  { id: "54bfcdfd-5be5-4e20-b70b-ea11f2549510", name: "Kern Solar Structures",         vertical: "Solar"      },
-];
-
 const MOCK_PROJECTS = [
   { id: "proj-001", name: "Dignity Health — Parking Structure B",          portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
   { id: "proj-002", name: "Tejon Ranch Commerce Center — Building 4",      portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
@@ -89,7 +84,8 @@ const MOCK_ISSUES = [
 
 // ── OAuth token cache ─────────────────────────────────────────────────────────
 
-let _tokenCache = null; // { accessToken, expiresAt }
+let _tokenCache  = null; // { accessToken, expiresAt }
+let _accountId   = null;
 
 async function fetchToken() {
   const key    = import.meta.env.VITE_PROJECTSIGHT_CONSUMER_KEY;
@@ -124,6 +120,16 @@ function buildHeaders(token) {
   };
 }
 
+async function getAccountId() {
+  if (_accountId) return _accountId;
+  const data = await get("/accounts");
+  const accounts = Array.isArray(data) ? data : data?.accounts ?? [];
+  _accountId = accounts[0]?.id ?? accounts[0]?.accountId ?? accounts[0]?.guid;
+  if (!_accountId) throw new Error("No account ID returned from /accounts");
+  console.log("[ProjectSight] Account ID:", _accountId);
+  return _accountId;
+}
+
 // ── HTTP helper ───────────────────────────────────────────────────────────────
 
 async function get(path) {
@@ -142,50 +148,73 @@ async function get(path) {
   return res.json();
 }
 
-// Returns all projects across both portfolios, each with a `vertical` field.
+// Returns all projects across all portfolios, each with a `vertical` field.
 export async function getProjects() {
-  console.log("[ProjectSight] Using mock data");
-  return MOCK_PROJECTS;
+  console.log("[ProjectSight] Fetching live projects...");
+  try {
+    const accountId = await getAccountId();
+    const portData = await get(`/accounts/${accountId}/portfolios`);
+    const portfolios = Array.isArray(portData) ? portData : portData?.portfolios ?? [];
+
+    const results = await Promise.all(
+      portfolios.map(async (portfolio) => {
+        const pId = portfolio.id ?? portfolio.portfolioGuid ?? portfolio.guid;
+        const name = portfolio.name ?? "";
+        const vertical = name.toLowerCase().includes("solar") ? "Solar"
+                       : name.toLowerCase().includes("aero")  ? "Aero"
+                       : "Structural";
+        try {
+          const projData = await get(`/accounts/${accountId}/portfolios/${pId}/projects`);
+          const projects = Array.isArray(projData) ? projData : projData?.projects ?? [];
+          return projects.map(p => ({ ...p, portfolioId: pId, vertical }));
+        } catch (e) {
+          console.warn(`[ProjectSight] Could not load projects for portfolio ${pId}:`, e.message);
+          return [];
+        }
+      })
+    );
+    const flat = results.flat();
+    console.log(`[ProjectSight] Loaded ${flat.length} live projects`);
+    return flat.length > 0 ? flat : MOCK_PROJECTS;
+  } catch (e) {
+    console.warn("[ProjectSight] getProjects() failed, using mock:", e.message);
+    return MOCK_PROJECTS;
+  }
 }
 
 // Returns RFIs for a specific project.
 export async function getRFIs(portfolioId, projectId) {
-  console.log("[ProjectSight] Using mock data");
-  return MOCK_RFIS[projectId] ?? [];
+  console.log("[ProjectSight] Fetching RFIs:", portfolioId, projectId);
+  try {
+    const data = await get(`/${portfolioId}/${projectId}/rfis`);
+    const rfis = Array.isArray(data) ? data : data?.rfis ?? [];
+    console.log(`[ProjectSight] Loaded ${rfis.length} RFIs for project ${projectId}`);
+    return rfis;
+  } catch (e) {
+    console.warn("[ProjectSight] getRFIs() failed, using mock:", e.message);
+    return MOCK_RFIS[projectId] ?? [];
+  }
 }
 
 // Returns submittals for a specific project.
 export async function getSubmittals(portfolioId, projectId) {
-  const data = await get(`/portfolios/${portfolioId}/projects/${projectId}/submittals`);
-  return Array.isArray(data) ? data : data?.submittals ?? [];
+  try {
+    const data = await get(`/${portfolioId}/${projectId}/submittals`);
+    return Array.isArray(data) ? data : data?.submittals ?? [];
+  } catch (e) {
+    console.warn("[ProjectSight] getSubmittals() failed:", e.message);
+    return [];
+  }
 }
 
-// Returns issues for a specific project. Tries multiple endpoint patterns in order,
-// silently falls back to mock data if none succeed.
+// Returns issues for a specific project. Falls back to mock data if the live call fails.
 export async function getIssues(portfolioId, projectId) {
-  const candidates = [
-    `/portfolios/${portfolioId}/projects/${projectId}/issues`,
-    `/projects/${projectId}/issues`,
-    `/portfolios/${portfolioId}/issues?projectId=${projectId}`,
-  ];
-
-  for (const path of candidates) {
-    try {
-      let token = await getToken();
-      let res   = await fetch(`${BASE}${path}`, { method: "GET", headers: buildHeaders(token) });
-      if (res.status === 401 || res.status === 403) {
-        _tokenCache = null;
-        token = await getToken();
-        res   = await fetch(`${BASE}${path}`, { method: "GET", headers: buildHeaders(token) });
-      }
-      if (res.ok) {
-        const data = await res.json();
-        console.log(`[ProjectSight] Issues endpoint OK: ${path}`);
-        return Array.isArray(data) ? data : data?.issues ?? [];
-      }
-    } catch { /* network error — try next candidate */ }
+  try {
+    const data = await get(`/${portfolioId}/${projectId}/issues`);
+    const issues = Array.isArray(data) ? data : data?.issues ?? [];
+    return issues.length > 0 ? issues : MOCK_ISSUES;
+  } catch (e) {
+    console.warn("[ProjectSight] getIssues() failed, using mock:", e.message);
+    return MOCK_ISSUES;
   }
-
-  console.log("[ProjectSight] Issues endpoint not available — using mock data");
-  return MOCK_ISSUES;
 }
