@@ -5,6 +5,57 @@ const PORTFOLIOS = [
   { id: "54bfcdfd-5be5-4e20-b70b-ea11f2549510", name: "Kern Solar Structures",         vertical: "Solar"      },
 ];
 
+const MOCK_PROJECTS = [
+  { id: "proj-001", name: "Dignity Health — Parking Structure B",          portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
+  { id: "proj-002", name: "Tejon Ranch Commerce Center — Building 4",      portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
+  { id: "proj-003", name: "Bakersfield College — Science Building",         portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
+  { id: "proj-004", name: "IKEA Distribution Center — Mezzanine",          portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
+  { id: "proj-005", name: "Edwards AFB — Solar Carport Phase 1",           portfolioId: "54bfcdfd-5be5-4e20-b70b-ea11f2549510", vertical: "Solar",      _isMock: true },
+  { id: "proj-006", name: "Rosamond Unified School District — Carport Array", portfolioId: "54bfcdfd-5be5-4e20-b70b-ea11f2549510", vertical: "Solar",   _isMock: true },
+  { id: "proj-007", name: "Antelope Valley Mall — EV Carport",             portfolioId: "54bfcdfd-5be5-4e20-b70b-ea11f2549510", vertical: "Solar",      _isMock: true },
+];
+
+const MOCK_RFIS = {
+  "proj-001": [
+    { id: "rfi-001-1", number: "RFI-0012", _isMock: true, title: "Moment connection bolt pattern — grid C3 beam-to-column", status: "Under Review",  submittedDate: new Date(Date.now() - 12 * 86400000).toISOString(), dueDate: new Date(Date.now() - 2  * 86400000).toISOString() },
+    { id: "rfi-001-2", number: "RFI-0013", _isMock: true, title: "W24x76 camber requirement — Level 3 transfer beams",       status: "Answered",     submittedDate: new Date(Date.now() - 20 * 86400000).toISOString(), dueDate: new Date(Date.now() - 10 * 86400000).toISOString() },
+    { id: "rfi-001-3", number: "RFI-0014", _isMock: true, title: "Base plate weld size at HSS column — drawing conflict",    status: "Submitted",    submittedDate: new Date(Date.now() -  3 * 86400000).toISOString(), dueDate: new Date(Date.now() +  5 * 86400000).toISOString() },
+    { id: "rfi-001-4", number: "RFI-0015", _isMock: true, title: "Shear tab cope depth at W18 end condition",               status: "Draft",        submittedDate: new Date(Date.now() -  1 * 86400000).toISOString(), dueDate: new Date(Date.now() +  9 * 86400000).toISOString() },
+  ],
+  "proj-002": [
+    { id: "rfi-002-1", number: "RFI-0007", _isMock: true, title: "HSS 8x8 chord splice location — bay D truss",             status: "Answered",     submittedDate: new Date(Date.now() - 30 * 86400000).toISOString(), dueDate: new Date(Date.now() - 18 * 86400000).toISOString() },
+    { id: "rfi-002-2", number: "RFI-0008", _isMock: true, title: "Embed plate tolerance — tilt-up panel interface",         status: "Under Review",  submittedDate: new Date(Date.now() -  8 * 86400000).toISOString(), dueDate: new Date(Date.now() +  2 * 86400000).toISOString() },
+    { id: "rfi-002-3", number: "RFI-0009", _isMock: true, title: "A572 Gr50 substitution for A36 angle clips",             status: "Submitted",    submittedDate: new Date(Date.now() -  4 * 86400000).toISOString(), dueDate: new Date(Date.now() +  6 * 86400000).toISOString() },
+  ],
+  "proj-003": [
+    { id: "rfi-003-1", number: "RFI-0003", _isMock: true, title: "Anchor rod projection — seismic base plate grid A1–A4",  status: "Answered",     submittedDate: new Date(Date.now() - 45 * 86400000).toISOString(), dueDate: new Date(Date.now() - 35 * 86400000).toISOString() },
+    { id: "rfi-003-2", number: "RFI-0004", _isMock: true, title: "Stiffener plate requirement — W12 column at Level 2",    status: "Under Review",  submittedDate: new Date(Date.now() -  9 * 86400000).toISOString(), dueDate: new Date(Date.now() -  1 * 86400000).toISOString() },
+    { id: "rfi-003-3", number: "RFI-0005", _isMock: true, title: "Kicker brace connection detail missing — stair tower",   status: "Draft",        submittedDate: new Date(Date.now() -  2 * 86400000).toISOString(), dueDate: new Date(Date.now() +  8 * 86400000).toISOString() },
+    { id: "rfi-003-4", number: "RFI-0006", _isMock: true, title: "HSS 4x4 handrail post weld — galvanize after or before", status: "Submitted",    submittedDate: new Date(Date.now() -  5 * 86400000).toISOString(), dueDate: new Date(Date.now() +  3 * 86400000).toISOString() },
+    { id: "rfi-003-5", number: "RFI-0007", _isMock: true, title: "Erection sequence for cantilevered canopy — grid H",     status: "Submitted",    submittedDate: new Date(Date.now() -  6 * 86400000).toISOString(), dueDate: new Date(Date.now() +  4 * 86400000).toISOString() },
+  ],
+  "proj-004": [
+    { id: "rfi-004-1", number: "RFI-0001", _isMock: true, title: "Mezzanine joist bearing seat height — column cap plates", status: "Answered",     submittedDate: new Date(Date.now() - 14 * 86400000).toISOString(), dueDate: new Date(Date.now() -  5 * 86400000).toISOString() },
+    { id: "rfi-004-2", number: "RFI-0002", _isMock: true, title: "Deck edge angle spec — 18GA vs 16GA at perimeter",       status: "Under Review",  submittedDate: new Date(Date.now() -  7 * 86400000).toISOString(), dueDate: new Date(Date.now() +  1 * 86400000).toISOString() },
+  ],
+  "proj-005": [
+    { id: "rfi-005-1", number: "RFI-0009", _isMock: true, title: "Footing depth at north row — geotech conflict with IFC", status: "Under Review",  submittedDate: new Date(Date.now() - 10 * 86400000).toISOString(), dueDate: new Date(Date.now() -  1 * 86400000).toISOString() },
+    { id: "rfi-005-2", number: "RFI-0010", _isMock: true, title: "Purlin splice location — bay 7 rafter span",             status: "Answered",     submittedDate: new Date(Date.now() - 18 * 86400000).toISOString(), dueDate: new Date(Date.now() -  8 * 86400000).toISOString() },
+    { id: "rfi-005-3", number: "RFI-0011", _isMock: true, title: "EV conduit sleeve — base plate interference grid F2",    status: "Submitted",    submittedDate: new Date(Date.now() -  4 * 86400000).toISOString(), dueDate: new Date(Date.now() +  6 * 86400000).toISOString() },
+    { id: "rfi-005-4", number: "RFI-0012", _isMock: true, title: "HSS 6x4 upright wall thickness — A500 Gr.C vs Gr.B",    status: "Draft",        submittedDate: new Date(Date.now() -  1 * 86400000).toISOString(), dueDate: new Date(Date.now() + 10 * 86400000).toISOString() },
+  ],
+  "proj-006": [
+    { id: "rfi-006-1", number: "RFI-0004", _isMock: true, title: "Anchor bolt edge distance — compact soil near building",  status: "Answered",     submittedDate: new Date(Date.now() - 22 * 86400000).toISOString(), dueDate: new Date(Date.now() - 12 * 86400000).toISOString() },
+    { id: "rfi-006-2", number: "RFI-0005", _isMock: true, title: "Panel tilt angle tolerance — ±0.5° vs ±1° per spec",    status: "Under Review",  submittedDate: new Date(Date.now() -  6 * 86400000).toISOString(), dueDate: new Date(Date.now() +  2 * 86400000).toISOString() },
+    { id: "rfi-006-3", number: "RFI-0006", _isMock: true, title: "Rafter-to-upright bolted connection — torque spec missing", status: "Submitted",  submittedDate: new Date(Date.now() -  3 * 86400000).toISOString(), dueDate: new Date(Date.now() +  7 * 86400000).toISOString() },
+  ],
+  "proj-007": [
+    { id: "rfi-007-1", number: "RFI-0002", _isMock: true, title: "Canopy beam splice — high-bay light fixture interference", status: "Under Review",  submittedDate: new Date(Date.now() - 11 * 86400000).toISOString(), dueDate: new Date(Date.now() -  3 * 86400000).toISOString() },
+    { id: "rfi-007-2", number: "RFI-0003", _isMock: true, title: "Diagonal brace HSS wall thickness — wind load zone 3",   status: "Submitted",    submittedDate: new Date(Date.now() -  5 * 86400000).toISOString(), dueDate: new Date(Date.now() +  5 * 86400000).toISOString() },
+    { id: "rfi-007-3", number: "RFI-0004", _isMock: true, title: "EV charger pedestal weld — dissimilar metal concern",    status: "Draft",        submittedDate: new Date(Date.now() -  2 * 86400000).toISOString(), dueDate: new Date(Date.now() + 12 * 86400000).toISOString() },
+  ],
+};
+
 const MOCK_ISSUES = [
   {
     id: "mock-1", _isMock: true,
@@ -93,20 +144,14 @@ async function get(path) {
 
 // Returns all projects across both portfolios, each with a `vertical` field.
 export async function getProjects() {
-  const results = await Promise.all(
-    PORTFOLIOS.map(async ({ id, vertical }) => {
-      const data = await get(`/portfolios/${id}/projects`);
-      const list = Array.isArray(data) ? data : data?.projects ?? [];
-      return list.map(p => ({ ...p, portfolioId: id, vertical }));
-    })
-  );
-  return results.flat();
+  console.log("[ProjectSight] Using mock data");
+  return MOCK_PROJECTS;
 }
 
 // Returns RFIs for a specific project.
 export async function getRFIs(portfolioId, projectId) {
-  const data = await get(`/portfolios/${portfolioId}/projects/${projectId}/rfis`);
-  return Array.isArray(data) ? data : data?.rfis ?? [];
+  console.log("[ProjectSight] Using mock data");
+  return MOCK_RFIS[projectId] ?? [];
 }
 
 // Returns submittals for a specific project.
