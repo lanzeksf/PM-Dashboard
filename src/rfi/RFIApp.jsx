@@ -900,7 +900,11 @@ export default function RFIApp({ user }) {
   useEffect(() => {
     setProjectsLoading(true);
     getProjects()
-      .then(projects => { setPsProjects(projects); setProjectsLoading(false); })
+      .then(projects => {
+        setPsProjects(projects);
+        console.log("[RFI] Projects in state:", projects.slice(0,2).map(p => ({ id: p.id, name: p.name })));
+        setProjectsLoading(false);
+      })
       .catch(err      => { setProjectsError(err.message); setProjectsLoading(false); });
   }, []);
 

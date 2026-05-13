@@ -175,6 +175,7 @@ export async function getProjects() {
     );
     const flat = results.flat();
     console.log(`[ProjectSight] Loaded ${flat.length} live projects`);
+    console.log("[ProjectSight] Live projects sample:", flat.slice(0,2).map(p => ({ id: p.id, name: p.name })));
     return flat.length > 0 ? flat : MOCK_PROJECTS;
   } catch (e) {
     console.warn("[ProjectSight] getProjects() failed, using mock:", e.message);
