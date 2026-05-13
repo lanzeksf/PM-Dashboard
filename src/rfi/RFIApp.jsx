@@ -18,8 +18,6 @@ const BAND_LABEL = {
   ontrack: "On Track",
   nodate:  "No Date",
 };
-const FUNNEL_STAGES = ["Draft", "Submitted", "Under Review", "Answered", "Closed"];
-
 const ISSUE_SYSTEM_PROMPT = `You are Kern Bot, an internal AI assistant for Kern Steel Fabrication (KSF) in Bakersfield, CA.
 KSF fabricates structural steel, solar carport structures, and aerospace maintenance stands.
 You are analyzing a raw issue submitted by an overseas steel detailer. Their English may be unclear.
@@ -48,6 +46,10 @@ const rfiSubmitted = r => r.submittedDate ?? r.dateSubmitted ?? r.createdDate ??
 const rfiDue       = r => r.dueDate ?? r.dateRequired ?? r.responseDueDate ?? null;
 const rfiNum       = r => r.number ?? r.rfiNumber ?? r.sequenceNumber ?? r.id ?? "—";
 const rfiIdVal     = r => String(r.id ?? r.rfiId ?? r.number ?? "");
+const rfiJobNum    = r => r.jobNumber ?? r.sequenceNumber ?? "—";
+const rfiDetailer  = r => r.assignedCompany ?? r.submittedBy ?? r.createdBy ?? "Unknown";
+const rfiImp       = r => r.importance ?? r.priority ?? r.urgency ?? null;
+const rfiDisc      = r => r.discipline ?? r._project?.vertical ?? "Unknown";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -189,18 +191,6 @@ function StatCard({ label, value, color }) {
       <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: color || C.text,
         letterSpacing: "-0.04em", lineHeight: 1 }}>{value}</p>
     </div>
-  );
-}
-
-function FilterSelect({ label, value, options, labels, onChange }) {
-  return (
-    <select value={value} onChange={e => onChange(e.target.value)}
-      style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`,
-        background: C.surface, color: C.muted, fontFamily: "inherit", cursor: "pointer" }}>
-      {options.map((o, i) => (
-        <option key={o} value={o}>{labels?.[i] ?? (o === "all" ? `${label}: All` : o)}</option>
-      ))}
-    </select>
   );
 }
 
@@ -354,96 +344,250 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
   );
 }
 
-// ── RFI Status Funnel ─────────────────────────────────────────────────────────
+// ── Importance chip style ─────────────────────────────────────────────────────
 
-function FunnelRow({ counts }) {
-  const max = Math.max(...FUNNEL_STAGES.map(s => counts[s] || 0), 1);
-  return (
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
-      padding: "16px 20px", marginBottom: 16 }}>
-      <p style={{ margin: "0 0 14px", fontSize: 11, fontWeight: 700, letterSpacing: "0.07em",
-        textTransform: "uppercase", color: C.hint }}>RFI Status Funnel</p>
-      <div style={{ display: "flex", gap: 4, alignItems: "flex-end" }}>
-        {FUNNEL_STAGES.map((stage, i) => {
-          const count = counts[stage] || 0;
-          const isMax = count > 0 && count === max;
-          const pct   = count / max;
-          return (
-            <React.Fragment key={stage}>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                <div style={{ width: "100%", height: 44, borderRadius: 6, background: C.surface2,
-                  overflow: "hidden", position: "relative" }}>
-                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0,
-                    height: `${Math.max(pct * 100, count > 0 ? 10 : 0)}%`,
-                    background: isMax ? C.accent : C.accentDim,
-                    transition: "height 0.3s ease" }} />
-                </div>
-                <span style={{ fontSize: 17, fontWeight: 700, color: count > 0 ? C.text : C.hint,
-                  lineHeight: 1 }}>{count}</span>
-                <span style={{ fontSize: 10, color: C.hint, textAlign: "center", lineHeight: 1.3,
-                  whiteSpace: "nowrap" }}>{stage}</span>
-              </div>
-              {i < FUNNEL_STAGES.length - 1 && (
-                <div style={{ display: "flex", alignItems: "center", paddingBottom: 44, color: C.hint, flexShrink: 0 }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                </div>
-              )}
-            </React.Fragment>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+const impChipStyle = imp => ({
+  Low:    { color: C.hint,    bg: C.surface2 },
+  Normal: { color: C.accent,  bg: "rgba(91,124,250,0.12)"  },
+  High:   { color: C.warning, bg: "rgba(251,191,36,0.12)"  },
+  Urgent: { color: C.danger,  bg: "rgba(248,113,113,0.12)" },
+}[imp] || { color: C.muted, bg: C.surface2 });
 
 // ── Full RFI Table ────────────────────────────────────────────────────────────
 
-function RFITable({ rfis, filter, setFilter, sort, setSort }) {
-  const cols = [
-    { key: "band",      label: "",           sortable: false },
-    { key: "project",   label: "Project",    sortable: true  },
-    { key: "num",       label: "RFI #",      sortable: false },
-    { key: "subject",   label: "Subject",    sortable: false },
-    { key: "submitted", label: "Submitted",  sortable: false },
-    { key: "due",       label: "Due",        sortable: true  },
-    { key: "age",       label: "Days Open",  sortable: true  },
-    { key: "status",    label: "Status",     sortable: true  },
-    { key: "action",    label: "",           sortable: false },
+function RFITable({ rfis }) {
+  const mkFilter = () => ({
+    jobNumber:  { value: "",    not: false },
+    project:    { value: "all", not: false },
+    detailer:   { value: "all", not: false },
+    discipline: { value: "all", not: false },
+    status:     { value: "all", not: false },
+    importance: { value: "all", not: false },
+    band:       { value: "all", not: false },
+  });
+
+  const [filter, setFilter] = useState(mkFilter);
+  const [sort,   setSort]   = useState({ col: "due", dir: "asc" });
+
+  const setF      = (key, patch) => setFilter(f => ({ ...f, [key]: { ...f[key], ...patch } }));
+  const toggleNot = key => setFilter(f => ({ ...f, [key]: { ...f[key], not: !f[key].not } }));
+
+  const projectOpts  = useMemo(() => [...new Set(rfis.map(r => r._project.name))].sort(), [rfis]);
+  const detailerOpts = useMemo(() => [...new Set(rfis.map(r => rfiDetailer(r)))].sort(), [rfis]);
+
+  const activeChips = useMemo(() => {
+    const chips = [];
+    const { jobNumber, project, detailer, discipline, status, importance, band } = filter;
+    if (jobNumber.value)          chips.push({ key: "jobNumber",  label: `${jobNumber.not  ? "NOT " : ""}Job: "${jobNumber.value}"` });
+    if (project.value    !== "all") chips.push({ key: "project",    label: `${project.not    ? "NOT " : ""}Project: ${project.value}` });
+    if (detailer.value   !== "all") chips.push({ key: "detailer",   label: `${detailer.not   ? "NOT " : ""}Detailer: ${detailer.value}` });
+    if (discipline.value !== "all") chips.push({ key: "discipline", label: `${discipline.not ? "NOT " : ""}Discipline: ${discipline.value}` });
+    if (status.value     !== "all") chips.push({ key: "status",     label: `${status.not     ? "NOT " : ""}Status: ${status.value}` });
+    if (importance.value !== "all") chips.push({ key: "importance", label: `${importance.not ? "NOT " : ""}Importance: ${importance.value}` });
+    if (band.value       !== "all") chips.push({ key: "band",       label: `${band.not       ? "NOT " : ""}Age: ${BAND_LABEL[band.value]}` });
+    return chips;
+  }, [filter]);
+
+  const clearChip = key => setFilter(f => ({
+    ...f, [key]: { value: key === "jobNumber" ? "" : "all", not: false },
+  }));
+
+  const filtered = useMemo(() => {
+    let list = [...rfis];
+    const { jobNumber } = filter;
+    if (jobNumber.value) {
+      const q = jobNumber.value.toLowerCase();
+      list = list.filter(r => jobNumber.not
+        ? !rfiJobNum(r).toLowerCase().includes(q)
+        :  rfiJobNum(r).toLowerCase().includes(q));
+    }
+    const applyEq = (key, get) => {
+      const { value, not } = filter[key];
+      if (value !== "all") list = list.filter(r => not ? get(r) !== value : get(r) === value);
+    };
+    applyEq("project",    r => r._project.name);
+    applyEq("detailer",   r => rfiDetailer(r));
+    applyEq("discipline", r => rfiDisc(r));
+    applyEq("status",     r => normalizeStatus(r));
+    applyEq("importance", r => rfiImp(r) ?? "Normal");
+    applyEq("band",       r => ageBand(rfiDue(r)));
+
+    const dir = sort.dir === "asc" ? 1 : -1;
+    list.sort((a, b) => {
+      switch (sort.col) {
+        case "jobnum":     return dir * rfiJobNum(a).localeCompare(rfiJobNum(b));
+        case "project":    return dir * a._project.name.localeCompare(b._project.name);
+        case "detailer":   return dir * rfiDetailer(a).localeCompare(rfiDetailer(b));
+        case "submitted":  return dir * (new Date(rfiSubmitted(a) || 0) - new Date(rfiSubmitted(b) || 0));
+        case "due": {
+          const ad = rfiDue(a), bd = rfiDue(b);
+          if (!ad && !bd) return 0; if (!ad) return 1; if (!bd) return -1;
+          return dir * (new Date(ad) - new Date(bd));
+        }
+        case "age":        return dir * (daysOpenCalc(rfiSubmitted(b)) - daysOpenCalc(rfiSubmitted(a)));
+        case "importance": {
+          const O = { Urgent: 0, High: 1, Normal: 2, Low: 3 };
+          return dir * ((O[rfiImp(a) ?? "Normal"] ?? 2) - (O[rfiImp(b) ?? "Normal"] ?? 2));
+        }
+        case "status":     return dir * normalizeStatus(a).localeCompare(normalizeStatus(b));
+        default: return 0;
+      }
+    });
+    return list;
+  }, [rfis, filter, sort]);
+
+  const toggleSort = key => setSort(s =>
+    s.col === key ? { ...s, dir: s.dir === "asc" ? "desc" : "asc" } : { col: key, dir: "asc" }
+  );
+
+  const COLS = [
+    { key: "colorbar",   label: "",           sortable: false },
+    { key: "jobnum",     label: "Job #",      sortable: true  },
+    { key: "project",    label: "Project",    sortable: true  },
+    { key: "num",        label: "RFI #",      sortable: false },
+    { key: "subject",    label: "Subject",    sortable: false },
+    { key: "detailer",   label: "Detailer",   sortable: true  },
+    { key: "submitted",  label: "Submitted",  sortable: true  },
+    { key: "due",        label: "Due",        sortable: true  },
+    { key: "age",        label: "Days Open",  sortable: true  },
+    { key: "importance", label: "Importance", sortable: true  },
+    { key: "status",     label: "Status",     sortable: true  },
+    { key: "action",     label: "",           sortable: false },
   ];
 
-  const toggleSort = col => {
-    if (!col.sortable) return;
-    setSort(s => s.col === col.key
-      ? { col: col.key, dir: s.dir === "asc" ? "desc" : "asc" }
-      : { col: col.key, dir: "asc" });
-  };
+  const notBtn = active => ({
+    fontSize: 10, padding: "3px 6px", borderRadius: 4, fontFamily: "inherit",
+    fontWeight: 700, lineHeight: 1, cursor: "pointer",
+    border:     `1px solid ${active ? C.danger : C.border}`,
+    background: active ? "rgba(248,113,113,0.15)" : C.surface,
+    color:      active ? C.danger : C.hint,
+  });
 
-  const allVerticals = ["all", ...new Set(rfis.map(r => r._project.vertical))];
-  const allStatuses  = ["all", ...new Set(rfis.map(r => normalizeStatus(r)))];
+  const selSt = active => ({
+    fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", cursor: "pointer",
+    border:     `1px solid ${active ? C.accent + "66" : C.border}`,
+    background: C.surface,
+    color:      active ? C.accentText : C.muted,
+  });
 
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-      <div style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}`, background: C.surface2,
-        display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase",
-          color: C.hint, marginRight: 4 }}>All Open RFIs</span>
-        <FilterSelect label="Vertical" value={filter.vertical} options={allVerticals}
-          onChange={v => setFilter(f => ({ ...f, vertical: v }))} />
-        <FilterSelect label="Status" value={filter.status} options={allStatuses}
-          onChange={v => setFilter(f => ({ ...f, status: v }))} />
-        <FilterSelect
-          label="Age Band"
-          value={filter.band}
-          options={["all", "overdue", "soon3", "soon7", "ontrack", "nodate"]}
-          labels={["Age: All", "Overdue", "Due ≤ 3d", "Due ≤ 7d", "On Track", "No Date"]}
-          onChange={v => setFilter(f => ({ ...f, band: v }))} />
-        <span style={{ marginLeft: "auto", fontSize: 11, color: C.hint }}>
-          {rfis.length} RFI{rfis.length !== 1 ? "s" : ""}
-        </span>
+
+      {/* ── Filter bar ───────────────────────────────────────────────────────── */}
+      <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, background: C.surface2 }}>
+
+        {/* Row 1 — filter controls */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center",
+          marginBottom: activeChips.length ? 8 : 0 }}>
+
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase",
+            color: C.hint, marginRight: 4, flexShrink: 0 }}>All Open RFIs</span>
+
+          {/* Job # */}
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <input type="text" value={filter.jobNumber.value} placeholder="Job #…"
+              onChange={e => setF("jobNumber", { value: e.target.value })}
+              style={{ ...selSt(!!filter.jobNumber.value), width: 88 }} />
+            <button style={notBtn(filter.jobNumber.not)} onClick={() => toggleNot("jobNumber")}>NOT</button>
+          </div>
+
+          {/* Project */}
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <select value={filter.project.value} onChange={e => setF("project", { value: e.target.value })}
+              style={selSt(filter.project.value !== "all")}>
+              <option value="all">Project: All</option>
+              {projectOpts.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <button style={notBtn(filter.project.not)} onClick={() => toggleNot("project")}>NOT</button>
+          </div>
+
+          {/* Detailer */}
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <select value={filter.detailer.value} onChange={e => setF("detailer", { value: e.target.value })}
+              style={selSt(filter.detailer.value !== "all")}>
+              <option value="all">Detailer: All</option>
+              {detailerOpts.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <button style={notBtn(filter.detailer.not)} onClick={() => toggleNot("detailer")}>NOT</button>
+          </div>
+
+          {/* Discipline */}
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <select value={filter.discipline.value} onChange={e => setF("discipline", { value: e.target.value })}
+              style={selSt(filter.discipline.value !== "all")}>
+              <option value="all">Discipline: All</option>
+              {["Structural", "Solar", "Aero"].map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <button style={notBtn(filter.discipline.not)} onClick={() => toggleNot("discipline")}>NOT</button>
+          </div>
+
+          {/* Status */}
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <select value={filter.status.value} onChange={e => setF("status", { value: e.target.value })}
+              style={selSt(filter.status.value !== "all")}>
+              <option value="all">Status: All</option>
+              {["Draft", "Submitted", "Under Review", "Answered", "Closed"].map(o =>
+                <option key={o} value={o}>{o}</option>)}
+            </select>
+            <button style={notBtn(filter.status.not)} onClick={() => toggleNot("status")}>NOT</button>
+          </div>
+
+          {/* Importance */}
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <select value={filter.importance.value} onChange={e => setF("importance", { value: e.target.value })}
+              style={selSt(filter.importance.value !== "all")}>
+              <option value="all">Importance: All</option>
+              {["Low", "Normal", "High", "Urgent"].map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <button style={notBtn(filter.importance.not)} onClick={() => toggleNot("importance")}>NOT</button>
+          </div>
+
+          {/* Age Band */}
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <select value={filter.band.value} onChange={e => setF("band", { value: e.target.value })}
+              style={selSt(filter.band.value !== "all")}>
+              <option value="all">Age Band: All</option>
+              <option value="overdue">Overdue</option>
+              <option value="soon3">Due ≤ 3d</option>
+              <option value="soon7">Due ≤ 7d</option>
+              <option value="ontrack">On Track</option>
+              <option value="nodate">No Date</option>
+            </select>
+            <button style={notBtn(filter.band.not)} onClick={() => toggleNot("band")}>NOT</button>
+          </div>
+
+          <span style={{ marginLeft: "auto", fontSize: 11, color: C.hint, flexShrink: 0, whiteSpace: "nowrap" }}>
+            {filtered.length} / {rfis.length} RFI{rfis.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+
+        {/* Row 2 — active filter chips */}
+        {activeChips.length > 0 && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            {activeChips.map(chip => (
+              <span key={chip.key} style={{ display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 11, padding: "3px 8px 3px 10px", borderRadius: 20,
+                background: C.accent + "1a", border: `1px solid ${C.accent}44`,
+                color: C.accentText, whiteSpace: "nowrap" }}>
+                {chip.label}
+                <button onClick={() => clearChip(chip.key)}
+                  style={{ background: "none", border: "none", color: C.accentText,
+                    cursor: "pointer", padding: 0, lineHeight: 1, fontSize: 14,
+                    display: "flex", alignItems: "center" }}>×</button>
+              </span>
+            ))}
+            <button onClick={() => setFilter(mkFilter())}
+              style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20,
+                border: `1px solid ${C.border}`, background: C.surface,
+                color: C.hint, cursor: "pointer", fontFamily: "inherit" }}>
+              Clear All
+            </button>
+          </div>
+        )}
       </div>
-      {rfis.length === 0 ? (
+
+      {/* ── Table ────────────────────────────────────────────────────────────── */}
+      {filtered.length === 0 ? (
         <p style={{ margin: 0, padding: "28px 16px", fontSize: 12, color: C.hint, textAlign: "center" }}>
           No RFIs match the current filters.
         </p>
@@ -452,13 +596,15 @@ function RFITable({ rfis, filter, setFilter, sort, setSort }) {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                {cols.map(col => (
-                  <th key={col.key} onClick={() => toggleSort(col)}
-                    style={{ padding: "8px 12px", textAlign: "left", fontSize: 10, fontWeight: 700,
+                {COLS.map(col => (
+                  <th key={col.key} onClick={() => col.sortable && toggleSort(col.key)}
+                    style={{ padding: col.key === "colorbar" ? "8px 0 8px 12px" : "8px 12px",
+                      textAlign: "left", fontSize: 10, fontWeight: 700,
                       letterSpacing: "0.06em", textTransform: "uppercase",
                       color: sort.col === col.key ? C.accentText : C.hint,
                       whiteSpace: "nowrap", cursor: col.sortable ? "pointer" : "default",
-                      userSelect: "none" }}>
+                      userSelect: "none",
+                      ...(col.key === "colorbar" ? { width: 20 } : {}) }}>
                     {col.label}
                     {col.sortable && sort.col === col.key && (
                       <span style={{ marginLeft: 3 }}>{sort.dir === "asc" ? "↑" : "↓"}</span>
@@ -468,28 +614,39 @@ function RFITable({ rfis, filter, setFilter, sort, setSort }) {
               </tr>
             </thead>
             <tbody>
-              {rfis.map(r => {
+              {filtered.map(r => {
                 const band = ageBand(rfiDue(r));
-                const sc   = statusChipStyle(rfiStatusVal(r));
+                const imp  = rfiImp(r) ?? "Normal";
+                const ics  = impChipStyle(imp);
+                const sc   = statusChipStyle(normalizeStatus(r));
                 return (
                   <tr key={`${r._project.id}-${rfiIdVal(r)}`}
                     style={{ borderBottom: `1px solid ${C.border}` }}
                     onMouseEnter={e => e.currentTarget.style.background = C.surface2}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                    <td style={{ padding: "10px 8px 10px 12px" }}>
-                      <div style={{ width: 4, height: 28, borderRadius: 2, background: BAND_C[band] }} />
+                    <td style={{ padding: "10px 0 10px 12px", width: 20 }}>
+                      <div style={{ width: 4, height: 32, borderRadius: 2, background: BAND_C[band] }} />
+                    </td>
+                    <td style={{ padding: "10px 12px", color: C.muted, whiteSpace: "nowrap", fontSize: 11 }}>
+                      {rfiJobNum(r)}
                     </td>
                     <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{r._project.name}</span>
-                        <VertBadge v={r._project.vertical} />
+                        <VertBadge v={rfiDisc(r)} />
                       </div>
                     </td>
-                    <td style={{ padding: "10px 12px", color: C.accentText, fontWeight: 600,
-                      whiteSpace: "nowrap" }}>{rfiNum(r)}</td>
-                    <td style={{ padding: "10px 12px", maxWidth: 220, overflow: "hidden" }}>
+                    <td style={{ padding: "10px 12px", color: C.accentText, fontWeight: 600, whiteSpace: "nowrap" }}>
+                      {rfiNum(r)}
+                    </td>
+                    <td style={{ padding: "10px 12px", maxWidth: 220 }}>
                       <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis",
-                        whiteSpace: "nowrap", color: C.text }} title={rfiSubject(r)}>{rfiSubject(r)}</span>
+                        whiteSpace: "nowrap", color: C.text }} title={rfiSubject(r)}>
+                        {rfiSubject(r)}
+                      </span>
+                    </td>
+                    <td style={{ padding: "10px 12px", color: C.muted, whiteSpace: "nowrap", fontSize: 11 }}>
+                      {rfiDetailer(r)}
                     </td>
                     <td style={{ padding: "10px 12px", color: C.muted, whiteSpace: "nowrap" }}>
                       {fmtD(rfiSubmitted(r))}
@@ -504,7 +661,15 @@ function RFITable({ rfis, filter, setFilter, sort, setSort }) {
                     </td>
                     <td style={{ padding: "10px 12px" }}>
                       <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
-                        background: sc.bg, color: sc.color, whiteSpace: "nowrap" }}>{rfiStatusVal(r)}</span>
+                        background: ics.bg, color: ics.color, whiteSpace: "nowrap" }}>
+                        {imp}
+                      </span>
+                    </td>
+                    <td style={{ padding: "10px 12px" }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
+                        background: sc.bg, color: sc.color, whiteSpace: "nowrap" }}>
+                        {normalizeStatus(r)}
+                      </span>
                     </td>
                     <td style={{ padding: "10px 12px" }}>
                       <a href={psRFILink(r._project.portfolioId, r._project.id, r)}
@@ -759,8 +924,6 @@ export default function RFIApp({ user }) {
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [projectsError,   setProjectsError]   = useState(null);
   const [expandedProject, setExpandedProject] = useState(null);
-  const [rfiFilter,       setRfiFilter]       = useState({ vertical: "all", status: "all", band: "all" });
-  const [rfiSort,         setRfiSort]         = useState({ col: "due", dir: "asc" });
   const [rfiTab,          setRfiTab]          = useState("dashboard");
   const [triageAnalysis,  setTriageAnalysis]  = useState({});
   const [triageAnalyzing, setTriageAnalyzing] = useState({});
@@ -842,37 +1005,6 @@ export default function RFIApp({ user }) {
       : 0;
     return { total: openRFIs.length, overdue, due7, avgDays };
   }, [openRFIs]);
-
-  // Funnel stage counts
-  const funnelCounts = useMemo(() => {
-    const c = {};
-    FUNNEL_STAGES.forEach(s => { c[s] = 0; });
-    allRFIs.forEach(r => { const s = normalizeStatus(r); if (s in c) c[s]++; });
-    return c;
-  }, [allRFIs]);
-
-  // Filtered + sorted RFI table data
-  const filteredRFIs = useMemo(() => {
-    let list = [...openRFIs];
-    if (rfiFilter.vertical !== "all") list = list.filter(r => r._project.vertical === rfiFilter.vertical);
-    if (rfiFilter.status   !== "all") list = list.filter(r => normalizeStatus(r) === rfiFilter.status);
-    if (rfiFilter.band     !== "all") list = list.filter(r => ageBand(rfiDue(r)) === rfiFilter.band);
-    list.sort((a, b) => {
-      const dir = rfiSort.dir === "asc" ? 1 : -1;
-      if (rfiSort.col === "due") {
-        const ad = rfiDue(a), bd = rfiDue(b);
-        if (!ad && !bd) return 0;
-        if (!ad) return 1;
-        if (!bd) return -1;
-        return dir * (new Date(ad) - new Date(bd));
-      }
-      if (rfiSort.col === "age")     return dir * (daysOpenCalc(rfiSubmitted(b)) - daysOpenCalc(rfiSubmitted(a)));
-      if (rfiSort.col === "project") return dir * a._project.name.localeCompare(b._project.name);
-      if (rfiSort.col === "status")  return dir * normalizeStatus(a).localeCompare(normalizeStatus(b));
-      return 0;
-    });
-    return list;
-  }, [openRFIs, rfiFilter, rfiSort]);
 
   // Triage handlers
   const handleAnalyze = async issue => {
@@ -981,21 +1113,8 @@ export default function RFIApp({ user }) {
               />
             </div>
 
-            {/* Funnel — only once data has loaded */}
-            {!projectsLoading && allRFIs.length > 0 && (
-              <FunnelRow counts={funnelCounts} />
-            )}
-
             {/* Full RFI table */}
-            {!projectsLoading && (
-              <RFITable
-                rfis={filteredRFIs}
-                filter={rfiFilter}
-                setFilter={setRfiFilter}
-                sort={rfiSort}
-                setSort={setRfiSort}
-              />
-            )}
+            {!projectsLoading && <RFITable rfis={openRFIs} />}
           </>
         )}
 
