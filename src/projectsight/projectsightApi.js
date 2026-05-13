@@ -164,8 +164,8 @@ export async function getProjects() {
 
     const results = await Promise.all(
       portfolios.map(async (portfolio) => {
-        const pId = portfolio.id ?? portfolio.portfolioGuid ?? portfolio.guid;
-        const name = portfolio.name ?? "";
+        const pId = portfolio.PortfolioID ?? portfolio.portfolioGuid ?? portfolio.id ?? portfolio.guid;
+        const name = portfolio.Name ?? portfolio.name ?? "";
         const vertical = name.toLowerCase().includes("solar") ? "Solar"
                        : name.toLowerCase().includes("aero")  ? "Aero"
                        : "Structural";
