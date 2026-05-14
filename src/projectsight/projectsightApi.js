@@ -166,6 +166,10 @@ export async function getProjects() {
       portfolios.map(async (portfolio) => {
         const pId = portfolio.PortfolioID ?? portfolio.portfolioGuid ?? portfolio.id ?? portfolio.guid;
         const name = portfolio.Name ?? portfolio.name ?? "";
+        if (name.trim().toUpperCase() === "TEST") {
+          console.log("[ProjectSight] Skipping TEST portfolio:", pId);
+          return [];
+        }
         const vertical = name.toLowerCase().includes("solar") ? "Solar"
                        : name.toLowerCase().includes("aero")  ? "Aero"
                        : "Structural";
@@ -184,7 +188,13 @@ export async function getProjects() {
         }
       })
     );
-    const flat = results.flat();
+    const seen = new Set();
+    const flat = results.flat().filter(p => {
+      const id = p.ProjectID;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
     console.log(`[ProjectSight] Loaded ${flat.length} live projects`);
     console.log("[ProjectSight] Live projects sample:", flat.slice(0,2).map(p => ({ id: p.id, name: p.name })));
     return flat.length > 0 ? flat : MOCK_PROJECTS;

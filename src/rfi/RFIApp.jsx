@@ -365,8 +365,8 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
             </div>
 
             {tabRfis.length === 0 ? (
-              <p style={{ margin: 0, fontSize: 12, color: C.success }}>
-                ✓ No {detailTab} RFIs for this project.
+              <p style={{ margin: 0, fontSize: 12, color: C.muted }}>
+                No {detailTab} RFIs for this project.
               </p>
             ) : (
               <div style={{ overflowX: "auto", maxHeight: 320, overflowY: "auto" }}>
