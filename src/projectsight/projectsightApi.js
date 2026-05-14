@@ -206,6 +206,7 @@ export async function getRFIs(portfolioId, projectId) {
       console.log('[ProjectSight] Sample RFI keys:', Object.keys(rfis[0]));
       console.log('[ProjectSight] Sample RFI:', JSON.stringify(rfis[0]).slice(0, 600));
     }
+    console.log('[ProjectSight] ALL RFIs for debug:', JSON.stringify(rfis.slice(0,5)));
     return rfis;
   } catch (e) {
     console.warn("[ProjectSight] getRFIs() failed, using mock:", e.message);
