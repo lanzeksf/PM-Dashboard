@@ -95,6 +95,14 @@ const fmtD = d => d
   ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   : "—";
 
+const wfnChipStyle = s => ({
+  "Draft":          { color: C.muted,   bg: C.surface2 },
+  "Open":           { color: C.warning, bg: "rgba(251,191,36,0.12)"  },
+  "KSF PM Review":  { color: C.hint,    bg: C.surface2 },
+  "Submitted to GC":{ color: C.danger,  bg: "rgba(248,113,113,0.12)" },
+  "Closed":         { color: C.success, bg: "rgba(52,211,153,0.12)"  },
+}[s] || { color: C.muted, bg: C.surface2 });
+
 const statusChipStyle = s => {
   const ls = (s || "").toLowerCase();
   if (ls.includes("draft"))                            return { color: C.hint,    bg: C.surface2 };
@@ -384,7 +392,8 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
                     {tabRfis.map(r => {
                       const open = isOpenRFI(r);
                       const band = open ? ageBand(rfiDue(r)) : "nodate";
-                      const sc   = statusChipStyle(rfiStatusVal(r));
+                      const wfn  = r.WorkflowStateName || "—";
+                      const sc   = wfnChipStyle(r.WorkflowStateName);
                       return (
                         <tr key={rfiIdVal(r)} style={{ borderBottom: `1px solid ${C.border}` }}
                           onMouseEnter={e => e.currentTarget.style.background = C.surface2}
@@ -418,17 +427,10 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
                             {daysOpenCalc(rfiSubmitted(r))}d
                           </td>
                           <td style={{ padding: "8px 10px" }}>
-                            {open ? (
-                              <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
-                                background: sc.bg, color: sc.color, whiteSpace: "nowrap" }}>
-                                {rfiStatusVal(r)}
-                              </span>
-                            ) : (
-                              <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
-                                background: "rgba(52,211,153,0.12)", color: C.success, whiteSpace: "nowrap" }}>
-                                Closed
-                              </span>
-                            )}
+                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
+                              background: sc.bg, color: sc.color, whiteSpace: "nowrap" }}>
+                              {wfn}
+                            </span>
                           </td>
                         </tr>
                       );
@@ -503,7 +505,7 @@ function RFITable({ rfis }) {
     applyEq("project",    r => r._project.Name);
     applyEq("detailer",   r => rfiDetailer(r));
     applyEq("discipline", r => rfiDisc(r));
-    applyEq("status",     r => normalizeStatus(r));
+    applyEq("status",     r => r.WorkflowStateName);
     applyEq("importance", r => rfiImp(r) ?? "Normal");
     applyEq("band",       r => ageBand(rfiDue(r)));
 
@@ -524,7 +526,7 @@ function RFITable({ rfis }) {
           const O = { Urgent: 0, High: 1, Normal: 2, Low: 3 };
           return dir * ((O[rfiImp(a) ?? "Normal"] ?? 2) - (O[rfiImp(b) ?? "Normal"] ?? 2));
         }
-        case "status":     return dir * normalizeStatus(a).localeCompare(normalizeStatus(b));
+        case "status":     return dir * (a.WorkflowStateName || "").localeCompare(b.WorkflowStateName || "");
         default: return 0;
       }
     });
@@ -599,7 +601,7 @@ function RFITable({ rfis }) {
           <select value={filter.status} onChange={e => setF("status", e.target.value)}
             style={selSt(filter.status !== "all")}>
             <option value="all">Status: All</option>
-            {["Draft", "Submitted", "Under Review", "Answered", "Closed"].map(o =>
+            {["Draft", "Open", "KSF PM Review", "Submitted to GC", "Closed"].map(o =>
               <option key={o} value={o}>{o}</option>)}
           </select>
 
@@ -683,7 +685,7 @@ function RFITable({ rfis }) {
                 const band = ageBand(rfiDue(r));
                 const imp  = rfiImp(r) ?? "Normal";
                 const ics  = impChipStyle(imp);
-                const sc   = statusChipStyle(normalizeStatus(r));
+                const sc   = wfnChipStyle(r.WorkflowStateName);
                 return (
                   <tr key={`${r._project.ProjectID}-${rfiIdVal(r)}`}
                     style={{ borderBottom: `1px solid ${C.border}` }}
@@ -739,7 +741,7 @@ function RFITable({ rfis }) {
                     <td style={{ padding: "10px 12px" }}>
                       <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
                         background: sc.bg, color: sc.color, whiteSpace: "nowrap" }}>
-                        {normalizeStatus(r)}
+                        {r.WorkflowStateName || "—"}
                       </span>
                     </td>
                   </tr>
