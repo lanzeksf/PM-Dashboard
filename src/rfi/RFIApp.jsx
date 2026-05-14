@@ -86,7 +86,7 @@ function normalizeStatus(r) {
   return rfiStatusVal(r);
 }
 
-const isOpenRFI = r => !r.DateResolved || r.DateResolved.startsWith("0001");
+const isOpenRFI = r => r.WorkflowStateName !== "Closed";
 
 const userCanSeeVertical = (user, vertical) =>
   user.tier === "admin" || user.tier === "sr_pm" || user.department?.label === vertical;
@@ -200,7 +200,11 @@ function StatCard({ label, value, color }) {
 // ── Project health cards ──────────────────────────────────────────────────────
 
 function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject, setExpandedProject }) {
-  const [showAll, setShowAll] = useState(false);
+  const [showAll,   setShowAll]   = useState(false);
+  const [search,    setSearch]    = useState("");
+  const [detailTab, setDetailTab] = useState("open");
+
+  useEffect(() => { setDetailTab("open"); }, [expandedProject]);
 
   if (!projects.length) {
     return (
@@ -210,10 +214,40 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
     );
   }
 
-  const visible = showAll ? projects : projects.slice(0, 12);
+  // Sort worst-first: most overdue → most due-within-7 → most open → healthiest last
+  const scored = projects.map(p => {
+    const pid      = String(p.ProjectID);
+    const open     = (psRFIs[pid] || []).filter(isOpenRFI);
+    const overdue  = open.filter(r => ageBand(rfiDue(r)) === "overdue").length;
+    const soon     = open.filter(r => ["soon3", "soon7"].includes(ageBand(rfiDue(r)))).length;
+    return { p, overdue, soon, openCount: open.length };
+  });
+  scored.sort((a, b) => b.overdue - a.overdue || b.soon - a.soon || b.openCount - a.openCount);
+  const sorted = scored.map(s => s.p);
+
+  // Search filter by name or job number
+  const q        = search.trim().toLowerCase();
+  const filtered = q
+    ? sorted.filter(p =>
+        (p.Name   || "").toLowerCase().includes(q) ||
+        (p.Number || "").toLowerCase().includes(q))
+    : sorted;
+
+  const visible = showAll ? filtered : filtered.slice(0, 12);
 
   return (
     <>
+      {/* Search bar */}
+      <input
+        type="text"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search projects…"
+        style={{ display: "block", width: "100%", marginBottom: 10, padding: "7px 12px",
+          background: C.surface, border: `1px solid ${C.border}`, borderRadius: 7,
+          color: C.text, fontSize: 12, fontFamily: "inherit", boxSizing: "border-box", outline: "none" }}
+      />
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px,1fr))", gap: 12, marginBottom: 12 }}>
         {visible.map(p => {
           const pid      = String(p.ProjectID);
@@ -282,31 +316,58 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
         })}
       </div>
 
-      {!showAll && projects.length > 12 && (
-        <button onClick={() => setShowAll(true)}
+      {filtered.length > 12 && (
+        <button onClick={() => setShowAll(v => !v)}
           style={{ display: "block", width: "100%", padding: "8px", marginBottom: 12,
             background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
             color: C.hint, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-          Show all {projects.length} projects →
+          {showAll ? "Show Less ↑" : `Show All ${filtered.length} Projects ↓`}
         </button>
       )}
 
       {expandedProject && (() => {
-        const p    = projects.find(x => String(x.ProjectID) === expandedProject);
+        const p       = projects.find(x => String(x.ProjectID) === expandedProject);
         if (!p) return null;
-        const rfis = (psRFIs[expandedProject] || []).filter(isOpenRFI);
+        const allRfis = psRFIs[expandedProject] || [];
+        const tabRfis = detailTab === "open"   ? allRfis.filter(isOpenRFI)
+                      : detailTab === "closed" ? allRfis.filter(r => !isOpenRFI(r))
+                      : allRfis;
+        const openCount   = allRfis.filter(isOpenRFI).length;
+        const closedCount = allRfis.filter(r => !isOpenRFI(r)).length;
+
         return (
           <div style={{ background: C.surface, border: `1px solid ${C.accent}44`, borderRadius: 10,
             padding: "16px 20px", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: C.text, flex: 1 }}>{p.Name} — Open RFIs</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.text, flex: 1 }}>{p.Name} — RFIs</span>
               <VertBadge v={p.vertical} />
               <button onClick={() => setExpandedProject(null)}
                 style={{ background: "none", border: "none", color: C.hint, cursor: "pointer",
                   fontSize: 18, lineHeight: 1, padding: "2px 4px" }}>×</button>
             </div>
-            {rfis.length === 0 ? (
-              <p style={{ margin: 0, fontSize: 12, color: C.success }}>✓ No open RFIs for this project.</p>
+
+            {/* Tab filter */}
+            <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
+              {[
+                { id: "open",   label: `Open (${openCount})`         },
+                { id: "closed", label: `Closed (${closedCount})`     },
+                { id: "all",    label: `All (${allRfis.length})`     },
+              ].map(t => (
+                <button key={t.id} onClick={() => setDetailTab(t.id)}
+                  style={{ padding: "4px 12px", borderRadius: 6, fontFamily: "inherit",
+                    border:      `1px solid ${detailTab === t.id ? C.accent + "66" : C.border}`,
+                    background:  detailTab === t.id ? C.accentDim : C.surface2,
+                    color:       detailTab === t.id ? C.accentText : C.muted,
+                    fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {tabRfis.length === 0 ? (
+              <p style={{ margin: 0, fontSize: 12, color: C.success }}>
+                ✓ No {detailTab} RFIs for this project.
+              </p>
             ) : (
               <div style={{ overflowX: "auto", maxHeight: 320, overflowY: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
@@ -320,30 +381,54 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
                     </tr>
                   </thead>
                   <tbody>
-                    {rfis.map(r => {
-                      const band = ageBand(rfiDue(r));
+                    {tabRfis.map(r => {
+                      const open = isOpenRFI(r);
+                      const band = open ? ageBand(rfiDue(r)) : "nodate";
                       const sc   = statusChipStyle(rfiStatusVal(r));
                       return (
                         <tr key={rfiIdVal(r)} style={{ borderBottom: `1px solid ${C.border}` }}
                           onMouseEnter={e => e.currentTarget.style.background = C.surface2}
                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                          <td style={{ padding: "8px 10px" }}><BandDot band={band} /></td>
+                          <td style={{ padding: "8px 10px" }}>
+                            {open
+                              ? <BandDot band={band} />
+                              : <div style={{ width: 8, height: 8, borderRadius: "50%",
+                                  background: C.success, flexShrink: 0 }} />}
+                          </td>
                           <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
                             <a href={psRFILink(p.portfolioId, p.ProjectID, r)} target="_blank" rel="noopener noreferrer"
-                              style={{ color: C.accentText, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
+                              style={{ color: C.accentText, fontWeight: 600, textDecoration: "none" }}
                               onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
                               onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}>
                               {rfiNum(r)}
                             </a>
                           </td>
                           <td style={{ padding: "8px 10px", color: C.text, maxWidth: 240, overflow: "hidden",
-                            textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={rfiSubject(r)}>{rfiSubject(r)}</td>
-                          <td style={{ padding: "8px 10px", color: C.muted, whiteSpace: "nowrap" }}>{fmtD(rfiSubmitted(r))}</td>
-                          <td style={{ padding: "8px 10px", color: BAND_C[band], fontWeight: 600, whiteSpace: "nowrap" }}>{fmtD(rfiDue(r))}</td>
-                          <td style={{ padding: "8px 10px", color: C.muted, whiteSpace: "nowrap" }}>{daysOpenCalc(rfiSubmitted(r))}d</td>
+                            textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={rfiSubject(r)}>
+                            {rfiSubject(r)}
+                          </td>
+                          <td style={{ padding: "8px 10px", color: C.muted, whiteSpace: "nowrap" }}>
+                            {fmtD(rfiSubmitted(r))}
+                          </td>
+                          <td style={{ padding: "8px 10px", whiteSpace: "nowrap",
+                            color: open ? BAND_C[band] : C.hint, fontWeight: open ? 600 : 400 }}>
+                            {fmtD(rfiDue(r))}
+                          </td>
+                          <td style={{ padding: "8px 10px", color: C.muted, whiteSpace: "nowrap" }}>
+                            {daysOpenCalc(rfiSubmitted(r))}d
+                          </td>
                           <td style={{ padding: "8px 10px" }}>
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
-                              background: sc.bg, color: sc.color, whiteSpace: "nowrap" }}>{rfiStatusVal(r)}</span>
+                            {open ? (
+                              <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
+                                background: sc.bg, color: sc.color, whiteSpace: "nowrap" }}>
+                                {rfiStatusVal(r)}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
+                                background: "rgba(52,211,153,0.12)", color: C.success, whiteSpace: "nowrap" }}>
+                                Closed
+                              </span>
+                            )}
                           </td>
                         </tr>
                       );
