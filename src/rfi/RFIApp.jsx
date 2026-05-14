@@ -40,16 +40,22 @@ Respond ONLY in this JSON format, no preamble:
 
 // ── Field accessors (handles API field name variations) ───────────────────────
 
-const rfiSubject   = r => r.title ?? r.subject ?? r.description ?? "(No subject)";
-const rfiStatusVal = r => r.status ?? r.statusName ?? "Unknown";
-const rfiSubmitted = r => r.submittedDate ?? r.dateSubmitted ?? r.createdDate ?? r.createDate ?? null;
-const rfiDue       = r => r.dueDate ?? r.dateRequired ?? r.responseDueDate ?? null;
+const rfiSubject   = r => r.Subject ?? r.title ?? r.subject ?? r.description ?? "(No subject)";
+const rfiStatusVal = r => r.Status ?? r.status ?? r.statusName ?? "Unknown";
+const rfiSubmitted = r => {
+  const d = r.DateCreated ?? r.submittedDate ?? r.dateSubmitted ?? r.createdDate ?? null;
+  return (d && !String(d).startsWith("0001")) ? d : null;
+};
+const rfiDue = r => {
+  const d = r.DateDue ?? r.dueDate ?? r.dateRequired ?? r.responseDueDate ?? null;
+  return (d && !String(d).startsWith("0001")) ? d : null;
+};
 const rfiNum       = r => r.Number ?? r.number ?? r.rfiNumber ?? r.sequenceNumber ?? r.id ?? "—";
-const rfiIdVal     = r => String(r.id ?? r.rfiId ?? r.Number ?? r.number ?? "");
+const rfiIdVal     = r => String(r.RFIID ?? r.id ?? r.rfiId ?? r.Number ?? r.number ?? "");
 const rfiJobNum    = r => r.Number ?? r.jobNumber ?? r.sequenceNumber ?? "—";
-const rfiDetailer  = r => r.assignedCompany ?? r.submittedBy ?? r.createdBy ?? "Unknown";
-const rfiImp       = r => r.importance ?? r.priority ?? r.urgency ?? null;
-const rfiDisc      = r => r.discipline ?? r._project?.vertical ?? "Unknown";
+const rfiDetailer  = r => r.AuthorContactName ?? r.assignedCompany ?? r.submittedBy ?? r.createdBy ?? "Unknown";
+const rfiImp       = r => r.Importance ?? r.importance ?? r.priority ?? r.urgency ?? null;
+const rfiDisc      = r => r.Discipline ?? r.discipline ?? r._project?.vertical ?? "Unknown";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -80,10 +86,7 @@ function normalizeStatus(r) {
   return rfiStatusVal(r);
 }
 
-const isOpenRFI = r => {
-  const s = rfiStatusVal(r).toLowerCase();
-  return !s.includes("close") && !s.includes("void");
-};
+const isOpenRFI = r => !r.DateResolved || r.DateResolved.startsWith("0001");
 
 const userCanSeeVertical = (user, vertical) =>
   user.tier === "admin" || user.tier === "sr_pm" || user.department?.label === vertical;
