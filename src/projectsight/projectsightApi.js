@@ -180,6 +180,10 @@ export async function getProjects() {
           const allPages = [];
           while (true) {
             const projData = await get(`/${pId}/projects?$top=${PAGE_SIZE}&$skip=${skip}`);
+            if (skip === 0) {
+              console.log('[ProjectSight] First page raw response keys:', Object.keys(projData));
+              console.log('[ProjectSight] First page full response (truncated):', JSON.stringify(projData).slice(0, 500));
+            }
             const page = Array.isArray(projData) ? projData : projData?.projects ?? [];
             allPages.push(...page);
             if (page.length < PAGE_SIZE) break;
