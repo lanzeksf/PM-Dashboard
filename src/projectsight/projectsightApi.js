@@ -197,6 +197,8 @@ export async function getProjects() {
     });
     console.log(`[ProjectSight] Loaded ${flat.length} live projects`);
     console.log("[ProjectSight] Live projects sample:", flat.slice(0,2).map(p => ({ id: p.id, name: p.name })));
+    console.log('[ProjectSight] Total projects loaded:', flat.length);
+    flat.forEach(p => console.log('[ProjectSight] Project:', p.ProjectID, p.Number, p.Name));
     return flat.length > 0 ? flat : MOCK_PROJECTS;
   } catch (e) {
     console.error("[ProjectSight] getProjects() FAILED:", e.message, e.stack);

@@ -88,9 +88,6 @@ function normalizeStatus(r) {
 
 const isOpenRFI = r => r.WorkflowStateName !== "Closed";
 
-const userCanSeeVertical = (user, vertical) =>
-  user.tier === "admin" || user.tier === "sr_pm" || user.department?.label === vertical;
-
 const fmtD = d => d
   ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   : "—";
@@ -1014,7 +1011,7 @@ export default function RFIApp({ user }) {
   // Load RFIs + Issues per visible project as projects arrive
   useEffect(() => {
     if (!psProjects.length) return;
-    const visible = psProjects.filter(p => userCanSeeVertical(user, p.vertical));
+    const visible = psProjects;
     visible.forEach(p => {
       const pid = String(p.ProjectID);
       setRfiLoading(prev => ({ ...prev, [pid]: true }));
@@ -1036,8 +1033,8 @@ export default function RFIApp({ user }) {
 
   // Derived: visible projects for this user
   const visibleProjects = useMemo(
-    () => psProjects.filter(p => userCanSeeVertical(user, p.vertical)),
-    [psProjects, user]
+    () => psProjects,
+    [psProjects]
   );
 
   // Derived: all RFIs across visible projects, decorated with _project
