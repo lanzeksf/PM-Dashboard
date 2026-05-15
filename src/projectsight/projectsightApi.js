@@ -175,13 +175,22 @@ export async function getProjects() {
                        : "Structural";
         try {
           console.log("[ProjectSight] Fetching projects for portfolio:", pId, name);
-          const projData = await get(`/${pId}/projects`);
-          const projects = Array.isArray(projData) ? projData : projData?.projects ?? [];
-          if (projects.length > 0) {
-            console.log("[ProjectSight] Sample project keys:", Object.keys(projects[0]));
-            console.log("[ProjectSight] Sample project:", JSON.stringify(projects[0]).slice(0, 400));
+          const PAGE_SIZE = 100;
+          let skip = 0;
+          const allPages = [];
+          while (true) {
+            const projData = await get(`/${pId}/projects?$top=${PAGE_SIZE}&$skip=${skip}`);
+            const page = Array.isArray(projData) ? projData : projData?.projects ?? [];
+            allPages.push(...page);
+            if (page.length < PAGE_SIZE) break;
+            skip += PAGE_SIZE;
+            console.log(`[ProjectSight] Portfolio ${pId}: fetched page, skip=${skip}, total so far ${allPages.length}`);
           }
-          return projects.map(p => ({ ...p, portfolioId: pId, vertical }));
+          if (allPages.length > 0) {
+            console.log("[ProjectSight] Sample project keys:", Object.keys(allPages[0]));
+            console.log("[ProjectSight] Sample project:", JSON.stringify(allPages[0]).slice(0, 400));
+          }
+          return allPages.map(p => ({ ...p, portfolioId: pId, vertical }));
         } catch (e) {
           console.warn(`[ProjectSight] Could not load projects for portfolio ${pId}:`, e.message);
           return [];
@@ -197,7 +206,7 @@ export async function getProjects() {
     });
     console.log(`[ProjectSight] Loaded ${flat.length} live projects`);
     console.log("[ProjectSight] Live projects sample:", flat.slice(0,2).map(p => ({ id: p.id, name: p.name })));
-    console.log('[ProjectSight] Total projects loaded:', flat.length);
+    console.log('[ProjectSight] Total projects after pagination:', flat.length);
     flat.forEach(p => console.log('[ProjectSight] Project:', p.ProjectID, p.Number, p.Name));
     return flat.length > 0 ? flat : MOCK_PROJECTS;
   } catch (e) {
