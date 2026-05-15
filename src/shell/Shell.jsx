@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { USERS_LIST, ROLE_MODULES, C } from "../core/utils.jsx";
 import DashboardApp from "../dashboard/DashboardApp.jsx";
 import RFIApp from "../rfi/RFIApp.jsx";
+import ContractsApp from "../contracts/ContractsApp.jsx";
 
 export const SHELL_COLORS = { bg: "#05080b" };
 const SHELL_ONLY_TABS = new Set(["queue", "standards"]);
@@ -12,6 +13,7 @@ const ALL_NAV_ITEMS = [
   { id: "kernbot",       label: "Kern Bot" },
   { id: "owner",         label: "Owner Pending" },
   { id: "scope",         label: "Scope Tracker" },
+  { id: "contracts",     label: "Contracts" },
   { id: "changes",       label: "Change Orders" },
   { id: "detailing",     label: "Detailing" },
   { id: "rfi",           label: "RFI Log" },
@@ -36,6 +38,7 @@ const NAV_ICONS = {
   scope:         () => <Icon><circle cx="12" cy="12" r="6"/><path d="M12 6v12M6 12h12"/></Icon>,
   changes:       () => <Icon><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></Icon>,
   detailing:     () => <Icon><circle cx="12" cy="12" r="2"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></Icon>,
+  contracts:     () => <Icon><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></Icon>,
   rfi:           () => <Icon><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></Icon>,
   fab:           () => <Icon><line x1="4" y1="5" x2="20" y2="5"/><line x1="4" y1="19" x2="20" y2="19"/><line x1="12" y1="5" x2="12" y2="19"/></Icon>,
   field:         () => <Icon><path d="M2 18a1 1 0 001 1h18a1 1 0 001-1v-1H2v1z"/><path d="M12 2a8 8 0 018 8v6H4V10a8 8 0 018-8z"/><line x1="7" y1="17" x2="7" y2="12"/><line x1="17" y1="17" x2="17" y2="12"/></Icon>,
@@ -165,6 +168,7 @@ export default function KSFCommandCenter({ KernBotApp }) {
         {tab === "kernbot"       && <KernBotApp preloadUser={user}/>}
         {tab === "owner"         && <ComingSoon label="Owner Pending"/>}
         {tab === "scope"         && <ComingSoon label="Scope Tracker"/>}
+        {tab === "contracts"     && <ContractsApp user={user}/>}
         {tab === "changes"       && <ComingSoon label="Change Orders"/>}
         {tab === "detailing"     && <ComingSoon label="Detailing"/>}
         {tab === "rfi"           && <RFIApp user={user}/>}
