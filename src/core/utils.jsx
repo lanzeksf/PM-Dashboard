@@ -94,7 +94,7 @@ export const ROLE_MODULES = {
     "kernbot", "dashboard", "fab", "standards", "contracts",
   ],
   field: [
-    "kernbot", "dashboard", "owner", "scope", "changes", "fab", "field", "standards", "contracts",
+    "kernbot", "dashboard", "owner", "scope", "fab", "field", "standards", "contracts",
   ],
 };
 

@@ -3,6 +3,7 @@ import { USERS_LIST, ROLE_MODULES, C } from "../core/utils.jsx";
 import DashboardApp from "../dashboard/DashboardApp.jsx";
 import RFIApp from "../rfi/RFIApp.jsx";
 import ContractsApp from "../contracts/ContractsApp.jsx";
+import ChangeOrdersApp from "../changeorders/ChangeOrdersApp.jsx";
 
 export const SHELL_COLORS = { bg: "#05080b" };
 const SHELL_ONLY_TABS = new Set(["queue", "standards"]);
@@ -169,7 +170,7 @@ export default function KSFCommandCenter({ KernBotApp }) {
         {tab === "owner"         && <ComingSoon label="Owner Pending"/>}
         {tab === "scope"         && <ComingSoon label="Scope Tracker"/>}
         {tab === "contracts"     && <ContractsApp user={user}/>}
-        {tab === "changes"       && <ComingSoon label="Change Orders"/>}
+        {tab === "changes"       && <ChangeOrdersApp user={user}/>}
         {tab === "detailing"     && <ComingSoon label="Detailing"/>}
         {tab === "rfi"           && <RFIApp user={user}/>}
         {tab === "fab"           && <ComingSoon label="Fabrication & Shipping"/>}
