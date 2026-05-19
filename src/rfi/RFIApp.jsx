@@ -2,19 +2,18 @@ import React, { useState, useEffect, useMemo } from "react";
 import { C } from "../core/utils.jsx";
 import { getProjects, getRFIs, getIssues } from "../projectsight/projectsightApi.js";
 
-// ── KSF team → Trimble display name mapping ───────────────────────────────────
-// null = sees all projects; array = filter to projects where PM or RFI author matches
+// ── KSF team → Territory filter mapping ──────────────────────────────────────
+// null = sees all projects; string = filter to projects where Territory matches
 
-// TODO: Re-enable role filtering once ProjectManager fields are populated in ProjectSight.
-// const KSF_TEAM = {
-//   loren:   null,
-//   lanze:   null,
-//   jacob:   null,
-//   tony:    ['Antonio Sanabria'],
-//   luis:    ['Jose Arrezola'],
-//   jillian: ['Jillian Hawkins'],
-//   adam:    ['Adam Kneale'],
-// };
+const TERRITORY_MAP = {
+  loren:   null,
+  lanze:   null,
+  jacob:   null,
+  tony:    'Tony',
+  luis:    null,
+  jillian: null,
+  adam:    'Adam',
+};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -1046,8 +1045,14 @@ export default function RFIApp({ user }) {
   }, [psProjects]);
 
   // Derived: visible projects for this user
-  // TODO: Re-enable role filtering once ProjectManager fields are populated in ProjectSight.
-  const visibleProjects = useMemo(() => psProjects, [psProjects]);
+  const visibleProjects = useMemo(() => {
+    const territory = TERRITORY_MAP[user?.id];
+    if (territory === null || territory === undefined) return psProjects;
+    return psProjects.filter(p => {
+      const t = (p.Territory ?? "").trim();
+      return t === territory;
+    });
+  }, [psProjects, user]);
 
   // Derived: all RFIs across visible projects, decorated with _project
   const allRFIs = useMemo(() =>
