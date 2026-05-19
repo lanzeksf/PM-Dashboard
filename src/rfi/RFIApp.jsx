@@ -278,6 +278,8 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
           const oldest   = openRfis.reduce((m, r) => Math.max(m, daysOpenCalc(rfiSubmitted(r))), 0);
           const isExp    = expandedProject === pid;
           const accentC  = overdue > 0 ? BAND_C.overdue : (openRfis.length > 0 ? C.border : C.success);
+          const isCloseOut = (p.Status ?? "").trim() === "Close-out";
+          if (isCloseOut && openRfis.length === 0) return null;
 
           return (
             <div key={pid}
@@ -292,6 +294,13 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.Name}</span>
                 <VertBadge v={p.vertical} />
               </div>
+              {isCloseOut && openRfis.length > 0 && (
+                <div style={{ background: `${C.warning}1a`, border: `1px solid ${C.warning}44`,
+                  borderRadius: 6, padding: "6px 10px", marginBottom: 8,
+                  fontSize: 11, fontWeight: 600, color: C.warning }}>
+                  ⚠️ Close-out — Open RFIs need cleanup
+                </div>
+              )}
               {loading ? (
                 <Spinner />
               ) : error ? (
