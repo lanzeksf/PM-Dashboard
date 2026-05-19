@@ -5,15 +5,16 @@ import { getProjects, getRFIs, getIssues } from "../projectsight/projectsightApi
 // ── KSF team → Trimble display name mapping ───────────────────────────────────
 // null = sees all projects; array = filter to projects where PM or RFI author matches
 
-const KSF_TEAM = {
-  loren:   null,
-  lanze:   null,
-  jacob:   null,
-  tony:    ['Antonio Sanabria'],
-  luis:    ['Jose Arrezola'],
-  jillian: ['Jillian Hawkins'],
-  adam:    ['Adam Kneale'],
-};
+// TODO: Re-enable role filtering once ProjectManager fields are populated in ProjectSight.
+// const KSF_TEAM = {
+//   loren:   null,
+//   lanze:   null,
+//   jacob:   null,
+//   tony:    ['Antonio Sanabria'],
+//   luis:    ['Jose Arrezola'],
+//   jillian: ['Jillian Hawkins'],
+//   adam:    ['Adam Kneale'],
+// };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -1045,17 +1046,8 @@ export default function RFIApp({ user }) {
   }, [psProjects]);
 
   // Derived: visible projects for this user
-  const visibleProjects = useMemo(() => {
-    const names = KSF_TEAM[user?.id];
-    if (names === undefined || names === null) return psProjects;
-    return psProjects.filter(p => {
-      const pm = (p.ProjectManager ?? p.projectManager ?? "").trim();
-      if (names.some(n => pm.toLowerCase().includes(n.toLowerCase()))) return true;
-      const pid = String(p.ProjectID);
-      const rfis = psRFIs[pid] || [];
-      return rfis.some(r => names.some(n => (r.AuthorContactName ?? "").toLowerCase().includes(n.toLowerCase())));
-    });
-  }, [psProjects, psRFIs, user]);
+  // TODO: Re-enable role filtering once ProjectManager fields are populated in ProjectSight.
+  const visibleProjects = useMemo(() => psProjects, [psProjects]);
 
   // Derived: all RFIs across visible projects, decorated with _project
   const allRFIs = useMemo(() =>
