@@ -179,7 +179,9 @@ export async function getProjects() {
           let skip = 0;
           const allPages = [];
           while (true) {
-            const projData = await get(`/${pId}/projects?$top=${PAGE_SIZE}&$skip=${skip}`);
+            const url = `/${pId}/projects?$top=${PAGE_SIZE}&$skip=${skip}`;
+            console.log('[ProjectSight] Fetching URL:', `${BASE}${url}`);
+            const projData = await get(url);
             if (skip === 0) {
               console.log('[ProjectSight] First page raw response keys:', Object.keys(projData));
               console.log('[ProjectSight] First page full response (truncated):', JSON.stringify(projData).slice(0, 500));
@@ -187,6 +189,9 @@ export async function getProjects() {
               console.log('[ProjectSight] Pagination metadata:', meta);
             }
             const page = Array.isArray(projData) ? projData : projData?.projects ?? [];
+            console.log('[ProjectSight] RAW count from portfolio', name, ':', page.length);
+            console.log('[ProjectSight] First 3 raw projects:', JSON.stringify(page.slice(0,3)));
+            console.log('[ProjectSight] Last 3 raw projects:', JSON.stringify(page.slice(-3)));
             console.log(`[ProjectSight] Portfolio ${pId} page at skip=${skip}: ${page.length} projects`);
             allPages.push(...page);
             if (page.length < PAGE_SIZE) break;
