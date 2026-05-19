@@ -162,20 +162,12 @@ export async function getProjects() {
                        : name.toLowerCase().includes("aero")  ? "Aero"
                        : "Structural";
         try {
-          const PAGE_SIZE = 200;
-          let skip = 0;
-          const allPages = [];
-          while (true) {
-            const projData = await get(`/${pId}/projects?$top=${PAGE_SIZE}&$skip=${skip}`);
-            const page = Array.isArray(projData) ? projData : projData?.projects ?? [];
-            console.log('[KSF COUNT]', name, 'raw project count:', page.length);
-            allPages.push(...page);
-            if (page.length < PAGE_SIZE) break;
-            skip += PAGE_SIZE;
-          }
-          return allPages.map(p => ({ ...p, portfolioId: pId, vertical }));
+          const projData = await get(`/${pId}/projects`);
+          const projects = Array.isArray(projData) ? projData : projData?.projects ?? [];
+          console.log('[KSF COUNT]', name, 'raw project count:', projects.length);
+          return projects.map(p => ({ ...p, portfolioId: pId, vertical }));
         } catch (e) {
-          console.warn(`[ProjectSight] Could not load projects for portfolio ${pId}:`, e.message);
+          console.warn(`[ProjectSight] Could not load projects for portfolio ${pId} (${name}):`, e.message);
           return [];
         }
       })
