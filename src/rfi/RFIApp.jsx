@@ -235,7 +235,7 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
 
   // Sort worst-first: most overdue → most due-within-7 → most open → healthiest last
   const scored = projects.map(p => {
-    const pid      = String(p.ProjectID);
+    const pid      = `${p.portfolioId}-${p.ProjectID}`;
     const open     = (psRFIs[pid] || []).filter(isOpenRFI);
     const overdue  = open.filter(r => ageBand(rfiDue(r)) === "overdue").length;
     const soon     = open.filter(r => ["soon3", "soon7"].includes(ageBand(rfiDue(r)))).length;
@@ -269,7 +269,7 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px,1fr))", gap: 12, marginBottom: 12 }}>
         {visible.map(p => {
-          const pid      = String(p.ProjectID);
+          const pid      = `${p.portfolioId}-${p.ProjectID}`;
           const loading  = rfiLoading[pid];
           const error    = rfiErrors[pid];
           const rfis     = psRFIs[pid] || [];
@@ -345,7 +345,7 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
       )}
 
       {expandedProject && (() => {
-        const p       = projects.find(x => String(x.ProjectID) === expandedProject);
+        const p       = projects.find(x => `${x.portfolioId}-${x.ProjectID}` === expandedProject);
         if (!p) return null;
         const allRfis = psRFIs[expandedProject] || [];
         const tabRfis = detailTab === "open"   ? allRfis.filter(isOpenRFI)
@@ -698,7 +698,7 @@ function RFITable({ rfis }) {
                 const ics  = impChipStyle(imp);
                 const sc   = wfnChipStyle(r.WorkflowStateName);
                 return (
-                  <tr key={`${r._project.ProjectID}-${rfiIdVal(r)}`}
+                  <tr key={`${r._project.portfolioId}-${r._project.ProjectID}-${rfiIdVal(r)}`}
                     style={{ borderBottom: `1px solid ${C.border}` }}
                     onMouseEnter={e => e.currentTarget.style.background = C.surface2}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -1027,7 +1027,7 @@ export default function RFIApp({ user }) {
     if (!psProjects.length) return;
     const visible = psProjects;
     visible.forEach(p => {
-      const pid = String(p.ProjectID);
+      const pid = `${p.portfolioId}-${p.ProjectID}`;
       setRfiLoading(prev => ({ ...prev, [pid]: true }));
       console.log("[RFI] Fetching RFIs for project:", p.ProjectID, p.Name);
       getRFIs(p.portfolioId, p.ProjectID)
@@ -1052,7 +1052,7 @@ export default function RFIApp({ user }) {
   // Derived: all RFIs across visible projects, decorated with _project
   const allRFIs = useMemo(() =>
     visibleProjects.flatMap(p =>
-      (psRFIs[String(p.ProjectID)] || []).map(r => ({ ...r, _project: p }))
+      (psRFIs[`${p.portfolioId}-${p.ProjectID}`] || []).map(r => ({ ...r, _project: p }))
     ),
     [visibleProjects, psRFIs]
   );
@@ -1065,7 +1065,7 @@ export default function RFIApp({ user }) {
 
   const allIssues = useMemo(() =>
     visibleProjects.flatMap(p =>
-      (psIssues[String(p.ProjectID)] || []).map(i => ({ ...i, _project: p }))
+      (psIssues[`${p.portfolioId}-${p.ProjectID}`] || []).map(i => ({ ...i, _project: p }))
     ).filter(i => !resolvedSet.has(i.id)),
     [visibleProjects, psIssues, resolvedSet]
   );

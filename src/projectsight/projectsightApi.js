@@ -173,19 +173,8 @@ export async function getProjects() {
       })
     );
     const combined = results.flat();
-    console.log('[KSF DEDUP] Before dedup:', combined.length);
-    const seen = new Set();
-    const deduped = combined.filter(p => {
-      if (seen.has(p.ProjectID)) {
-        console.log('[KSF DEDUP] Dropping duplicate ProjectID:', p.ProjectID, p.Name);
-        return false;
-      }
-      seen.add(p.ProjectID);
-      return true;
-    });
-    console.log('[KSF DEDUP] After dedup:', deduped.length);
-    console.log('[KSF TOTAL] Final combined count after dedup:', deduped.length);
-    return deduped.length > 0 ? deduped : MOCK_PROJECTS;
+    console.log('[KSF TOTAL] Total projects across all portfolios:', combined.length);
+    return combined.length > 0 ? combined : MOCK_PROJECTS;
   } catch (e) {
     console.error("[ProjectSight] getProjects() FAILED:", e.message, e.stack);
     return MOCK_PROJECTS;
