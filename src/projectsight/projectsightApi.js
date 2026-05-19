@@ -123,11 +123,8 @@ function buildHeaders(token) {
 async function getAccountId() {
   if (_accountId) return _accountId;
   const data = await get("/accounts");
-  console.log("[ProjectSight] /accounts raw response:", JSON.stringify(data).slice(0, 300));
   const accounts = Array.isArray(data) ? data : data?.accounts ?? [];
-  console.log("[ProjectSight] Accounts parsed:", accounts.length, accounts[0]);
   _accountId = accounts[0]?.AccountID ?? accounts[0]?.id ?? accounts[0]?.accountId ?? accounts[0]?.guid;
-  console.log("[ProjectSight] Account ID resolved:", _accountId);
   if (!_accountId) throw new Error("No account ID returned from /accounts");
   return _accountId;
 }
@@ -135,7 +132,6 @@ async function getAccountId() {
 // ── HTTP helper ───────────────────────────────────────────────────────────────
 
 async function get(path) {
-  console.log("Fetching:", `${BASE}${path}`);
   let token = await getToken();
   let res   = await fetch(`${BASE}${path}`, { method: "GET", headers: buildHeaders(token) });
   if (res.status === 401 || res.status === 403) {
@@ -152,56 +148,30 @@ async function get(path) {
 
 // Returns all projects across all portfolios, each with a `vertical` field.
 export async function getProjects() {
-  console.log("[ProjectSight] getProjects() called — starting live fetch");
-  console.log("[ProjectSight] Fetching live projects...");
   try {
     const accountId = await getAccountId();
-    console.log("[ProjectSight] Account ID:", accountId);
     const portData = await get(`/accounts/${accountId}/portfolios`);
-    console.log("[ProjectSight] Raw portfolios:", JSON.stringify(portData).slice(0, 400));
     const portfolios = Array.isArray(portData) ? portData : portData?.portfolios ?? [];
-    console.log("[ProjectSight] Portfolios parsed:", portfolios.length);
 
     const results = await Promise.all(
       portfolios.map(async (portfolio) => {
         const pId = portfolio.PortfolioID ?? portfolio.portfolioGuid ?? portfolio.id ?? portfolio.guid;
         const name = portfolio.Name ?? portfolio.name ?? "";
-        if (name.trim().toUpperCase() === "TEST") {
-          console.log("[ProjectSight] Skipping TEST portfolio:", pId);
-          return [];
-        }
+        if (name.trim().toUpperCase() === "TEST") return [];
         const vertical = name.toLowerCase().includes("solar") ? "Solar"
                        : name.toLowerCase().includes("aero")  ? "Aero"
                        : "Structural";
         try {
-          console.log("[ProjectSight] Fetching projects for portfolio:", pId, name);
           const PAGE_SIZE = 200;
           let skip = 0;
           const allPages = [];
           while (true) {
-            const url = `/${pId}/projects?$top=${PAGE_SIZE}&$skip=${skip}`;
-            console.log('[ProjectSight] Fetching URL:', `${BASE}${url}`);
-            const projData = await get(url);
-            if (skip === 0) {
-              console.log('[ProjectSight] First page raw response keys:', Object.keys(projData));
-              console.log('[ProjectSight] First page full response (truncated):', JSON.stringify(projData).slice(0, 500));
-              const meta = { TotalCount: projData.TotalCount, Count: projData.Count, HasMore: projData.HasMore, NextPage: projData.NextPage };
-              console.log('[ProjectSight] Pagination metadata:', meta);
-            }
+            const projData = await get(`/${pId}/projects?$top=${PAGE_SIZE}&$skip=${skip}`);
             const page = Array.isArray(projData) ? projData : projData?.projects ?? [];
-            console.log('[ProjectSight] RAW count from portfolio', name, ':', page.length);
-            console.log('[ProjectSight] First 3 raw projects:', JSON.stringify(page.slice(0,3)));
-            console.log('[ProjectSight] Last 3 raw projects:', JSON.stringify(page.slice(-3)));
-            console.log(`[ProjectSight] Portfolio ${pId} page at skip=${skip}: ${page.length} projects`);
+            console.log('[KSF COUNT]', name, 'raw project count:', page.length);
             allPages.push(...page);
             if (page.length < PAGE_SIZE) break;
             skip += PAGE_SIZE;
-            console.log(`[ProjectSight] Portfolio ${pId}: fetched page, skip=${skip}, total so far ${allPages.length}`);
-          }
-          console.log(`[ProjectSight] Portfolio ${pId} total before dedup: ${allPages.length}`);
-          if (allPages.length > 0) {
-            console.log("[ProjectSight] Sample project keys:", Object.keys(allPages[0]));
-            console.log("[ProjectSight] Sample project:", JSON.stringify(allPages[0]).slice(0, 400));
           }
           return allPages.map(p => ({ ...p, portfolioId: pId, vertical }));
         } catch (e) {
@@ -210,43 +180,26 @@ export async function getProjects() {
         }
       })
     );
-    const preDedup = results.flat();
-    console.log('[ProjectSight] Total pre-dedup:', preDedup.length);
     const seen = new Set();
-    const skipped = [];
-    const flat = preDedup.filter(p => {
-      if (!p.ProjectID) { skipped.push(p.Name ?? '(no name)'); return false; }
+    const flat = results.flat().filter(p => {
+      if (!p.ProjectID) return false;
       if (seen.has(p.ProjectID)) return false;
       seen.add(p.ProjectID);
       return true;
     });
-    if (skipped.length) console.log('[ProjectSight] Skipped (no ProjectID):', skipped);
-    console.log('[ProjectSight] Total post-dedup:', flat.length);
-    console.log(`[ProjectSight] Loaded ${flat.length} live projects`);
-    console.log("[ProjectSight] Live projects sample:", flat.slice(0,2).map(p => ({ id: p.id, name: p.name })));
-    console.log('[ProjectSight] Total projects after pagination:', flat.length);
-    flat.forEach(p => console.log('[ProjectSight] Project:', p.ProjectID, p.Number, p.Name));
+    console.log('[KSF TOTAL] Final combined count after dedup:', flat.length);
     return flat.length > 0 ? flat : MOCK_PROJECTS;
   } catch (e) {
     console.error("[ProjectSight] getProjects() FAILED:", e.message, e.stack);
-    console.log("[ProjectSight] Falling back to MOCK_PROJECTS");
     return MOCK_PROJECTS;
   }
 }
 
 // Returns RFIs for a specific project.
 export async function getRFIs(portfolioId, projectId) {
-  console.log("[ProjectSight] Fetching RFIs:", portfolioId, projectId);
   try {
     const data = await get(`/${portfolioId}/${projectId}/rfis`);
-    const rfis = Array.isArray(data) ? data : data?.rfis ?? [];
-    console.log(`[ProjectSight] Loaded ${rfis.length} RFIs for project ${projectId}`);
-    if (rfis.length > 0) {
-      console.log('[ProjectSight] Sample RFI keys:', Object.keys(rfis[0]));
-      console.log('[ProjectSight] Sample RFI:', JSON.stringify(rfis[0]).slice(0, 600));
-    }
-    console.log('[ProjectSight] ALL RFIs for debug:', JSON.stringify(rfis.slice(0,5)));
-    return rfis;
+    return Array.isArray(data) ? data : data?.rfis ?? [];
   } catch (e) {
     console.warn("[ProjectSight] getRFIs() failed, using mock:", e.message);
     return MOCK_RFIS[projectId] ?? [];
