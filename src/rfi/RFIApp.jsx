@@ -2,6 +2,19 @@ import React, { useState, useEffect, useMemo } from "react";
 import { C } from "../core/utils.jsx";
 import { getProjects, getRFIs, getIssues } from "../projectsight/projectsightApi.js";
 
+// ── KSF team → Trimble display name mapping ───────────────────────────────────
+// null = sees all projects; array = filter to projects where PM or RFI author matches
+
+const KSF_TEAM = {
+  loren:   null,
+  lanze:   null,
+  jacob:   null,
+  tony:    ['Antonio Sanabria'],
+  luis:    ['Jose Arrezola'],
+  jillian: ['Jillian Hawkins'],
+  adam:    ['Adam Kneale'],
+};
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const BAND_C = {
@@ -1032,10 +1045,17 @@ export default function RFIApp({ user }) {
   }, [psProjects]);
 
   // Derived: visible projects for this user
-  const visibleProjects = useMemo(
-    () => psProjects,
-    [psProjects]
-  );
+  const visibleProjects = useMemo(() => {
+    const names = KSF_TEAM[user?.id];
+    if (names === undefined || names === null) return psProjects;
+    return psProjects.filter(p => {
+      const pm = (p.ProjectManager ?? p.projectManager ?? "").trim();
+      if (names.some(n => pm.toLowerCase().includes(n.toLowerCase()))) return true;
+      const pid = String(p.ProjectID);
+      const rfis = psRFIs[pid] || [];
+      return rfis.some(r => names.some(n => (r.AuthorContactName ?? "").toLowerCase().includes(n.toLowerCase())));
+    });
+  }, [psProjects, psRFIs, user]);
 
   // Derived: all RFIs across visible projects, decorated with _project
   const allRFIs = useMemo(() =>

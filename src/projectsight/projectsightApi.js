@@ -175,7 +175,7 @@ export async function getProjects() {
                        : "Structural";
         try {
           console.log("[ProjectSight] Fetching projects for portfolio:", pId, name);
-          const PAGE_SIZE = 100;
+          const PAGE_SIZE = 200;
           let skip = 0;
           const allPages = [];
           while (true) {
@@ -183,13 +183,17 @@ export async function getProjects() {
             if (skip === 0) {
               console.log('[ProjectSight] First page raw response keys:', Object.keys(projData));
               console.log('[ProjectSight] First page full response (truncated):', JSON.stringify(projData).slice(0, 500));
+              const meta = { TotalCount: projData.TotalCount, Count: projData.Count, HasMore: projData.HasMore, NextPage: projData.NextPage };
+              console.log('[ProjectSight] Pagination metadata:', meta);
             }
             const page = Array.isArray(projData) ? projData : projData?.projects ?? [];
+            console.log(`[ProjectSight] Portfolio ${pId} page at skip=${skip}: ${page.length} projects`);
             allPages.push(...page);
             if (page.length < PAGE_SIZE) break;
             skip += PAGE_SIZE;
             console.log(`[ProjectSight] Portfolio ${pId}: fetched page, skip=${skip}, total so far ${allPages.length}`);
           }
+          console.log(`[ProjectSight] Portfolio ${pId} total before dedup: ${allPages.length}`);
           if (allPages.length > 0) {
             console.log("[ProjectSight] Sample project keys:", Object.keys(allPages[0]));
             console.log("[ProjectSight] Sample project:", JSON.stringify(allPages[0]).slice(0, 400));
@@ -201,13 +205,18 @@ export async function getProjects() {
         }
       })
     );
+    const preDedup = results.flat();
+    console.log('[ProjectSight] Total pre-dedup:', preDedup.length);
     const seen = new Set();
-    const flat = results.flat().filter(p => {
-      const id = p.ProjectID;
-      if (seen.has(id)) return false;
-      seen.add(id);
+    const skipped = [];
+    const flat = preDedup.filter(p => {
+      if (!p.ProjectID) { skipped.push(p.Name ?? '(no name)'); return false; }
+      if (seen.has(p.ProjectID)) return false;
+      seen.add(p.ProjectID);
       return true;
     });
+    if (skipped.length) console.log('[ProjectSight] Skipped (no ProjectID):', skipped);
+    console.log('[ProjectSight] Total post-dedup:', flat.length);
     console.log(`[ProjectSight] Loaded ${flat.length} live projects`);
     console.log("[ProjectSight] Live projects sample:", flat.slice(0,2).map(p => ({ id: p.id, name: p.name })));
     console.log('[ProjectSight] Total projects after pagination:', flat.length);
