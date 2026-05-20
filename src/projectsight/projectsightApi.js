@@ -51,36 +51,6 @@ const MOCK_RFIS = {
   ],
 };
 
-const MOCK_ISSUES = [
-  {
-    id: "mock-1", _isMock: true,
-    title: "Connection conflict — grid B4 HSS-to-W-beam",
-    description: "In drawing S-204 the connection show HSS 6x6x1/2 direct weld to W18x97 bottom flange but dimension not matching with section cut on S-312. Need clarification which drawing take precedent and also if stiffener plate require.",
-    status: "Open",
-    createdDate: new Date(Date.now() - 3 * 86400000).toISOString(),
-  },
-  {
-    id: "mock-2", _isMock: true,
-    title: "Missing anchor bolt projection — column A1 base plate",
-    description: "Drawing S-101 not show anchor bolt projection dimension for base plate at column grid A1. Need confirm dimension before proceed fabrication. Hole pattern is 4 bolt but bolt size not specify on drawing.",
-    status: "Open",
-    createdDate: new Date(Date.now() - 5 * 86400000).toISOString(),
-  },
-  {
-    id: "mock-3", _isMock: true,
-    title: "Purlin spacing inconsistency — solar bay C",
-    description: "Bay C purlin spacing on roof plan show 5'-0\" but in the detail section it show 4'-6\". Which dimension is control? Also tube size for purlin — is it HSS 4x2x3/16 or HSS 4x2x1/4?",
-    status: "Open",
-    createdDate: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: "mock-4", _isMock: true,
-    title: "Camber mark missing on W18x97 beams — Level 2",
-    description: "W18x97 beam on grid line D Level 2 not show camber mark on erection drawing. Shop drawing show 3/4\" camber. Please confirm if camber required and update mark on erection plan to avoid confusion during erection.",
-    status: "Open",
-    createdDate: new Date(Date.now() - 2 * 86400000).toISOString(),
-  },
-];
 
 // ── OAuth token cache ─────────────────────────────────────────────────────────
 
@@ -164,7 +134,6 @@ export async function getProjects() {
         try {
           const projData = await get(`/${pId}/projects`);
           const projects = Array.isArray(projData) ? projData : projData?.projects ?? [];
-          console.log('[KSF COUNT]', name, 'raw project count:', projects.length);
           return projects.map(p => ({ ...p, portfolioId: pId, vertical }));
         } catch (e) {
           console.warn(`[ProjectSight] Could not load projects for portfolio ${pId} (${name}):`, e.message);
@@ -173,7 +142,6 @@ export async function getProjects() {
       })
     );
     const combined = results.flat();
-    console.log('[KSF TOTAL] Total projects across all portfolios:', combined.length);
     return combined.length > 0 ? combined : MOCK_PROJECTS;
   } catch (e) {
     console.error("[ProjectSight] getProjects() FAILED:", e.message, e.stack);
@@ -203,14 +171,31 @@ export async function getSubmittals(portfolioId, projectId) {
   }
 }
 
-// Returns issues for a specific project. Falls back to mock data if the live call fails.
+// Returns issues for a specific project.
 export async function getIssues(portfolioId, projectId) {
   try {
     const data = await get(`/${portfolioId}/${projectId}/issues`);
-    const issues = Array.isArray(data) ? data : data?.issues ?? [];
-    return issues.length > 0 ? issues : MOCK_ISSUES;
+    return Array.isArray(data) ? data : data?.issues ?? [];
   } catch (e) {
-    console.warn("[ProjectSight] getIssues() failed, using mock:", e.message);
-    return MOCK_ISSUES;
+    console.warn("[ProjectSight] getIssues() failed:", e.message);
+    return [];
+  }
+}
+
+export async function postRFI(portfolioId, projectId, payload) {
+  try {
+    const token = await getToken();
+    const url = `${BASE}/${portfolioId}/${projectId}/rfis`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: buildHeaders(token),
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(`ProjectSight ${res.status}: ${JSON.stringify(body)}`);
+    return body;
+  } catch (e) {
+    console.error('[ProjectSight] postRFI() failed:', e.message);
+    throw e;
   }
 }

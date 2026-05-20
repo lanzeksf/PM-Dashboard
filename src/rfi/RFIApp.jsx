@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { C } from "../core/utils.jsx";
-import { getProjects, getRFIs, getIssues } from "../projectsight/projectsightApi.js";
+import { getProjects, getRFIs, getIssues, postRFI } from "../projectsight/projectsightApi.js";
 
 // ── KSF team → Territory filter mapping ──────────────────────────────────────
 // null = sees all projects; string = filter to projects where Territory matches
@@ -31,27 +31,39 @@ const BAND_LABEL = {
   ontrack: "On Track",
   nodate:  "No Date",
 };
+
 const ISSUE_SYSTEM_PROMPT = `You are Kern Bot, an internal AI assistant for Kern Steel Fabrication (KSF) in Bakersfield, CA.
 KSF fabricates structural steel, solar carport structures, and aerospace maintenance stands.
 You are analyzing a raw issue submitted by an overseas steel detailer. Their English may be unclear.
+Standards that apply: AISC 303 (Code of Standard Practice), AISC 360 (Structural Steel Specification), AWS D1.1 (weld inspection), KSF Steel Detailing Standard.
 
 Your job:
 1. Rewrite the issue in clear, professional English — preserve all technical content, fix grammar and clarity
-2. Categorize it using one of these categories: "Design Miss — EOR", "Architectural Conflict", "MEP / Trade Conflict", "Connection Clarification (KSF can answer)", "Missing Information on Drawings", "Dimension / Geometry Conflict", "Material / Fabrication Question"
-3. Recommend one of: "Submit as RFI", "KSF Can Answer", "Needs Loren Review"
-4. Provide 1-2 sentences of reasoning
-5. If "KSF Can Answer", provide a suggested response draft
+2. Identify and number each distinct sub-question or concern within the issue
+3. For each sub-question: draft a preliminary answer OR state exactly what information is missing
+4. Assign a confidence score per sub-question: "High" | "Medium" | "Low"
+5. Note any references to drawing numbers, grid lines, spec sections, or member sizes
+6. Recommend overall routing: "KSF Can Answer" | "Submit as RFI" | "Needs Sr. PM Review"
+7. Provide 1-2 sentences of reasoning
 
-Respond ONLY in this JSON format, no preamble:
+Respond ONLY in this JSON format, no preamble, no markdown:
 {
   "cleanText": "...",
-  "category": "...",
-  "recommendation": "Submit as RFI | KSF Can Answer | Needs Loren Review",
+  "subQuestions": [
+    {
+      "id": 1,
+      "question": "...",
+      "answer": "...",
+      "missingInfo": "...",
+      "confidence": "High | Medium | Low"
+    }
+  ],
+  "recommendation": "KSF Can Answer | Submit as RFI | Needs Sr. PM Review",
   "reasoning": "...",
-  "suggestedResponse": "..."
+  "references": ["drawing numbers, grid lines, etc."]
 }`;
 
-// ── Field accessors (handles API field name variations) ───────────────────────
+// ── RFI field accessors ───────────────────────────────────────────────────────
 
 const rfiSubject   = r => r.Subject ?? r.title ?? r.subject ?? r.description ?? "(No subject)";
 const rfiStatusVal = r => r.Status ?? r.status ?? r.statusName ?? "Unknown";
@@ -63,12 +75,23 @@ const rfiDue = r => {
   const d = r.DateDue ?? r.dueDate ?? r.dateRequired ?? r.responseDueDate ?? null;
   return (d && !String(d).startsWith("0001")) ? d : null;
 };
-const rfiNum       = r => r.Number ?? r.number ?? r.rfiNumber ?? r.sequenceNumber ?? r.id ?? "—";
-const rfiIdVal     = r => String(r.RFIID ?? r.id ?? r.rfiId ?? r.Number ?? r.number ?? "");
-const rfiJobNum    = r => r.Number ?? r.jobNumber ?? r.sequenceNumber ?? "—";
-const rfiDetailer  = r => r.AuthorContactName ?? r.assignedCompany ?? r.submittedBy ?? r.createdBy ?? "Unknown";
-const rfiImp       = r => r.Importance ?? r.importance ?? r.priority ?? r.urgency ?? null;
-const rfiDisc      = r => r.Discipline ?? r.discipline ?? r._project?.vertical ?? "Unknown";
+const rfiNum      = r => r.Number ?? r.number ?? r.rfiNumber ?? r.sequenceNumber ?? r.id ?? "—";
+const rfiIdVal    = r => String(r.RFIID ?? r.id ?? r.rfiId ?? r.Number ?? r.number ?? "");
+const rfiJobNum   = r => r.Number ?? r.jobNumber ?? r.sequenceNumber ?? "—";
+const rfiDetailer = r => r.AuthorContactName ?? r.assignedCompany ?? r.submittedBy ?? r.createdBy ?? "Unknown";
+const rfiImp      = r => r.Importance ?? r.importance ?? r.priority ?? r.urgency ?? null;
+const rfiDisc     = r => r.Discipline ?? r.discipline ?? r._project?.vertical ?? "Unknown";
+
+// ── Issue field accessors ─────────────────────────────────────────────────────
+
+const issueTitle      = i => i.Subject ?? i.Title ?? i.title ?? i.subject ?? "(No subject)";
+const issueDesc       = i => i.Body ?? i.Description ?? i.body ?? i.description ?? "";
+const issueCreated    = i => i.DateCreated ?? i.createdDate ?? i.dateCreated ?? null;
+const issueImportance = i => i.Importance ?? i.importance ?? "Normal";
+const issueId         = i => String(i.IssueID ?? i.id ?? i.issueId ?? "");
+const issueNumber     = i => i.Number ?? i.number ?? i.sequenceNumber ?? "—";
+const issueSubmitter  = i => i.AuthorContactName ?? i.createdBy ?? i.submittedBy ?? "Unknown";
+const issueFileLinks  = i => i.FileLinks ?? i.fileLinks ?? i.Attachments ?? [];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -106,31 +129,33 @@ const fmtD = d => d
   : "—";
 
 const wfnChipStyle = s => ({
-  "Draft":          { color: C.muted,   bg: C.surface2 },
-  "Open":           { color: C.warning, bg: "rgba(251,191,36,0.12)"  },
-  "KSF PM Review":  { color: C.hint,    bg: C.surface2 },
-  "Submitted to GC":{ color: C.danger,  bg: "rgba(248,113,113,0.12)" },
-  "Closed":         { color: C.success, bg: "rgba(52,211,153,0.12)"  },
+  "Draft":           { color: C.muted,   bg: C.surface2 },
+  "Open":            { color: C.warning, bg: "rgba(251,191,36,0.12)"  },
+  "KSF PM Review":   { color: C.hint,    bg: C.surface2 },
+  "Submitted to GC": { color: C.danger,  bg: "rgba(248,113,113,0.12)" },
+  "Closed":          { color: C.success, bg: "rgba(52,211,153,0.12)"  },
 }[s] || { color: C.muted, bg: C.surface2 });
 
 const statusChipStyle = s => {
   const ls = (s || "").toLowerCase();
-  if (ls.includes("draft"))                            return { color: C.hint,    bg: C.surface2 };
-  if (ls.includes("submit"))                           return { color: C.warning, bg: "rgba(251,191,36,0.12)" };
-  if (ls.includes("review"))                           return { color: C.accent,  bg: "rgba(91,124,250,0.12)" };
+  if (ls.includes("draft"))                             return { color: C.hint,    bg: C.surface2 };
+  if (ls.includes("submit"))                            return { color: C.warning, bg: "rgba(251,191,36,0.12)" };
+  if (ls.includes("review"))                            return { color: C.accent,  bg: "rgba(91,124,250,0.12)" };
   if (ls.includes("answer") || ls.includes("respond")) return { color: C.success, bg: "rgba(52,211,153,0.12)" };
-  if (ls.includes("close")  || ls.includes("void"))   return { color: C.hint,    bg: C.surface2 };
+  if (ls.includes("close")  || ls.includes("void"))    return { color: C.hint,    bg: C.surface2 };
   return { color: C.muted, bg: C.surface2 };
 };
 
 const recStyle = rec => ({
-  "Submit as RFI":      { color: C.warning, bg: "rgba(251,191,36,0.12)"  },
-  "KSF Can Answer":     { color: C.success, bg: "rgba(52,211,153,0.12)"  },
-  "Needs Loren Review": { color: C.pm,      bg: "rgba(167,139,250,0.12)" },
+  "Submit as RFI":       { color: C.warning, bg: "rgba(251,191,36,0.12)"  },
+  "KSF Can Answer":      { color: C.success, bg: "rgba(52,211,153,0.12)"  },
+  "Needs Loren Review":  { color: C.pm,      bg: "rgba(167,139,250,0.12)" },
+  "Needs Sr. PM Review": { color: C.pm,      bg: "rgba(167,139,250,0.12)" },
 }[rec] || { color: C.muted, bg: C.surface2 });
 
-const psRFILink   = (pid, projId, r)     => `https://app.projectsight.com/${pid}/projects/${projId}/rfis/${rfiIdVal(r)}`;
-const psIssueLink = (pid, projId, issue) => `https://app.projectsight.com/${pid}/projects/${projId}/issues/${issue.id ?? ""}`;
+const psRFILink   = (pid, projId, r) => `https://app.projectsight.com/${pid}/projects/${projId}/rfis/${rfiIdVal(r)}`;
+const psIssueLink = (portfolioId) =>
+  `https://prod.projectsightapp.trimble.com/Web/app/Project?listid=-4075&orgid=${portfolioId}&projid=36`;
 
 // ── Kern Bot analysis call ────────────────────────────────────────────────────
 
@@ -232,7 +257,6 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
     );
   }
 
-  // Sort worst-first: most overdue → most due-within-7 → most open → healthiest last
   const scored = projects.map(p => {
     const pid      = `${p.portfolioId}-${p.ProjectID}`;
     const open     = (psRFIs[pid] || []).filter(isOpenRFI);
@@ -243,7 +267,6 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
   scored.sort((a, b) => b.overdue - a.overdue || b.soon - a.soon || b.openCount - a.openCount);
   const sorted = scored.map(s => s.p);
 
-  // Search filter by name or job number
   const q        = search.trim().toLowerCase();
   const filtered = q
     ? sorted.filter(p =>
@@ -255,7 +278,6 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
 
   return (
     <>
-      {/* Search bar */}
       <input
         type="text"
         value={search}
@@ -373,12 +395,11 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
                   fontSize: 18, lineHeight: 1, padding: "2px 4px" }}>×</button>
             </div>
 
-            {/* Tab filter */}
             <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
               {[
-                { id: "open",   label: `Open (${openCount})`         },
-                { id: "closed", label: `Closed (${closedCount})`     },
-                { id: "all",    label: `All (${allRfis.length})`     },
+                { id: "open",   label: `Open (${openCount})`     },
+                { id: "closed", label: `Closed (${closedCount})` },
+                { id: "all",    label: `All (${allRfis.length})` },
               ].map(t => (
                 <button key={t.id} onClick={() => setDetailTab(t.id)}
                   style={{ padding: "4px 12px", borderRadius: 6, fontFamily: "inherit",
@@ -498,7 +519,7 @@ function RFITable({ rfis }) {
   const activeChips = useMemo(() => {
     const chips = [];
     const { jobNumber, project, detailer, discipline, status, importance, band } = filter;
-    if (jobNumber)          chips.push({ key: "jobNumber",  label: `Job: "${jobNumber}"` });
+    if (jobNumber)            chips.push({ key: "jobNumber",  label: `Job: "${jobNumber}"` });
     if (project    !== "all") chips.push({ key: "project",    label: `Project: ${project}` });
     if (detailer   !== "all") chips.push({ key: "detailer",   label: `Detailer: ${detailer}` });
     if (discipline !== "all") chips.push({ key: "discipline", label: `Discipline: ${discipline}` });
@@ -580,43 +601,35 @@ function RFITable({ rfis }) {
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
 
-      {/* ── Filter bar ───────────────────────────────────────────────────────── */}
       <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, background: C.surface2 }}>
-
-        {/* Row 1 — filter controls */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center",
           marginBottom: activeChips.length ? 8 : 0 }}>
 
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase",
             color: C.hint, marginRight: 4, flexShrink: 0 }}>All Open RFIs</span>
 
-          {/* Job # */}
           <input type="text" value={filter.jobNumber} placeholder="Job #…"
             onChange={e => setF("jobNumber", e.target.value)}
             style={{ ...selSt(!!filter.jobNumber), width: 88 }} />
 
-          {/* Project */}
           <select value={filter.project} onChange={e => setF("project", e.target.value)}
             style={selSt(filter.project !== "all")}>
             <option value="all">Project: All</option>
             {projectOpts.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
 
-          {/* Detailer */}
           <select value={filter.detailer} onChange={e => setF("detailer", e.target.value)}
             style={selSt(filter.detailer !== "all")}>
             <option value="all">Detailer: All</option>
             {detailerOpts.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
 
-          {/* Discipline */}
           <select value={filter.discipline} onChange={e => setF("discipline", e.target.value)}
             style={selSt(filter.discipline !== "all")}>
             <option value="all">Discipline: All</option>
             {["Structural", "Solar", "Aero"].map(o => <option key={o} value={o}>{o}</option>)}
           </select>
 
-          {/* Status */}
           <select value={filter.status} onChange={e => setF("status", e.target.value)}
             style={selSt(filter.status !== "all")}>
             <option value="all">Status: All</option>
@@ -624,14 +637,12 @@ function RFITable({ rfis }) {
               <option key={o} value={o}>{o}</option>)}
           </select>
 
-          {/* Importance */}
           <select value={filter.importance} onChange={e => setF("importance", e.target.value)}
             style={selSt(filter.importance !== "all")}>
             <option value="all">Importance: All</option>
             {["Low", "Normal", "High", "Urgent"].map(o => <option key={o} value={o}>{o}</option>)}
           </select>
 
-          {/* Age Band */}
           <select value={filter.band} onChange={e => setF("band", e.target.value)}
             style={selSt(filter.band !== "all")}>
             <option value="all">Age Band: All</option>
@@ -647,7 +658,6 @@ function RFITable({ rfis }) {
           </span>
         </div>
 
-        {/* Row 2 — active filter chips */}
         {activeChips.length > 0 && (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
             {activeChips.map(chip => (
@@ -672,7 +682,6 @@ function RFITable({ rfis }) {
         )}
       </div>
 
-      {/* ── Table ────────────────────────────────────────────────────────────── */}
       {filtered.length === 0 ? (
         <p style={{ margin: 0, padding: "28px 16px", fontSize: 12, color: C.hint, textAlign: "center" }}>
           No RFIs match the current filters.
@@ -774,86 +783,299 @@ function RFITable({ rfis }) {
   );
 }
 
+// ── Triage Health Bar ─────────────────────────────────────────────────────────
+
+function TriageHealthBar({ projects, psIssues, projectRefs }) {
+  const cards = projects.map(p => {
+    const pid    = `${p.portfolioId}-${p.ProjectID}`;
+    const issues = psIssues[pid] || [];
+    if (!issues.length) return null;
+    const oldestAge = issues.reduce((max, i) => Math.max(max, daysOpenCalc(issueCreated(i))), 0);
+    const urgScore  = (oldestAge * 2) + issues.length;
+    return { p, pid, count: issues.length, oldestAge, urgScore };
+  }).filter(Boolean);
+
+  cards.sort((a, b) => b.urgScore - a.urgScore);
+  if (!cards.length) return null;
+
+  return (
+    <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6, marginBottom: 20 }}>
+      {cards.map(({ p, pid, count, oldestAge }) => {
+        const ageBadgeColor = oldestAge >= 14 ? C.danger  : oldestAge >= 7 ? C.warning : C.success;
+        const ageBadgeBg    = oldestAge >= 14 ? "rgba(248,113,113,0.12)" : oldestAge >= 7 ? "rgba(251,191,36,0.12)" : "rgba(52,211,153,0.12)";
+        const isPilingUp    = count >= 5;
+        return (
+          <div key={pid}
+            onClick={() => {
+              const el = projectRefs.current?.[pid];
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            style={{ flexShrink: 0, width: 160, background: C.surface,
+              border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", cursor: "pointer" }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = C.borderHi}
+            onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 5 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: C.text, flex: 1,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {p.Name}
+              </span>
+              {isPilingUp && (
+                <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 8,
+                  background: "rgba(251,146,60,0.15)", color: "#fb923c", whiteSpace: "nowrap" }}>
+                  ▲
+                </span>
+              )}
+            </div>
+            <VertBadge v={p.vertical} />
+            <p style={{ margin: "8px 0 2px", fontSize: 24, fontWeight: 700, color: C.text, lineHeight: 1 }}>
+              {count}
+            </p>
+            <p style={{ margin: "0 0 6px", fontSize: 10, color: C.hint }}>Open issues</p>
+            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
+              background: ageBadgeBg, color: ageBadgeColor, border: `1px solid ${ageBadgeColor}33` }}>
+              Oldest: {oldestAge}d
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Triage Issue Card ─────────────────────────────────────────────────────────
 
-function TriageIssueCard({ issue, project, analysis, analyzing, verified, onAnalyze, onVerify, onCorrect, onFlag, onResolve }) {
-  const id       = issue.id;
-  const a        = analysis?.[id];
-  const isAnalyz = analyzing?.[id];
-  const v        = verified?.[id];
-  const isMock   = issue._isMock;
+function TriageIssueCard({
+  issue, project, analysis, analyzing, consultThreads, setConsultThreads,
+  createdRFIs, setCreatedRFIs, kernbotLearning, setKernbotLearning,
+  isAdmin, onRetryAnalyze, user, defaultConsultOpen,
+}) {
+  const iid       = issueId(issue);
+  const a         = analysis?.[iid];
+  const isAnalyz  = analyzing?.[iid];
+  const age       = issueCreated(issue) ? daysOpenCalc(issueCreated(issue)) : null;
+  const imp       = issueImportance(issue);
+  const ics       = impChipStyle(imp);
+  const fileLinks = issueFileLinks(issue);
+  const thread    = consultThreads[iid] || null;
+
+  const ageBadgeColor = age >= 14 ? C.danger  : age >= 7 ? C.warning : C.hint;
+  const ageBadgeBg    = age >= 14 ? "rgba(248,113,113,0.12)" : age >= 7 ? "rgba(251,191,36,0.12)" : C.surface2;
+
+  const [showOriginal, setShowOriginal] = useState(false);
+  const [consultOpen,  setConsultOpen]  = useState(defaultConsultOpen || false);
+  const [pills,        setPills]        = useState({ srpm: false, field: false });
+  const [consultText,  setConsultText]  = useState("");
+  const [consultFiles, setConsultFiles] = useState([]);
+  const [replyText,    setReplyText]    = useState("");
+  const [replyFiles,   setReplyFiles]   = useState([]);
+  const [rfiError,     setRfiError]     = useState(null);
+  const [rfiLoading,   setRfiLoading]   = useState(false);
+
+  const existingRFI     = createdRFIs?.[iid];
+  const hasPendingAction = thread?.hasPendingAction;
+
+  const handleSendConsult = () => {
+    if (!consultText.trim() || (!pills.srpm && !pills.field)) return;
+    const systemMsg = {
+      id: Date.now(),
+      type: "system",
+      sender: "Kern Bot",
+      timestamp: new Date().toISOString(),
+      text: a
+        ? `Issue Summary: ${a.cleanText || issueDesc(issue)}\n\nRecommendation: ${a.recommendation || "—"}\nReasoning: ${a.reasoning || "—"}`
+        : `Issue: ${issueTitle(issue)}\n\n${issueDesc(issue)}`,
+    };
+    const pmMsg = {
+      id: Date.now() + 1,
+      type: "pm",
+      sender: user?.name || "PM",
+      timestamp: new Date().toISOString(),
+      text: consultText,
+      attachmentNames: consultFiles.map(f => f.name),
+    };
+    const existing = consultThreads[iid];
+    const messages = existing?.messages?.length > 0
+      ? [...existing.messages, pmMsg]
+      : [systemMsg, pmMsg];
+    setConsultThreads(prev => ({
+      ...prev,
+      [iid]: { pills: { srpm: pills.srpm, field: pills.field }, messages, lastUpdated: Date.now() },
+    }));
+    setConsultText("");
+    setConsultFiles([]);
+  };
+
+  const handleReply = () => {
+    if (!replyText.trim()) return;
+    const msg = {
+      id: Date.now(),
+      type: "pm",
+      sender: user?.name || "PM",
+      timestamp: new Date().toISOString(),
+      text: replyText,
+      attachmentNames: replyFiles.map(f => f.name),
+    };
+    setConsultThreads(prev => ({
+      ...prev,
+      [iid]: { ...(prev[iid] || {}), messages: [...(prev[iid]?.messages || []), msg], lastUpdated: Date.now() },
+    }));
+    setReplyText("");
+    setReplyFiles([]);
+  };
+
+  const handleDecision = decisionText => {
+    const msg = {
+      id: Date.now(),
+      type: "decision",
+      sender: user?.name || "Sr. PM",
+      timestamp: new Date().toISOString(),
+      text: decisionText,
+    };
+    setConsultThreads(prev => ({
+      ...prev,
+      [iid]: {
+        ...(prev[iid] || {}),
+        messages: [...(prev[iid]?.messages || []), msg],
+        hasPendingAction: !decisionText.includes("Resolved"),
+        lastUpdated: Date.now(),
+      },
+    }));
+    if (decisionText.includes("Resolved") || decisionText.includes("Clarification")) {
+      setKernbotLearning(prev => [...prev, {
+        issueTitle: issueTitle(issue),
+        subQuestions: a?.subQuestions,
+        resolution: decisionText,
+        timestamp: Date.now(),
+      }]);
+    }
+  };
+
+  const handleCreateRFI = async () => {
+    setRfiError(null);
+    setRfiLoading(true);
+    try {
+      const result = await postRFI(project.portfolioId, project.ProjectID, {
+        Subject:  `[Issue ${issueNumber(issue)}] — ${issueTitle(issue)}`,
+        Question: a?.cleanText || issueDesc(issue),
+      });
+      setCreatedRFIs(prev => ({
+        ...prev,
+        [iid]: { rfiNumber: result.Number ?? result.id, status: "created" },
+      }));
+    } catch (e) {
+      setRfiError(e.message);
+    } finally {
+      setRfiLoading(false);
+    }
+  };
 
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
       marginBottom: 12, overflow: "hidden" }}>
+
       {/* Card header */}
       <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, background: C.surface2 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.text, flex: 1 }}>
-            {issue.title || "(No title)"}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, flexWrap: "wrap", marginBottom: 5 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.text, flex: 1, minWidth: 0 }}>
+            {issueTitle(issue)}
           </span>
-          {project && <VertBadge v={project.vertical} />}
-          {project && <span style={{ fontSize: 10, color: C.muted }}>{project.Name}</span>}
-          {isMock && (
-            <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
-              background: "rgba(251,191,36,0.12)", color: C.warning, letterSpacing: "0.05em" }}>
-              SAMPLE
+          {age !== null && (
+            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
+              background: ageBadgeBg, color: ageBadgeColor, whiteSpace: "nowrap",
+              border: `1px solid ${ageBadgeColor}33` }}>
+              {age}d
             </span>
           )}
-          <span style={{ fontSize: 10, color: C.hint }}>
-            {issue.createdDate ? `${daysOpenCalc(issue.createdDate)}d ago` : ""}
+          <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
+            background: ics.bg, color: ics.color, whiteSpace: "nowrap",
+            border: `1px solid ${ics.color}33` }}>
+            {imp}
           </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {project && <VertBadge v={project.vertical} />}
+          {project && <span style={{ fontSize: 10, color: C.muted }}>{project.Name}</span>}
+          <span style={{ fontSize: 10, color: C.hint }}>#{issueNumber(issue)}</span>
+          <span style={{ fontSize: 10, color: C.hint }}>— {issueSubmitter(issue)}</span>
         </div>
       </div>
 
       <div style={{ padding: "14px 16px" }}>
-        {/* Two-column: Original | Kern Bot Cleanup */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-          <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px" }}>
-            <p style={{ margin: "0 0 6px", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em",
-              textTransform: "uppercase", color: C.hint }}>Detailer's Original</p>
-            <p style={{ margin: 0, fontSize: 12, color: C.muted, lineHeight: 1.65, whiteSpace: "pre-wrap" }}>
-              {issue.description || issue.title || "(No content)"}
-            </p>
-          </div>
 
+        {/* KernBot analysis block */}
+        {isAnalyz ? (
+          <div style={{ padding: "10px 0 12px" }}>
+            <Spinner label="Analyzing with Kern Bot…" />
+          </div>
+        ) : a?.error ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", marginBottom: 12 }}>
+            <span style={{ fontSize: 12, color: C.danger }}>Analysis failed: {a.error}</span>
+            <button onClick={() => onRetryAnalyze(issue)}
+              style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
+                background: C.surface2, color: C.muted, cursor: "pointer", fontFamily: "inherit" }}>
+              Retry
+            </button>
+          </div>
+        ) : a ? (
           <div style={{ background: "rgba(91,124,250,0.05)", border: `1px solid ${C.accent}33`,
-            borderRadius: 8, padding: "10px 12px" }}>
+            borderRadius: 8, padding: "12px 14px", marginBottom: 12 }}>
+
             <p style={{ margin: "0 0 6px", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em",
-              textTransform: "uppercase", color: C.accentText }}>Kern Bot Cleanup</p>
-            {isAnalyz ? (
-              <div style={{ padding: "14px 0" }}><Spinner label="Analyzing…" /></div>
-            ) : a?.error ? (
-              <p style={{ margin: 0, fontSize: 11, color: C.danger }}>Analysis failed: {a.error}</p>
-            ) : a?.cleanText ? (
-              <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.65 }}>{a.cleanText}</p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
-                justifyContent: "center", padding: "18px 8px", gap: 10 }}>
-                <p style={{ margin: 0, fontSize: 11, color: C.hint, textAlign: "center", lineHeight: 1.5 }}>
-                  Run Kern Bot to get a cleanup and recommendation.
-                </p>
-                <button onClick={() => onAnalyze(issue)}
-                  style={{ fontSize: 12, fontWeight: 600, padding: "7px 18px", borderRadius: 7,
-                    border: `1px solid ${C.accent}44`, background: C.accentDim, color: C.accentText,
-                    cursor: "pointer", fontFamily: "inherit" }}>
-                  Analyze with Kern Bot
-                </button>
+              textTransform: "uppercase", color: C.accentText }}>Kern Bot Summary</p>
+            <p style={{ margin: "0 0 6px", fontSize: 12, color: C.text, lineHeight: 1.65 }}>{a.cleanText}</p>
+
+            <button onClick={() => setShowOriginal(v => !v)}
+              style={{ fontSize: 11, color: C.hint, background: "none", border: "none",
+                cursor: "pointer", padding: 0, marginBottom: showOriginal ? 8 : 0,
+                fontFamily: "inherit", textDecoration: "underline" }}>
+              {showOriginal ? "Hide original ▲" : "Show original ▼"}
+            </button>
+            {showOriginal && (
+              <p style={{ margin: "6px 0 8px", fontSize: 11, color: C.muted, lineHeight: 1.65,
+                padding: "8px 10px", background: C.bg, borderRadius: 6, whiteSpace: "pre-wrap" }}>
+                {issueDesc(issue) || "(No description)"}
+              </p>
+            )}
+
+            {a.subQuestions?.length > 0 && (
+              <div style={{ margin: "10px 0" }}>
+                {a.subQuestions.map(sq => {
+                  const cs = sq.confidence === "High"   ? { color: C.success, bg: "rgba(52,211,153,0.12)"  }
+                           : sq.confidence === "Medium" ? { color: C.warning, bg: "rgba(251,191,36,0.12)"  }
+                                                        : { color: C.danger,  bg: "rgba(248,113,113,0.12)" };
+                  return (
+                    <div key={sq.id} style={{ marginBottom: 10, paddingLeft: 12,
+                      borderLeft: `2px solid ${C.accent}44` }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: C.accent,
+                          minWidth: 16, flexShrink: 0, marginTop: 1 }}>{sq.id}.</span>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: "0 0 3px", fontSize: 12, color: C.text, lineHeight: 1.5 }}>
+                            {sq.question}
+                          </p>
+                          {sq.answer && (
+                            <p style={{ margin: "0 0 3px", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+                              → {sq.answer}
+                            </p>
+                          )}
+                          {sq.missingInfo && (
+                            <p style={{ margin: "0 0 3px", fontSize: 11, color: C.warning, lineHeight: 1.5 }}>
+                              Missing: {sq.missingInfo}
+                            </p>
+                          )}
+                          <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 10,
+                            background: cs.bg, color: cs.color }}>
+                            {sq.confidence}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Analysis results */}
-        {a && !a.error && (
-          <>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-              {a.category && (
-                <span style={{ fontSize: 10, fontWeight: 600, padding: "3px 9px", borderRadius: 20,
-                  background: C.surface2, color: C.muted, border: `1px solid ${C.border}` }}>
-                  {a.category}
-                </span>
-              )}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 4 }}>
               {a.recommendation && (() => {
                 const rs = recStyle(a.recommendation);
                 return (
@@ -865,133 +1087,198 @@ function TriageIssueCard({ issue, project, analysis, analyzing, verified, onAnal
               })()}
             </div>
             {a.reasoning && (
-              <p style={{ margin: "0 0 10px", fontSize: 12, color: C.muted, lineHeight: 1.55 }}>
+              <p style={{ margin: "4px 0 4px", fontSize: 11, color: C.muted, lineHeight: 1.55 }}>
                 {a.reasoning}
               </p>
             )}
-            {a.suggestedResponse && (
-              <div style={{ background: C.surface2, borderRadius: 7, padding: "10px 12px",
-                marginBottom: 10, border: `1px solid ${C.border}` }}>
-                <p style={{ margin: "0 0 4px", fontSize: 9, fontWeight: 700, letterSpacing: "0.07em",
-                  textTransform: "uppercase", color: C.success }}>Suggested Response</p>
-                <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.65 }}>
-                  {a.suggestedResponse}
-                </p>
-              </div>
+            {a.references?.length > 0 && (
+              <p style={{ margin: "4px 0 0", fontSize: 10, color: C.hint }}>
+                Refs: {a.references.join(", ")}
+              </p>
             )}
 
-            {/* PM Verification */}
-            <div style={{ padding: "10px 12px", background: C.surface2, borderRadius: 8,
-              border: `1px solid ${C.border}`, marginBottom: 12 }}>
-              <p style={{ margin: "0 0 8px", fontSize: 10, fontWeight: 700, letterSpacing: "0.05em",
-                textTransform: "uppercase", color: C.hint }}>PM Verification</p>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {[
-                  ["accurate",         "✓ Looks accurate",     C.success],
-                  ["needs_correction", "⚠ Needs correction",   C.warning],
-                ].map(([verdict, label, col]) => (
-                  <button key={verdict} onClick={() => onVerify(id, verdict)}
-                    style={{ padding: "5px 12px", borderRadius: 6, fontFamily: "inherit",
-                      border: `1px solid ${v?.verdict === verdict ? col + "66" : C.border}`,
-                      background: v?.verdict === verdict ? col + "18" : C.surface,
-                      color: v?.verdict === verdict ? col : C.muted,
-                      cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
-                    {label}
-                  </button>
+            {fileLinks.length > 0 && (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                {fileLinks.map((fl, i) => (
+                  // TODO: actual download URL pattern TBD after further API discovery
+                  <a key={i} href="#" onClick={e => e.preventDefault()}
+                    style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10,
+                      background: C.surface2, color: C.muted, border: `1px solid ${C.border}`,
+                      textDecoration: "none", whiteSpace: "nowrap" }}>
+                    📎 {fl.FileName ?? fl.fileName ?? fl.name ?? `File ${i + 1}`}
+                  </a>
                 ))}
               </div>
-              {v?.verdict === "needs_correction" && (
-                <textarea
-                  value={v.correction || ""}
-                  onChange={e => onCorrect(id, e.target.value)}
-                  placeholder="Enter your corrected version…"
-                  style={{ width: "100%", marginTop: 8, padding: "8px 10px", background: C.bg,
-                    border: `1px solid ${C.border}`, borderRadius: 6, color: C.text,
-                    fontSize: 12, fontFamily: "inherit", resize: "vertical",
-                    minHeight: 72, boxSizing: "border-box" }} />
-              )}
-            </div>
-          </>
+            )}
+          </div>
+        ) : (
+          <div style={{ padding: "8px 0 12px" }}>
+            <Spinner label="Queued for analysis…" />
+          </div>
         )}
 
-        {/* Triage actions */}
+        {hasPendingAction && (
+          <div style={{ padding: "6px 10px", marginBottom: 10, borderRadius: 6,
+            background: "rgba(251,191,36,0.1)", border: `1px solid ${C.warning}44`,
+            fontSize: 11, fontWeight: 600, color: C.warning }}>
+            Pending PM Action
+          </div>
+        )}
+
+        {/* Routing buttons */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {project && (
-            <a href={psIssueLink(project.portfolioId, project.ProjectID, issue)}
-              target="_blank" rel="noopener noreferrer"
+            <a href={psIssueLink(project.portfolioId)} target="_blank" rel="noopener noreferrer"
               style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
                 border: `1px solid ${C.accent}44`, background: C.accentDim,
                 color: C.accentText, textDecoration: "none", whiteSpace: "nowrap" }}>
-              Open in ProjectSight →
+              ProjectSight ↗
             </a>
           )}
-          <button onClick={() => onResolve(id)}
-            style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
+          {existingRFI ? (
+            <span style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
               border: `1px solid ${C.success}44`, background: "rgba(52,211,153,0.1)",
-              color: C.success, cursor: "pointer", fontFamily: "inherit" }}>
-            ✓ Mark: KSF Answers Internally
-          </button>
-          <button onClick={() => onFlag(id)}
+              color: C.success, whiteSpace: "nowrap" }}>
+              ✓ RFI Created{existingRFI.rfiNumber ? ` — #${existingRFI.rfiNumber}` : ""}
+            </span>
+          ) : (
+            <button onClick={handleCreateRFI} disabled={rfiLoading}
+              style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
+                border: `1px solid ${C.border}`, background: C.surface2,
+                color: rfiLoading ? C.hint : C.muted,
+                cursor: rfiLoading ? "default" : "pointer", fontFamily: "inherit" }}>
+              {rfiLoading ? "Creating…" : "Create RFI"}
+            </button>
+          )}
+          <button onClick={() => setConsultOpen(v => !v)}
             style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
-              border: `1px solid ${C.pm}44`, background: C.pmDim,
-              color: C.pm, cursor: "pointer", fontFamily: "inherit" }}>
-            ⚑ Flag for Loren
+              border: `1px solid ${consultOpen ? C.pm + "66" : C.border}`,
+              background: consultOpen ? C.pmDim : C.surface2,
+              color: consultOpen ? C.pm : C.muted,
+              cursor: "pointer", fontFamily: "inherit" }}>
+            Consult
           </button>
         </div>
-      </div>
-    </div>
-  );
-}
+        {rfiError && (
+          <p style={{ margin: "4px 0 0", fontSize: 11, color: C.danger }}>{rfiError}</p>
+        )}
 
-// ── Loren Review Queue ────────────────────────────────────────────────────────
+        {/* Consult panel */}
+        {consultOpen && (
+          <div style={{ background: C.surface2, border: `1px solid ${C.pm}33`,
+            borderRadius: 8, padding: "12px 14px", marginTop: 10 }}>
 
-function LorenQueue({ issues, lorenNotes, setLorenNotes, onDismiss, onApprove }) {
-  if (!issues.length) return null;
-  return (
-    <div style={{ background: "rgba(167,139,250,0.05)", border: `1px solid ${C.pm}44`,
-      borderRadius: 10, padding: "14px 18px", marginBottom: 20 }}>
-      <p style={{ margin: "0 0 12px", fontSize: 11, fontWeight: 700, letterSpacing: "0.07em",
-        textTransform: "uppercase", color: C.pm }}>
-        ⚑ Loren Review Queue ({issues.length})
-      </p>
-      {issues.map(issue => {
-        const note = lorenNotes[issue.id] || "";
-        return (
-          <div key={issue.id} style={{ background: C.surface, border: `1px solid ${C.pm}33`,
-            borderRadius: 8, padding: "12px 14px", marginBottom: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: C.text, flex: 1 }}>
-                {issue.title || "(No title)"}
-              </span>
-              {issue._project && <VertBadge v={issue._project.vertical} />}
-            </div>
-            <p style={{ margin: "0 0 8px", fontSize: 12, color: C.muted, lineHeight: 1.5 }}>
-              {issue.description || "(No description)"}
-            </p>
-            <textarea value={note}
-              onChange={e => setLorenNotes(p => ({ ...p, [issue.id]: e.target.value }))}
-              placeholder="Add a note (optional)…"
-              style={{ width: "100%", padding: "7px 10px", background: C.bg,
-                border: `1px solid ${C.border}`, borderRadius: 6, color: C.text,
-                fontSize: 11, fontFamily: "inherit", resize: "vertical",
-                minHeight: 48, boxSizing: "border-box", marginBottom: 8 }} />
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => onApprove(issue.id)}
-                style={{ fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 6,
-                  border: `1px solid ${C.success}44`, background: "rgba(52,211,153,0.1)",
-                  color: C.success, cursor: "pointer", fontFamily: "inherit" }}>
-                ✓ Approve / Take Action
-              </button>
-              <button onClick={() => onDismiss(issue.id)}
-                style={{ fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 6,
-                  border: `1px solid ${C.border}`, background: C.surface2,
-                  color: C.muted, cursor: "pointer", fontFamily: "inherit" }}>
-                Dismiss
-              </button>
-            </div>
+            {!thread ? (
+              <>
+                <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                  {[{ key: "srpm", label: "Sr. PM" }, { key: "field", label: "Field" }].map(({ key, label }) => (
+                    <button key={key} onClick={() => setPills(p => ({ ...p, [key]: !p[key] }))}
+                      style={{ fontSize: 11, fontWeight: 600, padding: "5px 14px", borderRadius: 20,
+                        border: `1px solid ${pills[key] ? C.pm + "66" : C.border}`,
+                        background: pills[key] ? C.pmDim : C.surface,
+                        color: pills[key] ? C.pm : C.muted,
+                        cursor: "pointer", fontFamily: "inherit" }}>
+                      {pills[key] ? "● " : "○ "}{label}
+                    </button>
+                  ))}
+                </div>
+                <textarea value={consultText} onChange={e => setConsultText(e.target.value)}
+                  placeholder="Add context or question for the consult…"
+                  style={{ width: "100%", padding: "8px 10px", background: C.bg,
+                    border: `1px solid ${C.border}`, borderRadius: 6, color: C.text,
+                    fontSize: 12, fontFamily: "inherit", resize: "vertical",
+                    minHeight: 64, boxSizing: "border-box", marginBottom: 8 }} />
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input type="file" multiple onChange={e => setConsultFiles(Array.from(e.target.files))}
+                    style={{ fontSize: 11, color: C.muted, flex: 1 }} />
+                  <button onClick={handleSendConsult}
+                    disabled={!consultText.trim() || (!pills.srpm && !pills.field)}
+                    style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
+                      border: `1px solid ${C.pm}44`, background: C.pmDim, color: C.pm,
+                      cursor: (!consultText.trim() || (!pills.srpm && !pills.field)) ? "default" : "pointer",
+                      opacity: (!consultText.trim() || (!pills.srpm && !pills.field)) ? 0.5 : 1,
+                      fontFamily: "inherit" }}>
+                    Send
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div>
+                <p style={{ margin: "0 0 10px", fontSize: 9, fontWeight: 700, letterSpacing: "0.07em",
+                  textTransform: "uppercase", color: C.hint }}>
+                  Thread
+                  {thread.pills?.srpm  && <span style={{ color: C.pm,     marginLeft: 8 }}>● Sr. PM</span>}
+                  {thread.pills?.field && <span style={{ color: C.accent,  marginLeft: 8 }}>● Field</span>}
+                </p>
+                {thread.messages.map((msg, idx) => {
+                  const isSystem   = msg.type === "system";
+                  const isDecision = msg.type === "decision";
+                  return (
+                    <div key={msg.id ?? idx} style={{ marginBottom: 8, padding: "8px 10px", borderRadius: 7,
+                      background: isSystem ? C.bg : isDecision ? "rgba(167,139,250,0.08)" : C.surface,
+                      borderLeft: isDecision ? `3px solid ${C.pm}` : `3px solid transparent` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700,
+                          color: isSystem ? C.hint : isDecision ? C.pm : C.text }}>
+                          {isSystem ? "📋 Kern Bot" : msg.sender}
+                        </span>
+                        <span style={{ fontSize: 10, color: C.hint }}>{fmtD(msg.timestamp)}</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 11, color: isSystem ? C.muted : C.text,
+                        lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{msg.text}</p>
+                      {msg.attachmentNames?.length > 0 && (
+                        <div style={{ marginTop: 5, display: "flex", gap: 5, flexWrap: "wrap" }}>
+                          {msg.attachmentNames.map((n, i) => (
+                            <span key={i} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8,
+                              background: C.surface2, color: C.muted, border: `1px solid ${C.border}` }}>
+                              📎 {n}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {isAdmin && (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                    {[
+                      ["✓ Resolved",           "✓ Sr. PM marked this Resolved."],
+                      ["↩ Needs Clarification", "↩ Sr. PM: Needs further clarification."],
+                      ["→ Escalate as RFI",     "→ Sr. PM recommends escalating as RFI. PM to action."],
+                    ].map(([label, text]) => (
+                      <button key={label} onClick={() => handleDecision(text)}
+                        style={{ fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7,
+                          border: `1px solid ${C.pm}44`, background: C.pmDim, color: C.pm,
+                          cursor: "pointer", fontFamily: "inherit" }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <textarea value={replyText} onChange={e => setReplyText(e.target.value)}
+                  placeholder="Reply…"
+                  style={{ width: "100%", padding: "7px 10px", background: C.bg,
+                    border: `1px solid ${C.border}`, borderRadius: 6, color: C.text,
+                    fontSize: 11, fontFamily: "inherit", resize: "vertical",
+                    minHeight: 48, boxSizing: "border-box", marginBottom: 6 }} />
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input type="file" multiple onChange={e => setReplyFiles(Array.from(e.target.files))}
+                    style={{ fontSize: 11, color: C.muted, flex: 1 }} />
+                  <button onClick={handleReply} disabled={!replyText.trim()}
+                    style={{ fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7,
+                      border: `1px solid ${C.border}`, background: C.surface, color: C.muted,
+                      cursor: !replyText.trim() ? "default" : "pointer",
+                      opacity: !replyText.trim() ? 0.5 : 1, fontFamily: "inherit" }}>
+                    Send Reply
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        );
-      })}
+        )}
+      </div>
     </div>
   );
 }
@@ -1010,10 +1297,12 @@ export default function RFIApp({ user }) {
   const [rfiTab,          setRfiTab]          = useState("dashboard");
   const [triageAnalysis,  setTriageAnalysis]  = useState({});
   const [triageAnalyzing, setTriageAnalyzing] = useState({});
-  const [triageVerified,  setTriageVerified]  = useState({});
-  const [triageFlagged,   setTriageFlagged]   = useState([]);
-  const [triageResolved,  setTriageResolved]  = useState([]);
-  const [lorenNotes,      setLorenNotes]      = useState({});
+  const [consultThreads,  setConsultThreads]  = useState({});
+  const [kernbotLearning, setKernbotLearning] = useState([]);
+  const [createdRFIs,     setCreatedRFIs]     = useState({});
+
+  const analyzedRef        = useRef(new Set());
+  const projectSectionRefs = useRef({});
 
   const isAdmin = user.tier === "admin" || user.tier === "sr_pm";
   const apiKey  = import.meta.env.VITE_ANTHROPIC_API_KEY;
@@ -1022,22 +1311,16 @@ export default function RFIApp({ user }) {
   useEffect(() => {
     setProjectsLoading(true);
     getProjects()
-      .then(projects => {
-        setPsProjects(projects);
-        console.log("[RFI] Projects in state:", projects.slice(0,2).map(p => ({ id: p.ProjectID, name: p.Name })));
-        setProjectsLoading(false);
-      })
+      .then(projects => { setPsProjects(projects); setProjectsLoading(false); })
       .catch(err      => { setProjectsError(err.message); setProjectsLoading(false); });
   }, []);
 
-  // Load RFIs + Issues per visible project as projects arrive
+  // Load RFIs + Issues per project as projects arrive
   useEffect(() => {
     if (!psProjects.length) return;
-    const visible = psProjects;
-    visible.forEach(p => {
+    psProjects.forEach(p => {
       const pid = `${p.portfolioId}-${p.ProjectID}`;
       setRfiLoading(prev => ({ ...prev, [pid]: true }));
-      console.log("[RFI] Fetching RFIs for project:", p.ProjectID, p.Name);
       getRFIs(p.portfolioId, p.ProjectID)
         .then(rfis => {
           setPsRFIs(prev => ({ ...prev, [pid]: rfis }));
@@ -1048,7 +1331,30 @@ export default function RFIApp({ user }) {
           setRfiLoading(prev => ({ ...prev, [pid]: false }));
         });
       getIssues(p.portfolioId, p.ProjectID)
-        .then(issues => setPsIssues(prev => ({ ...prev, [pid]: issues })))
+        .then(rawIssues => {
+          const open = (Array.isArray(rawIssues) ? rawIssues : [])
+            .filter(i => i.WorkflowStateName !== "Closed" && i.IsDraft === false);
+          setPsIssues(prev => ({ ...prev, [pid]: open }));
+          if (apiKey) {
+            open.forEach((issue, idx) => {
+              const iid = issueId(issue);
+              setTimeout(async () => {
+                if (analyzedRef.current.has(iid)) return;
+                analyzedRef.current.add(iid);
+                setTriageAnalyzing(a => ({ ...a, [iid]: true }));
+                try {
+                  const text   = issueDesc(issue) || issueTitle(issue) || "";
+                  const result = await analyzeIssue(text, apiKey);
+                  setTriageAnalysis(c => ({ ...c, [iid]: result }));
+                } catch (e) {
+                  setTriageAnalysis(c => ({ ...c, [iid]: { error: e.message } }));
+                } finally {
+                  setTriageAnalyzing(a => ({ ...a, [iid]: false }));
+                }
+              }, idx * 300);
+            });
+          }
+        })
         .catch(() => {});
     });
   }, [psProjects]);
@@ -1057,10 +1363,7 @@ export default function RFIApp({ user }) {
   const visibleProjects = useMemo(() => {
     const territory = TERRITORY_MAP[user?.id];
     if (territory === null || territory === undefined) return psProjects;
-    return psProjects.filter(p => {
-      const t = (p.Territory ?? "").trim();
-      return t === territory;
-    });
+    return psProjects.filter(p => (p.Territory ?? "").trim() === territory);
   }, [psProjects, user]);
 
   // Derived: all RFIs across visible projects, decorated with _project
@@ -1073,20 +1376,19 @@ export default function RFIApp({ user }) {
 
   const openRFIs = useMemo(() => allRFIs.filter(isOpenRFI), [allRFIs]);
 
-  // Derived: all issues, excluding resolved
-  const resolvedSet = useMemo(() => new Set(triageResolved), [triageResolved]);
-  const flaggedSet  = useMemo(() => new Set(triageFlagged),  [triageFlagged]);
-
+  // Derived: all open issues across visible projects, decorated with _project
   const allIssues = useMemo(() =>
     visibleProjects.flatMap(p =>
       (psIssues[`${p.portfolioId}-${p.ProjectID}`] || []).map(i => ({ ...i, _project: p }))
-    ).filter(i => !resolvedSet.has(i.id)),
-    [visibleProjects, psIssues, resolvedSet]
+    ),
+    [visibleProjects, psIssues]
   );
 
-  const triageIssues  = useMemo(() => allIssues.filter(i => !flaggedSet.has(i.id)),  [allIssues, flaggedSet]);
-  const flaggedIssues = useMemo(() => allIssues.filter(i => flaggedSet.has(i.id)),   [allIssues, flaggedSet]);
-  const hasMockIssues = allIssues.some(i => i._isMock);
+  // Derived: consult inbox — issues with an active srpm thread (isAdmin only)
+  const consultInboxIssues = useMemo(() =>
+    allIssues.filter(i => consultThreads[issueId(i)]?.pills?.srpm),
+    [allIssues, consultThreads]
+  );
 
   // Summary stats
   const stats = useMemo(() => {
@@ -1098,27 +1400,22 @@ export default function RFIApp({ user }) {
     return { total: openRFIs.length, overdue, due7, avgDays };
   }, [openRFIs]);
 
-  // Triage handlers
   const handleAnalyze = async issue => {
     if (!apiKey) return;
-    const id = issue.id;
-    setTriageAnalyzing(p => ({ ...p, [id]: true }));
+    const iid = issueId(issue);
+    analyzedRef.current.add(iid);
+    setTriageAnalyzing(p => ({ ...p, [iid]: true }));
     try {
-      const result = await analyzeIssue(issue.description || issue.title || "", apiKey);
-      setTriageAnalysis(p => ({ ...p, [id]: result }));
+      const result = await analyzeIssue(issueDesc(issue) || issueTitle(issue) || "", apiKey);
+      setTriageAnalysis(p => ({ ...p, [iid]: result }));
     } catch (e) {
-      setTriageAnalysis(p => ({ ...p, [id]: { error: e.message } }));
+      setTriageAnalysis(p => ({ ...p, [iid]: { error: e.message } }));
     } finally {
-      setTriageAnalyzing(p => ({ ...p, [id]: false }));
+      setTriageAnalyzing(p => ({ ...p, [iid]: false }));
     }
   };
 
-  const handleVerify  = (id, verdict) => setTriageVerified(p => ({ ...p, [id]: { ...p[id], verdict } }));
-  const handleCorrect = (id, text)    => setTriageVerified(p => ({ ...p, [id]: { ...p[id], correction: text } }));
-  const handleFlag    = id => setTriageFlagged(p => [...p, id]);
-  const handleResolve = id => setTriageResolved(p => [...p, id]);
-  const handleLorenDismiss  = id => setTriageFlagged(p => p.filter(x => x !== id));
-  const handleLorenApprove  = id => { setTriageFlagged(p => p.filter(x => x !== id)); setTriageResolved(p => [...p, id]); };
+  const impOrder = { Urgent: 0, High: 1, Normal: 2, Low: 3 };
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflowY: "auto",
@@ -1148,10 +1445,10 @@ export default function RFIApp({ user }) {
           borderBottom: `1px solid ${C.border}`, paddingBottom: 0 }}>
           {[
             { id: "dashboard", label: "RFI Dashboard" },
-            { id: "triage",    label: "Issue Triage" },
+            { id: "triage",    label: "Issue Triage"  },
           ].map(t => {
             const isActive = rfiTab === t.id;
-            const badge = t.id === "triage" && triageIssues.length;
+            const badge    = t.id === "triage" && allIssues.length;
             return (
               <button key={t.id} onClick={() => setRfiTab(t.id)}
                 style={{ padding: "8px 18px", borderRadius: "7px 7px 0 0",
@@ -1175,21 +1472,19 @@ export default function RFIApp({ user }) {
           })}
         </div>
 
-        {/* ── Dashboard tab ─────────────────────────────────────────────────── */}
+        {/* ── Dashboard tab ────────────────────────────────────────────────── */}
         {rfiTab === "dashboard" && (
           <>
-            {/* Stats row */}
             <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-              <StatCard label="Total Open RFIs"   value={stats.total} />
-              <StatCard label="Overdue"            value={stats.overdue}
+              <StatCard label="Total Open RFIs"  value={stats.total} />
+              <StatCard label="Overdue"           value={stats.overdue}
                 color={stats.overdue > 0 ? BAND_C.overdue : C.success} />
-              <StatCard label="Due Within 7 Days"  value={stats.due7}
+              <StatCard label="Due Within 7 Days" value={stats.due7}
                 color={stats.due7 > 0 ? BAND_C.soon7 : C.success} />
               <StatCard label="Avg Days Open"
                 value={stats.avgDays > 0 ? `${stats.avgDays}d` : "—"} />
             </div>
 
-            {/* Project health cards */}
             <div style={{ marginBottom: 16 }}>
               <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700,
                 letterSpacing: "0.07em", textTransform: "uppercase", color: C.hint }}>
@@ -1205,31 +1500,51 @@ export default function RFIApp({ user }) {
               />
             </div>
 
-            {/* Full RFI table */}
             {!projectsLoading && <RFITable rfis={openRFIs} />}
           </>
         )}
 
-        {/* ── Triage tab ────────────────────────────────────────────────────── */}
+        {/* ── Triage tab ───────────────────────────────────────────────────── */}
         {rfiTab === "triage" && (
           <>
-            {hasMockIssues && (
-              <p style={{ margin: "0 0 14px", fontSize: 11, color: C.hint }}>
-                Sample data — Issues endpoint pending confirmation
-              </p>
+            {/* Consult Inbox — isAdmin only */}
+            {isAdmin && consultInboxIssues.length > 0 && (
+              <div style={{ marginBottom: 28 }}>
+                <p style={{ margin: "0 0 12px", fontSize: 11, fontWeight: 700,
+                  letterSpacing: "0.07em", textTransform: "uppercase", color: C.pm }}>
+                  Consult Inbox ({consultInboxIssues.length})
+                </p>
+                {consultInboxIssues.map(issue => (
+                  <TriageIssueCard
+                    key={issueId(issue)}
+                    issue={issue}
+                    project={issue._project}
+                    analysis={triageAnalysis}
+                    analyzing={triageAnalyzing}
+                    consultThreads={consultThreads}
+                    setConsultThreads={setConsultThreads}
+                    createdRFIs={createdRFIs}
+                    setCreatedRFIs={setCreatedRFIs}
+                    kernbotLearning={kernbotLearning}
+                    setKernbotLearning={setKernbotLearning}
+                    isAdmin={isAdmin}
+                    onRetryAnalyze={handleAnalyze}
+                    user={user}
+                    defaultConsultOpen={true}
+                  />
+                ))}
+              </div>
             )}
 
-            {isAdmin && flaggedIssues.length > 0 && (
-              <LorenQueue
-                issues={flaggedIssues}
-                lorenNotes={lorenNotes}
-                setLorenNotes={setLorenNotes}
-                onDismiss={handleLorenDismiss}
-                onApprove={handleLorenApprove}
-              />
-            )}
+            {/* Health card bar */}
+            <TriageHealthBar
+              projects={visibleProjects}
+              psIssues={psIssues}
+              projectRefs={projectSectionRefs}
+            />
 
-            {triageIssues.length === 0 ? (
+            {/* Issue list */}
+            {allIssues.length === 0 ? (
               <div style={{ textAlign: "center", padding: "48px 16px" }}>
                 <p style={{ margin: 0, fontSize: 32, color: C.success }}>✓</p>
                 <p style={{ margin: "8px 0 0", fontSize: 14, fontWeight: 600, color: C.success }}>
@@ -1240,21 +1555,50 @@ export default function RFIApp({ user }) {
                 </p>
               </div>
             ) : (
-              triageIssues.map(issue => (
-                <TriageIssueCard
-                  key={issue.id}
-                  issue={issue}
-                  project={issue._project}
-                  analysis={triageAnalysis}
-                  analyzing={triageAnalyzing}
-                  verified={triageVerified}
-                  onAnalyze={handleAnalyze}
-                  onVerify={handleVerify}
-                  onCorrect={handleCorrect}
-                  onFlag={handleFlag}
-                  onResolve={handleResolve}
-                />
-              ))
+              visibleProjects.map(p => {
+                const pid    = `${p.portfolioId}-${p.ProjectID}`;
+                const issues = (psIssues[pid] || [])
+                  .map(i => ({ ...i, _project: p }))
+                  .sort((a, b) => {
+                    const da = issueCreated(a) ? new Date(issueCreated(a)).getTime() : 0;
+                    const db = issueCreated(b) ? new Date(issueCreated(b)).getTime() : 0;
+                    if (da !== db) return da - db;
+                    return (impOrder[issueImportance(a)] ?? 2) - (impOrder[issueImportance(b)] ?? 2);
+                  });
+                if (!issues.length) return null;
+                return (
+                  <div key={pid} ref={el => { projectSectionRefs.current[pid] = el; }}
+                    style={{ marginBottom: 28 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12,
+                      paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{p.Name}</span>
+                      {p.Number && <span style={{ fontSize: 11, color: C.hint }}>#{p.Number}</span>}
+                      <VertBadge v={p.vertical} />
+                      <span style={{ fontSize: 11, color: C.muted, marginLeft: "auto" }}>
+                        {issues.length} open issue{issues.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    {issues.map(issue => (
+                      <TriageIssueCard
+                        key={issueId(issue)}
+                        issue={issue}
+                        project={issue._project}
+                        analysis={triageAnalysis}
+                        analyzing={triageAnalyzing}
+                        consultThreads={consultThreads}
+                        setConsultThreads={setConsultThreads}
+                        createdRFIs={createdRFIs}
+                        setCreatedRFIs={setCreatedRFIs}
+                        kernbotLearning={kernbotLearning}
+                        setKernbotLearning={setKernbotLearning}
+                        isAdmin={isAdmin}
+                        onRetryAnalyze={handleAnalyze}
+                        user={user}
+                      />
+                    ))}
+                  </div>
+                );
+              })
             )}
           </>
         )}
