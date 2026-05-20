@@ -7,12 +7,25 @@ const TERRITORY_MAP = {
   lanze:   null,
   jacob:   null,
   tony:    'Tony',
+  adam:    'Adam',
   luis:    null,
   jillian: null,
-  adam:    'Adam',
 };
 
-// ── Mock data (replace with getChangeOrders() API call when ready) ────────────
+// ── Status config (V, N, R are hidden — never shown) ─────────────────────────
+const STATUS = {
+  P:  { label: 'Proposed', color: C.accentText, bg: C.accentDim },
+  A:  { label: 'Approved', color: C.success,    bg: 'rgba(52,211,153,0.12)' },
+  C:  { label: 'Cost Rev', color: C.warning,    bg: 'rgba(251,191,36,0.12)' },
+  RJ: { label: 'Rejected', color: C.danger,     bg: 'rgba(248,113,113,0.12)' },
+  E:  { label: 'Executed', color: C.muted,      bg: C.surface2 },
+};
+
+const OPEN_STATUSES = new Set(['P', 'A', 'C', 'RJ']);
+const isOpen        = c => OPEN_STATUSES.has(c.status);
+const isVisible     = c => c.status in STATUS; // hides V, N, R
+
+// ── Mock data (replace with API call when ready) ──────────────────────────────
 const MOCK_PROJECTS = [
   { id:'p1', job:'26606', name:'Bakersfield Civic Auditorium — Phase 2', meta:'Structural · Loren Castro',  territory:'Loren' },
   { id:'p2', job:'26541', name:'Kern County Solar Carport — Lot 7',      meta:'Solar · Tony Sanabria',      territory:'Tony'  },
@@ -21,22 +34,22 @@ const MOCK_PROJECTS = [
 ];
 
 const MOCK_COS = [
-  { proj:'p1', job:'26606', co:'CO-014', desc:'Misc. angle revisions per arch RFI-22',          amt:12400, sub:'Apr 28', age:21,  status:'Proposed' },
-  { proj:'p1', job:'26606', co:'CO-013', desc:'Base plate additions — column line D',            amt:8750,  sub:'May 1',  age:18,  status:'Proposed' },
-  { proj:'p1', job:'26606', co:'CO-012', desc:'Embed plate revisions per structural rev.3',      amt:4200,  sub:'May 10', age:9,   status:'Approved' },
-  { proj:'p1', job:'26606', co:'CO-011', desc:'Moment frame weld upgrade — grid A',              amt:9100,  sub:'Mar 10', age:null,status:'Executed' },
-  { proj:'p2', job:'26541', co:'CO-007', desc:'Additional anchor bolts — wind zone uplift',      amt:6300,  sub:'May 5',  age:14,  status:'Proposed' },
-  { proj:'p2', job:'26541', co:'CO-006', desc:'Footing depth increase — geotech report rev.',    amt:11100, sub:'May 12', age:7,   status:'Proposed' },
-  { proj:'p2', job:'26541', co:'CO-005', desc:'Column base plate re-design',                     amt:5400,  sub:'Feb 20', age:null,status:'Executed' },
-  { proj:'p3', job:'26588', co:'CO-003', desc:'Gusset plate material upgrade per EO-2204',       amt:18900, sub:'May 8',  age:11,  status:'Proposed' },
-  { proj:'p3', job:'26588', co:'CO-002', desc:'Alternate bolt pattern — customer rejected',      amt:3200,  sub:'Apr 20', age:null,status:'Rejected' },
-  { proj:'p4', job:'26512', co:'CO-009', desc:'HSS column addition — grid 4 revision',           amt:7800,  sub:'Mar 5',  age:null,status:'Executed' },
+  { proj:'p1', job:'26606', co:'CO-014', desc:'Misc. angle revisions per arch RFI-22',          amt:12400, sub:'Apr 28', age:21,  status:'P'  },
+  { proj:'p1', job:'26606', co:'CO-013', desc:'Base plate additions — column line D',            amt:8750,  sub:'May 1',  age:18,  status:'P'  },
+  { proj:'p1', job:'26606', co:'CO-012', desc:'Embed plate revisions per structural rev.3',      amt:4200,  sub:'May 10', age:9,   status:'A'  },
+  { proj:'p1', job:'26606', co:'CO-010', desc:'Paint spec change — slip critical connections',   amt:2100,  sub:'May 3',  age:16,  status:'C'  },
+  { proj:'p1', job:'26606', co:'CO-011', desc:'Moment frame weld upgrade — grid A',              amt:9100,  sub:'Mar 10', age:null,status:'E'  },
+  { proj:'p2', job:'26541', co:'CO-007', desc:'Additional anchor bolts — wind zone uplift',      amt:6300,  sub:'May 5',  age:14,  status:'P'  },
+  { proj:'p2', job:'26541', co:'CO-006', desc:'Footing depth increase — geotech report rev.',    amt:11100, sub:'May 12', age:7,   status:'P'  },
+  { proj:'p2', job:'26541', co:'CO-005', desc:'Column base plate re-design',                     amt:5400,  sub:'Feb 20', age:null,status:'E'  },
+  { proj:'p3', job:'26588', co:'CO-003', desc:'Gusset plate material upgrade per EO-2204',       amt:18900, sub:'May 8',  age:11,  status:'P'  },
+  { proj:'p3', job:'26588', co:'CO-002', desc:'Alternate bolt pattern — customer rejected',      amt:3200,  sub:'Apr 20', age:null,status:'RJ' },
+  { proj:'p4', job:'26512', co:'CO-009', desc:'HSS column addition — grid 4 revision',           amt:7800,  sub:'Mar 5',  age:null,status:'E'  },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const isOpen  = c => c.status !== 'Executed';
-const fmtAmt  = n => '$' + n.toLocaleString();
+const fmtAmt = n => '$' + n.toLocaleString();
 
 function urgencyScore(cos) {
   const open       = cos.filter(isOpen);
@@ -54,16 +67,11 @@ function AgeCell({ age }) {
 }
 
 function StatusChip({ status }) {
-  const s = {
-    Proposed: { color: C.accentText, bg: C.accentDim },
-    Approved: { color: C.success,    bg: 'rgba(52,211,153,0.12)' },
-    Rejected: { color: C.danger,     bg: 'rgba(248,113,113,0.12)' },
-    Executed: { color: C.muted,      bg: C.surface2 },
-  }[status] || { color: C.muted, bg: C.surface2 };
+  const s = STATUS[status] || { label: status, color: C.muted, bg: C.surface2 };
   return (
     <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 20,
       background: s.bg, color: s.color, whiteSpace: 'nowrap' }}>
-      {status}
+      {s.label}
     </span>
   );
 }
@@ -121,12 +129,7 @@ function FlatTable({ cos, projects, onBack, backLabel }) {
                     onMouseEnter={e => e.currentTarget.style.background = C.surface2}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <td style={{ padding: '10px 12px', color: C.muted, whiteSpace: 'nowrap' }}>{c.job}</td>
-                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
-                      <a href="#" onClick={e => e.preventDefault()}
-                        style={{ color: C.accentText, fontWeight: 600, textDecoration: 'none' }}
-                        onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-                        onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}>{c.co}</a>
-                    </td>
+                    <td style={{ padding: '10px 12px', color: C.text, whiteSpace: 'nowrap', fontWeight: 600 }}>{c.co}</td>
                     <td style={{ padding: '10px 12px', maxWidth: 240, overflow: 'hidden',
                       textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: C.text }} title={c.desc}>
                       {c.desc}
@@ -167,11 +170,12 @@ function ProjectCard({ project, cos }) {
   const [expanded, setExpanded] = useState(false);
   const [tab,      setTab]      = useState('open');
 
-  const open        = cos.filter(isOpen);
-  const executed    = cos.filter(c => c.status === 'Executed');
-  const proposed    = cos.filter(c => c.status === 'Proposed');
-  const rejected    = cos.filter(c => c.status === 'Rejected');
+  const visible  = cos.filter(isVisible);
+  const open     = visible.filter(isOpen);
+  const executed = visible.filter(c => c.status === 'E');
 
+  const proposed    = open.filter(c => c.status === 'P');
+  const rejected    = open.filter(c => c.status === 'RJ');
   const staleCount21 = open.filter(c => (c.age ?? 0) >= 21).length;
   const staleCount14 = open.filter(c => (c.age ?? 0) >= 14).length;
   const hasVeryStale = staleCount21 > 0;
@@ -183,8 +187,8 @@ function ProjectCard({ project, cos }) {
   const pills = [];
   if (staleCount21 > 0) pills.push({ label: `${staleCount21} stale`, color: C.danger,     bg: 'rgba(248,113,113,0.12)' });
   else if (staleCount14 > 0) pills.push({ label: `${staleCount14} stale`, color: C.warning, bg: 'rgba(251,191,36,0.12)' });
-  if (proposed.length > 0)   pills.push({ label: `${proposed.length} proposed`, color: C.accentText, bg: C.accentDim });
-  if (rejected.length > 0)   pills.push({ label: `${rejected.length} rejected`, color: C.hint, bg: C.surface2 });
+  if (proposed.length > 0) pills.push({ label: `${proposed.length} proposed`, color: C.accentText, bg: C.accentDim });
+  if (rejected.length > 0) pills.push({ label: `${rejected.length} rejected`, color: C.hint, bg: C.surface2 });
 
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`,
@@ -202,7 +206,8 @@ function ProjectCard({ project, cos }) {
           </div>
           <div style={{ fontSize: 11, color: C.hint }}>{project.job} · {project.meta}</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+          flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {pills.map((p, i) => (
             <span key={i} style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20,
               background: p.bg, color: p.color, border: `1px solid ${p.color}33`, whiteSpace: 'nowrap' }}>
@@ -211,7 +216,8 @@ function ProjectCard({ project, cos }) {
           ))}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.hint} strokeWidth="2"
             strokeLinecap="round"
-            style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', flexShrink: 0 }}>
+            style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s', flexShrink: 0 }}>
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </div>
@@ -266,12 +272,8 @@ function ProjectCard({ project, cos }) {
                       <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}
                         onMouseEnter={e => e.currentTarget.style.background = C.surface2}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                        <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
-                          <a href="#" onClick={e => e.preventDefault()}
-                            style={{ color: C.accentText, fontWeight: 600, textDecoration: 'none' }}
-                            onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-                            onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}>{c.co}</a>
-                        </td>
+                        <td style={{ padding: '8px 12px', color: C.text,
+                          whiteSpace: 'nowrap', fontWeight: 600 }}>{c.co}</td>
                         <td style={{ padding: '8px 12px', color: C.text, maxWidth: 300,
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                           title={c.desc}>{c.desc}</td>
@@ -289,9 +291,7 @@ function ProjectCard({ project, cos }) {
                         Project total
                       </td>
                       <td style={{ padding: '8px 12px', textAlign: 'right', fontSize: 12,
-                        fontWeight: 700, color: C.text }}>
-                        {fmtAmt(openTotal)}
-                      </td>
+                        fontWeight: 700, color: C.text }}>{fmtAmt(openTotal)}</td>
                       <td colSpan={3} />
                     </tr>
                   </tfoot>
@@ -307,7 +307,9 @@ function ProjectCard({ project, cos }) {
                 Showing executed COs (last 180 days)
               </p>
               {executed.length === 0 ? (
-                <p style={{ margin: 0, padding: '4px 16px 16px', fontSize: 12, color: C.muted }}>No executed change orders.</p>
+                <p style={{ margin: 0, padding: '4px 16px 16px', fontSize: 12, color: C.muted }}>
+                  No executed change orders.
+                </p>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -326,12 +328,8 @@ function ProjectCard({ project, cos }) {
                         <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}
                           onMouseEnter={e => e.currentTarget.style.background = C.surface2}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                          <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
-                            <a href="#" onClick={e => e.preventDefault()}
-                              style={{ color: C.accentText, fontWeight: 600, textDecoration: 'none' }}
-                              onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-                              onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}>{c.co}</a>
-                          </td>
+                          <td style={{ padding: '8px 12px', color: C.text,
+                            whiteSpace: 'nowrap', fontWeight: 600 }}>{c.co}</td>
                           <td style={{ padding: '8px 12px', color: C.text, maxWidth: 300,
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                             title={c.desc}>{c.desc}</td>
@@ -367,13 +365,13 @@ export default function ChangeOrdersApp({ user }) {
   const projectIds = useMemo(() => new Set(visibleProjects.map(p => p.id)), [visibleProjects]);
 
   const allCOs = useMemo(() =>
-    MOCK_COS.filter(c => projectIds.has(c.proj)),
+    MOCK_COS.filter(c => projectIds.has(c.proj) && isVisible(c)),
     [projectIds]
   );
 
   const stats = useMemo(() => {
     const open     = allCOs.filter(isOpen);
-    const proposed = allCOs.filter(c => c.status === 'Proposed');
+    const proposed = allCOs.filter(c => c.status === 'P');
     const stale    = allCOs.filter(c => isOpen(c) && (c.age ?? 0) >= 14);
     const propVal  = proposed.reduce((s, c) => s + c.amt, 0);
     return { openCount: open.length, proposedCount: proposed.length, staleCount: stale.length, propVal };
@@ -389,7 +387,7 @@ export default function ChangeOrdersApp({ user }) {
 
   const filterCOs = useMemo(() => {
     if (activeFilter === 'total')    return allCOs.filter(isOpen);
-    if (activeFilter === 'proposed') return allCOs.filter(c => c.status === 'Proposed');
+    if (activeFilter === 'proposed') return allCOs.filter(c => c.status === 'P');
     if (activeFilter === 'stale')    return [...allCOs.filter(c => isOpen(c) && (c.age ?? 0) >= 14)]
                                              .sort((a, b) => (b.age ?? 0) - (a.age ?? 0));
     return [];
@@ -399,8 +397,8 @@ export default function ChangeOrdersApp({ user }) {
     const q = search.trim().toLowerCase();
     if (!q) return [];
     return allCOs.filter(c =>
-      c.job.toLowerCase().includes(q) ||
-      c.co.toLowerCase().includes(q)  ||
+      c.job.toLowerCase().includes(q)  ||
+      c.co.toLowerCase().includes(q)   ||
       c.desc.toLowerCase().includes(q)
     );
   }, [search, allCOs]);
@@ -428,13 +426,24 @@ export default function ChangeOrdersApp({ user }) {
       <div style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '20px 20px 48px' }}>
 
         {/* Header */}
-        <div style={{ marginBottom: 20 }}>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.text, letterSpacing: '-0.03em' }}>
-            Change Orders
-          </h1>
-          <p style={{ margin: '3px 0 0', fontSize: 12, color: C.hint }}>
-            {visibleProjects.length} project{visibleProjects.length !== 1 ? 's' : ''} · {allCOs.length} change orders
-          </p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
+          <div style={{ flex: 1 }}>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.text, letterSpacing: '-0.03em' }}>
+              Change Orders
+            </h1>
+            <p style={{ margin: '3px 0 0', fontSize: 12, color: C.hint }}>
+              {visibleProjects.length} project{visibleProjects.length !== 1 ? 's' : ''} · {allCOs.length} change orders
+            </p>
+          </div>
+          <a href="https://kernsteel.dexterchaney.com/pages/index.jsp" target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 7, marginTop: 2,
+              border: `1px solid ${C.border}`, background: C.surface,
+              color: C.muted, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0,
+              transition: 'color 0.15s, border-color 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.color = C.text; e.currentTarget.style.borderColor = C.borderHi; }}
+            onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border; }}>
+            Spectrum ↗
+          </a>
         </div>
 
         {/* Summary cards */}
