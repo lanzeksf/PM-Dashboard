@@ -182,20 +182,3 @@ export async function getIssues(portfolioId, projectId) {
   }
 }
 
-export async function postRFI(portfolioId, projectId, payload) {
-  try {
-    const token = await getToken();
-    const url = `${BASE}/${portfolioId}/${projectId}/rfis`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: buildHeaders(token),
-      body: JSON.stringify(payload),
-    });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(`ProjectSight ${res.status}: ${JSON.stringify(body)}`);
-    return body;
-  } catch (e) {
-    console.error('[ProjectSight] postRFI() failed:', e.message);
-    throw e;
-  }
-}

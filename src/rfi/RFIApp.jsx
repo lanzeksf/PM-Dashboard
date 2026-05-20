@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { C } from "../core/utils.jsx";
-import { getProjects, getRFIs, getIssues, postRFI } from "../projectsight/projectsightApi.js";
+import { C, MI } from "../core/utils.jsx";
+import { getProjects, getRFIs, getIssues } from "../projectsight/projectsightApi.js";
 
 // ── KSF team → Territory filter mapping ──────────────────────────────────────
-// null = sees all projects; string = filter to projects where Territory matches
 
 const TERRITORY_MAP = {
   loren:   null,
@@ -153,9 +152,7 @@ const recStyle = rec => ({
   "Needs Sr. PM Review": { color: C.pm,      bg: "rgba(167,139,250,0.12)" },
 }[rec] || { color: C.muted, bg: C.surface2 });
 
-const psRFILink   = (pid, projId, r) => `https://app.projectsight.com/${pid}/projects/${projId}/rfis/${rfiIdVal(r)}`;
-const psIssueLink = (portfolioId) =>
-  `https://prod.projectsightapp.trimble.com/Web/app/Project?listid=-4075&orgid=${portfolioId}&projid=36`;
+const psRFILink = (pid, projId, r) => `https://app.projectsight.com/${pid}/projects/${projId}/rfis/${rfiIdVal(r)}`;
 
 // ── Kern Bot analysis call ────────────────────────────────────────────────────
 
@@ -785,7 +782,7 @@ function RFITable({ rfis }) {
 
 // ── Triage Health Bar ─────────────────────────────────────────────────────────
 
-function TriageHealthBar({ projects, psIssues, projectRefs }) {
+function TriageHealthBar({ projects, psIssues, selectedPids, setSelectedPids }) {
   const cards = projects.map(p => {
     const pid    = `${p.portfolioId}-${p.ProjectID}`;
     const issues = psIssues[pid] || [];
@@ -799,45 +796,63 @@ function TriageHealthBar({ projects, psIssues, projectRefs }) {
   if (!cards.length) return null;
 
   return (
-    <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6, marginBottom: 20 }}>
-      {cards.map(({ p, pid, count, oldestAge }) => {
-        const ageBadgeColor = oldestAge >= 14 ? C.danger  : oldestAge >= 7 ? C.warning : C.success;
-        const ageBadgeBg    = oldestAge >= 14 ? "rgba(248,113,113,0.12)" : oldestAge >= 7 ? "rgba(251,191,36,0.12)" : "rgba(52,211,153,0.12)";
-        const isPilingUp    = count >= 5;
-        return (
-          <div key={pid}
-            onClick={() => {
-              const el = projectRefs.current?.[pid];
-              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-            style={{ flexShrink: 0, width: 160, background: C.surface,
-              border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", cursor: "pointer" }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = C.borderHi}
-            onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
-            <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 5 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: C.text, flex: 1,
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {p.Name}
-              </span>
-              {isPilingUp && (
-                <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 8,
-                  background: "rgba(251,146,60,0.15)", color: "#fb923c", whiteSpace: "nowrap" }}>
-                  ▲
+    <div style={{ marginBottom: 20 }}>
+      {selectedPids.size > 0 && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
+          <button onClick={() => setSelectedPids(new Set())}
+            style={{ background: "none", border: "none", fontSize: 11, color: C.hint,
+              cursor: "pointer", fontFamily: "inherit", textDecoration: "underline", padding: 0 }}>
+            × Clear
+          </button>
+        </div>
+      )}
+      <div className="ksf-hscroll"
+        style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6,
+          scrollbarWidth: "thin", scrollbarColor: `${C.border} transparent` }}>
+        {cards.map(({ p, pid, count, oldestAge }) => {
+          const isSelected    = selectedPids.has(pid);
+          const ageBadgeColor = oldestAge >= 14 ? C.danger  : oldestAge >= 7 ? C.warning : C.success;
+          const ageBadgeBg    = oldestAge >= 14 ? "rgba(248,113,113,0.12)" : oldestAge >= 7 ? "rgba(251,191,36,0.12)" : "rgba(52,211,153,0.12)";
+          const isPilingUp    = count >= 5;
+          return (
+            <div key={pid}
+              onClick={() => setSelectedPids(prev => {
+                const next = new Set(prev);
+                if (next.has(pid)) next.delete(pid); else next.add(pid);
+                return next;
+              })}
+              style={{ flexShrink: 0, width: 160,
+                background: isSelected ? C.accentDim : C.surface,
+                border: `1px solid ${isSelected ? C.accent : C.border}`,
+                borderRadius: 10, padding: "12px 14px", cursor: "pointer",
+                transition: "border-color 0.15s, background 0.15s" }}
+              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.borderColor = C.borderHi; }}
+              onMouseLeave={e => { if (!isSelected) e.currentTarget.style.borderColor = C.border; }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 5 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: C.text, flex: 1,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {p.Name}
                 </span>
-              )}
+                {isPilingUp && (
+                  <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 8,
+                    background: "rgba(251,146,60,0.15)", color: "#fb923c", whiteSpace: "nowrap" }}>
+                    ▲
+                  </span>
+                )}
+              </div>
+              <VertBadge v={p.vertical} />
+              <p style={{ margin: "8px 0 2px", fontSize: 24, fontWeight: 700, color: C.text, lineHeight: 1 }}>
+                {count}
+              </p>
+              <p style={{ margin: "0 0 6px", fontSize: 10, color: C.hint }}>Open issues</p>
+              <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
+                background: ageBadgeBg, color: ageBadgeColor, border: `1px solid ${ageBadgeColor}33` }}>
+                Oldest: {oldestAge}d
+              </span>
             </div>
-            <VertBadge v={p.vertical} />
-            <p style={{ margin: "8px 0 2px", fontSize: 24, fontWeight: 700, color: C.text, lineHeight: 1 }}>
-              {count}
-            </p>
-            <p style={{ margin: "0 0 6px", fontSize: 10, color: C.hint }}>Open issues</p>
-            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
-              background: ageBadgeBg, color: ageBadgeColor, border: `1px solid ${ageBadgeColor}33` }}>
-              Oldest: {oldestAge}d
-            </span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -846,8 +861,8 @@ function TriageHealthBar({ projects, psIssues, projectRefs }) {
 
 function TriageIssueCard({
   issue, project, analysis, analyzing, consultThreads, setConsultThreads,
-  createdRFIs, setCreatedRFIs, kernbotLearning, setKernbotLearning,
-  isAdmin, onRetryAnalyze, user, defaultConsultOpen,
+  kernbotLearning, setKernbotLearning,
+  isAdmin, onRetryAnalyze, user, defaultConsultOpen, defaultCollapsed = false,
 }) {
   const iid       = issueId(issue);
   const a         = analysis?.[iid];
@@ -858,37 +873,36 @@ function TriageIssueCard({
   const fileLinks = issueFileLinks(issue);
   const thread    = consultThreads[iid] || null;
 
-  const ageBadgeColor = age >= 14 ? C.danger  : age >= 7 ? C.warning : C.hint;
-  const ageBadgeBg    = age >= 14 ? "rgba(248,113,113,0.12)" : age >= 7 ? "rgba(251,191,36,0.12)" : C.surface2;
+  const ageBadgeColor = age !== null && age >= 14 ? C.danger  : age !== null && age >= 7 ? C.warning : C.hint;
+  const ageBadgeBg    = age !== null && age >= 14 ? "rgba(248,113,113,0.12)" : age !== null && age >= 7 ? "rgba(251,191,36,0.12)" : C.surface2;
 
-  const [showOriginal, setShowOriginal] = useState(false);
-  const [consultOpen,  setConsultOpen]  = useState(defaultConsultOpen || false);
-  const [pills,        setPills]        = useState({ srpm: false, field: false });
-  const [consultText,  setConsultText]  = useState("");
-  const [consultFiles, setConsultFiles] = useState([]);
-  const [replyText,    setReplyText]    = useState("");
-  const [replyFiles,   setReplyFiles]   = useState([]);
-  const [rfiError,     setRfiError]     = useState(null);
-  const [rfiLoading,   setRfiLoading]   = useState(false);
+  const [isCollapsed,     setIsCollapsed]     = useState(defaultCollapsed);
+  const [showOriginal,    setShowOriginal]    = useState(false);
+  const [consultOpen,     setConsultOpen]     = useState(defaultConsultOpen || false);
+  const [pills,           setPills]           = useState({ srpm: false, field: false });
+  const [consultText,     setConsultText]     = useState("");
+  const [consultFiles,    setConsultFiles]    = useState([]);
+  const [replyText,       setReplyText]       = useState("");
+  const [replyFiles,      setReplyFiles]      = useState([]);
+  const [consultDragOver, setConsultDragOver] = useState(false);
+  const [replyDragOver,   setReplyDragOver]   = useState(false);
 
-  const existingRFI     = createdRFIs?.[iid];
+  const consultFileRef = useRef();
+  const replyFileRef   = useRef();
+
   const hasPendingAction = thread?.hasPendingAction;
 
   const handleSendConsult = () => {
     if (!consultText.trim() || (!pills.srpm && !pills.field)) return;
     const systemMsg = {
-      id: Date.now(),
-      type: "system",
-      sender: "Kern Bot",
+      id: Date.now(), type: "system", sender: "Kern Bot",
       timestamp: new Date().toISOString(),
       text: a
         ? `Issue Summary: ${a.cleanText || issueDesc(issue)}\n\nRecommendation: ${a.recommendation || "—"}\nReasoning: ${a.reasoning || "—"}`
         : `Issue: ${issueTitle(issue)}\n\n${issueDesc(issue)}`,
     };
     const pmMsg = {
-      id: Date.now() + 1,
-      type: "pm",
-      sender: user?.name || "PM",
+      id: Date.now() + 1, type: "pm", sender: user?.name || "PM",
       timestamp: new Date().toISOString(),
       text: consultText,
       attachmentNames: consultFiles.map(f => f.name),
@@ -908,9 +922,7 @@ function TriageIssueCard({
   const handleReply = () => {
     if (!replyText.trim()) return;
     const msg = {
-      id: Date.now(),
-      type: "pm",
-      sender: user?.name || "PM",
+      id: Date.now(), type: "pm", sender: user?.name || "PM",
       timestamp: new Date().toISOString(),
       text: replyText,
       attachmentNames: replyFiles.map(f => f.name),
@@ -925,11 +937,8 @@ function TriageIssueCard({
 
   const handleDecision = decisionText => {
     const msg = {
-      id: Date.now(),
-      type: "decision",
-      sender: user?.name || "Sr. PM",
-      timestamp: new Date().toISOString(),
-      text: decisionText,
+      id: Date.now(), type: "decision", sender: user?.name || "Sr. PM",
+      timestamp: new Date().toISOString(), text: decisionText,
     };
     setConsultThreads(prev => ({
       ...prev,
@@ -950,35 +959,49 @@ function TriageIssueCard({
     }
   };
 
-  const handleCreateRFI = async () => {
-    setRfiError(null);
-    setRfiLoading(true);
-    try {
-      const result = await postRFI(project.portfolioId, project.ProjectID, {
-        Subject:  `[Issue ${issueNumber(issue)}] — ${issueTitle(issue)}`,
-        Question: a?.cleanText || issueDesc(issue),
-      });
-      setCreatedRFIs(prev => ({
-        ...prev,
-        [iid]: { rfiNumber: result.Number ?? result.id, status: "created" },
-      }));
-    } catch (e) {
-      setRfiError(e.message);
-    } finally {
-      setRfiLoading(false);
-    }
+  // ── Shared input box style ──────────────────────────────────────────────────
+  const inputBoxStyle = dragOver => ({
+    background: C.bg,
+    border: `1px solid ${dragOver ? C.borderHi : C.border}`,
+    borderRadius: 10, overflow: "hidden", transition: "border-color 0.15s",
+  });
+
+  const paperclipBtnStyle = {
+    background: "none", border: "1px solid transparent", cursor: "pointer",
+    color: C.hint, padding: "4px 5px", display: "flex", borderRadius: 6,
+    transition: "all 0.15s", alignItems: "center",
   };
+
+  const sendArrow = (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+      <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
       marginBottom: 12, overflow: "hidden" }}>
 
       {/* Card header */}
-      <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, background: C.surface2 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, flexWrap: "wrap", marginBottom: 5 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.text, flex: 1, minWidth: 0 }}>
-            {issueTitle(issue)}
-          </span>
+      <div
+        onClick={defaultCollapsed ? () => setIsCollapsed(v => !v) : undefined}
+        style={{ padding: "12px 16px",
+          borderBottom: isCollapsed ? "none" : `1px solid ${C.border}`,
+          background: C.surface2,
+          cursor: defaultCollapsed ? "pointer" : "default" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, flexWrap: "wrap",
+          marginBottom: isCollapsed ? 0 : 5 }}>
+          {/* Title: job number / project name / detailer */}
+          <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline",
+            gap: 6, flexWrap: "wrap" }}>
+            {project?.Number && (
+              <span style={{ fontSize: 11, color: C.hint, flexShrink: 0 }}>{project.Number}</span>
+            )}
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+              {project?.Name ?? "—"}
+            </span>
+            <span style={{ fontSize: 11, color: C.muted }}>— {issueSubmitter(issue)}</span>
+          </div>
           {age !== null && (
             <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
               background: ageBadgeBg, color: ageBadgeColor, whiteSpace: "nowrap",
@@ -991,294 +1014,372 @@ function TriageIssueCard({
             border: `1px solid ${ics.color}33` }}>
             {imp}
           </span>
+          {defaultCollapsed && (
+            <span style={{ fontSize: 10, color: C.hint, flexShrink: 0 }}>
+              {isCollapsed ? "▼" : "▲"}
+            </span>
+          )}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          {project && <VertBadge v={project.vertical} />}
-          {project && <span style={{ fontSize: 10, color: C.muted }}>{project.Name}</span>}
-          <span style={{ fontSize: 10, color: C.hint }}>#{issueNumber(issue)}</span>
-          <span style={{ fontSize: 10, color: C.hint }}>— {issueSubmitter(issue)}</span>
-        </div>
+        {!isCollapsed && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {project && <VertBadge v={project.vertical} />}
+            <span style={{ fontSize: 10, color: C.hint }}>#{issueNumber(issue)}</span>
+            <span style={{ fontSize: 11, color: C.text, fontStyle: "italic" }}>
+              {issueTitle(issue)}
+            </span>
+          </div>
+        )}
       </div>
 
-      <div style={{ padding: "14px 16px" }}>
+      {/* Card body — hidden when collapsed */}
+      {!isCollapsed && (
+        <div style={{ padding: "14px 16px" }}>
 
-        {/* KernBot analysis block */}
-        {isAnalyz ? (
-          <div style={{ padding: "10px 0 12px" }}>
-            <Spinner label="Analyzing with Kern Bot…" />
-          </div>
-        ) : a?.error ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", marginBottom: 12 }}>
-            <span style={{ fontSize: 12, color: C.danger }}>Analysis failed: {a.error}</span>
-            <button onClick={() => onRetryAnalyze(issue)}
-              style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
-                background: C.surface2, color: C.muted, cursor: "pointer", fontFamily: "inherit" }}>
-              Retry
-            </button>
-          </div>
-        ) : a ? (
-          <div style={{ background: "rgba(91,124,250,0.05)", border: `1px solid ${C.accent}33`,
-            borderRadius: 8, padding: "12px 14px", marginBottom: 12 }}>
+          {/* KernBot analysis block */}
+          {isAnalyz ? (
+            <div style={{ padding: "10px 0 12px" }}>
+              <Spinner label="Analyzing with Kern Bot…" />
+            </div>
+          ) : a?.error ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", marginBottom: 12 }}>
+              <span style={{ fontSize: 12, color: C.danger }}>Analysis failed: {a.error}</span>
+              <button onClick={() => onRetryAnalyze(issue)}
+                style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
+                  background: C.surface2, color: C.muted, cursor: "pointer", fontFamily: "inherit" }}>
+                Retry
+              </button>
+            </div>
+          ) : a ? (
+            <div style={{ background: "rgba(91,124,250,0.05)", border: `1px solid ${C.accent}33`,
+              borderRadius: 8, padding: "12px 14px", marginBottom: 12 }}>
 
-            <p style={{ margin: "0 0 6px", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em",
-              textTransform: "uppercase", color: C.accentText }}>Kern Bot Summary</p>
-            <p style={{ margin: "0 0 6px", fontSize: 12, color: C.text, lineHeight: 1.65 }}>{a.cleanText}</p>
+              <p style={{ margin: "0 0 6px", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em",
+                textTransform: "uppercase", color: C.accentText }}>Kern Bot Summary</p>
+              <p style={{ margin: "0 0 6px", fontSize: 12, color: C.text, lineHeight: 1.65 }}>{a.cleanText}</p>
 
-            <button onClick={() => setShowOriginal(v => !v)}
-              style={{ fontSize: 11, color: C.hint, background: "none", border: "none",
-                cursor: "pointer", padding: 0, marginBottom: showOriginal ? 8 : 0,
-                fontFamily: "inherit", textDecoration: "underline" }}>
-              {showOriginal ? "Hide original ▲" : "Show original ▼"}
-            </button>
-            {showOriginal && (
-              <p style={{ margin: "6px 0 8px", fontSize: 11, color: C.muted, lineHeight: 1.65,
-                padding: "8px 10px", background: C.bg, borderRadius: 6, whiteSpace: "pre-wrap" }}>
-                {issueDesc(issue) || "(No description)"}
-              </p>
-            )}
+              <button onClick={() => setShowOriginal(v => !v)}
+                style={{ fontSize: 11, color: C.hint, background: "none", border: "none",
+                  cursor: "pointer", padding: 0, marginBottom: showOriginal ? 8 : 0,
+                  fontFamily: "inherit", textDecoration: "underline" }}>
+                {showOriginal ? "Hide original ▲" : "Show original ▼"}
+              </button>
+              {showOriginal && (
+                <p style={{ margin: "6px 0 8px", fontSize: 11, color: C.muted, lineHeight: 1.65,
+                  padding: "8px 10px", background: C.bg, borderRadius: 6, whiteSpace: "pre-wrap" }}>
+                  {issueDesc(issue) || "(No description)"}
+                </p>
+              )}
 
-            {a.subQuestions?.length > 0 && (
-              <div style={{ margin: "10px 0" }}>
-                {a.subQuestions.map(sq => {
-                  const cs = sq.confidence === "High"   ? { color: C.success, bg: "rgba(52,211,153,0.12)"  }
-                           : sq.confidence === "Medium" ? { color: C.warning, bg: "rgba(251,191,36,0.12)"  }
-                                                        : { color: C.danger,  bg: "rgba(248,113,113,0.12)" };
-                  return (
-                    <div key={sq.id} style={{ marginBottom: 10, paddingLeft: 12,
-                      borderLeft: `2px solid ${C.accent}44` }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: C.accent,
-                          minWidth: 16, flexShrink: 0, marginTop: 1 }}>{sq.id}.</span>
-                        <div style={{ flex: 1 }}>
-                          <p style={{ margin: "0 0 3px", fontSize: 12, color: C.text, lineHeight: 1.5 }}>
-                            {sq.question}
-                          </p>
-                          {sq.answer && (
-                            <p style={{ margin: "0 0 3px", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
-                              → {sq.answer}
+              {a.subQuestions?.length > 0 && (
+                <div style={{ margin: "10px 0" }}>
+                  {a.subQuestions.map(sq => {
+                    const cs = sq.confidence === "High"   ? { color: C.success, bg: "rgba(52,211,153,0.12)"  }
+                             : sq.confidence === "Medium" ? { color: C.warning, bg: "rgba(251,191,36,0.12)"  }
+                                                          : { color: C.danger,  bg: "rgba(248,113,113,0.12)" };
+                    return (
+                      <div key={sq.id} style={{ marginBottom: 10, paddingLeft: 12,
+                        borderLeft: `2px solid ${C.accent}44` }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: C.accent,
+                            minWidth: 16, flexShrink: 0, marginTop: 1 }}>{sq.id}.</span>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: "0 0 3px", fontSize: 12, color: C.text, lineHeight: 1.5 }}>
+                              {sq.question}
                             </p>
-                          )}
-                          {sq.missingInfo && (
-                            <p style={{ margin: "0 0 3px", fontSize: 11, color: C.warning, lineHeight: 1.5 }}>
-                              Missing: {sq.missingInfo}
-                            </p>
-                          )}
-                          <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 10,
-                            background: cs.bg, color: cs.color }}>
-                            {sq.confidence}
-                          </span>
+                            {sq.answer && (
+                              <p style={{ margin: "0 0 3px", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+                                → {sq.answer}
+                              </p>
+                            )}
+                            {sq.missingInfo && (
+                              <p style={{ margin: "0 0 3px", fontSize: 11, color: C.warning, lineHeight: 1.5 }}>
+                                Missing: {sq.missingInfo}
+                              </p>
+                            )}
+                            <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 10,
+                              background: cs.bg, color: cs.color }}>
+                              {sq.confidence}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 4 }}>
+                {a.recommendation && (() => {
+                  const rs = recStyle(a.recommendation);
+                  return (
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20,
+                      background: rs.bg, color: rs.color, border: `1px solid ${rs.color}44` }}>
+                      {a.recommendation}
+                    </span>
                   );
-                })}
+                })()}
               </div>
-            )}
+              {a.reasoning && (
+                <p style={{ margin: "4px 0 4px", fontSize: 11, color: C.muted, lineHeight: 1.55 }}>
+                  {a.reasoning}
+                </p>
+              )}
+              {a.references?.length > 0 && (
+                <p style={{ margin: "4px 0 0", fontSize: 10, color: C.hint }}>
+                  Refs: {a.references.join(", ")}
+                </p>
+              )}
 
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 4 }}>
-              {a.recommendation && (() => {
-                const rs = recStyle(a.recommendation);
-                return (
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20,
-                    background: rs.bg, color: rs.color, border: `1px solid ${rs.color}44` }}>
-                    {a.recommendation}
-                  </span>
-                );
-              })()}
-            </div>
-            {a.reasoning && (
-              <p style={{ margin: "4px 0 4px", fontSize: 11, color: C.muted, lineHeight: 1.55 }}>
-                {a.reasoning}
-              </p>
-            )}
-            {a.references?.length > 0 && (
-              <p style={{ margin: "4px 0 0", fontSize: 10, color: C.hint }}>
-                Refs: {a.references.join(", ")}
-              </p>
-            )}
-
-            {fileLinks.length > 0 && (
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                {fileLinks.map((fl, i) => (
-                  // TODO: actual download URL pattern TBD after further API discovery
-                  <a key={i} href="#" onClick={e => e.preventDefault()}
-                    style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10,
-                      background: C.surface2, color: C.muted, border: `1px solid ${C.border}`,
-                      textDecoration: "none", whiteSpace: "nowrap" }}>
-                    📎 {fl.FileName ?? fl.fileName ?? fl.name ?? `File ${i + 1}`}
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div style={{ padding: "8px 0 12px" }}>
-            <Spinner label="Queued for analysis…" />
-          </div>
-        )}
-
-        {hasPendingAction && (
-          <div style={{ padding: "6px 10px", marginBottom: 10, borderRadius: 6,
-            background: "rgba(251,191,36,0.1)", border: `1px solid ${C.warning}44`,
-            fontSize: 11, fontWeight: 600, color: C.warning }}>
-            Pending PM Action
-          </div>
-        )}
-
-        {/* Routing buttons */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {project && (
-            <a href={psIssueLink(project.portfolioId)} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
-                border: `1px solid ${C.accent}44`, background: C.accentDim,
-                color: C.accentText, textDecoration: "none", whiteSpace: "nowrap" }}>
-              ProjectSight ↗
-            </a>
-          )}
-          {existingRFI ? (
-            <span style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
-              border: `1px solid ${C.success}44`, background: "rgba(52,211,153,0.1)",
-              color: C.success, whiteSpace: "nowrap" }}>
-              ✓ RFI Created{existingRFI.rfiNumber ? ` — #${existingRFI.rfiNumber}` : ""}
-            </span>
-          ) : (
-            <button onClick={handleCreateRFI} disabled={rfiLoading}
-              style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
-                border: `1px solid ${C.border}`, background: C.surface2,
-                color: rfiLoading ? C.hint : C.muted,
-                cursor: rfiLoading ? "default" : "pointer", fontFamily: "inherit" }}>
-              {rfiLoading ? "Creating…" : "Create RFI"}
-            </button>
-          )}
-          <button onClick={() => setConsultOpen(v => !v)}
-            style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
-              border: `1px solid ${consultOpen ? C.pm + "66" : C.border}`,
-              background: consultOpen ? C.pmDim : C.surface2,
-              color: consultOpen ? C.pm : C.muted,
-              cursor: "pointer", fontFamily: "inherit" }}>
-            Consult
-          </button>
-        </div>
-        {rfiError && (
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: C.danger }}>{rfiError}</p>
-        )}
-
-        {/* Consult panel */}
-        {consultOpen && (
-          <div style={{ background: C.surface2, border: `1px solid ${C.pm}33`,
-            borderRadius: 8, padding: "12px 14px", marginTop: 10 }}>
-
-            {!thread ? (
-              <>
-                <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                  {[{ key: "srpm", label: "Sr. PM" }, { key: "field", label: "Field" }].map(({ key, label }) => (
-                    <button key={key} onClick={() => setPills(p => ({ ...p, [key]: !p[key] }))}
-                      style={{ fontSize: 11, fontWeight: 600, padding: "5px 14px", borderRadius: 20,
-                        border: `1px solid ${pills[key] ? C.pm + "66" : C.border}`,
-                        background: pills[key] ? C.pmDim : C.surface,
-                        color: pills[key] ? C.pm : C.muted,
-                        cursor: "pointer", fontFamily: "inherit" }}>
-                      {pills[key] ? "● " : "○ "}{label}
-                    </button>
+              {fileLinks.length > 0 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                  {fileLinks.map((fl, i) => (
+                    // Download URL TBD — pattern not yet confirmed from API discovery
+                    <a key={i} href="#" onClick={e => e.preventDefault()}
+                      style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10,
+                        background: C.surface2, color: C.muted, border: `1px solid ${C.border}`,
+                        textDecoration: "none", whiteSpace: "nowrap" }}>
+                      📎 {fl.FileName ?? fl.fileName ?? fl.name ?? `File ${i + 1}`}
+                    </a>
                   ))}
                 </div>
-                <textarea value={consultText} onChange={e => setConsultText(e.target.value)}
-                  placeholder="Add context or question for the consult…"
-                  style={{ width: "100%", padding: "8px 10px", background: C.bg,
-                    border: `1px solid ${C.border}`, borderRadius: 6, color: C.text,
-                    fontSize: 12, fontFamily: "inherit", resize: "vertical",
-                    minHeight: 64, boxSizing: "border-box", marginBottom: 8 }} />
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input type="file" multiple onChange={e => setConsultFiles(Array.from(e.target.files))}
-                    style={{ fontSize: 11, color: C.muted, flex: 1 }} />
-                  <button onClick={handleSendConsult}
-                    disabled={!consultText.trim() || (!pills.srpm && !pills.field)}
-                    style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
-                      border: `1px solid ${C.pm}44`, background: C.pmDim, color: C.pm,
-                      cursor: (!consultText.trim() || (!pills.srpm && !pills.field)) ? "default" : "pointer",
-                      opacity: (!consultText.trim() || (!pills.srpm && !pills.field)) ? 0.5 : 1,
-                      fontFamily: "inherit" }}>
-                    Send
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div>
-                <p style={{ margin: "0 0 10px", fontSize: 9, fontWeight: 700, letterSpacing: "0.07em",
-                  textTransform: "uppercase", color: C.hint }}>
-                  Thread
-                  {thread.pills?.srpm  && <span style={{ color: C.pm,     marginLeft: 8 }}>● Sr. PM</span>}
-                  {thread.pills?.field && <span style={{ color: C.accent,  marginLeft: 8 }}>● Field</span>}
-                </p>
-                {thread.messages.map((msg, idx) => {
-                  const isSystem   = msg.type === "system";
-                  const isDecision = msg.type === "decision";
-                  return (
-                    <div key={msg.id ?? idx} style={{ marginBottom: 8, padding: "8px 10px", borderRadius: 7,
-                      background: isSystem ? C.bg : isDecision ? "rgba(167,139,250,0.08)" : C.surface,
-                      borderLeft: isDecision ? `3px solid ${C.pm}` : `3px solid transparent` }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700,
-                          color: isSystem ? C.hint : isDecision ? C.pm : C.text }}>
-                          {isSystem ? "📋 Kern Bot" : msg.sender}
-                        </span>
-                        <span style={{ fontSize: 10, color: C.hint }}>{fmtD(msg.timestamp)}</span>
-                      </div>
-                      <p style={{ margin: 0, fontSize: 11, color: isSystem ? C.muted : C.text,
-                        lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{msg.text}</p>
-                      {msg.attachmentNames?.length > 0 && (
-                        <div style={{ marginTop: 5, display: "flex", gap: 5, flexWrap: "wrap" }}>
-                          {msg.attachmentNames.map((n, i) => (
-                            <span key={i} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8,
-                              background: C.surface2, color: C.muted, border: `1px solid ${C.border}` }}>
-                              📎 {n}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+              )}
+            </div>
+          ) : (
+            <div style={{ padding: "8px 0 12px" }}>
+              <Spinner label="Queued for analysis…" />
+            </div>
+          )}
 
-                {isAdmin && (
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-                    {[
-                      ["✓ Resolved",           "✓ Sr. PM marked this Resolved."],
-                      ["↩ Needs Clarification", "↩ Sr. PM: Needs further clarification."],
-                      ["→ Escalate as RFI",     "→ Sr. PM recommends escalating as RFI. PM to action."],
-                    ].map(([label, text]) => (
-                      <button key={label} onClick={() => handleDecision(text)}
-                        style={{ fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7,
-                          border: `1px solid ${C.pm}44`, background: C.pmDim, color: C.pm,
+          {hasPendingAction && (
+            <div style={{ padding: "6px 10px", marginBottom: 10, borderRadius: 6,
+              background: "rgba(251,191,36,0.1)", border: `1px solid ${C.warning}44`,
+              fontSize: 11, fontWeight: 600, color: C.warning }}>
+              Pending PM Action
+            </div>
+          )}
+
+          {/* Routing buttons */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 0 }}>
+            {project && (
+              <a href={`https://prod.projectsightapp.trimble.com/Web/app/Project?listid=-4075&orgid=${project.portfolioId}&projid=${project.ProjectID}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
+                  border: `1px solid ${C.accent}44`, background: C.accentDim,
+                  color: C.accentText, textDecoration: "none", whiteSpace: "nowrap" }}>
+                Issues ↗
+              </a>
+            )}
+            {project && (
+              <a href={`https://prod.projectsightapp.trimble.com/Web/app/Project?listid=-4074&orgid=${project.portfolioId}&projid=${project.ProjectID}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
+                  border: `1px solid ${C.accent}44`, background: C.accentDim,
+                  color: C.accentText, textDecoration: "none", whiteSpace: "nowrap" }}>
+                RFI ↗
+              </a>
+            )}
+            <button onClick={() => setConsultOpen(v => !v)}
+              style={{ fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 7,
+                border: `1px solid ${consultOpen ? C.pm + "66" : C.border}`,
+                background: consultOpen ? C.pmDim : C.surface2,
+                color: consultOpen ? C.pm : C.muted,
+                cursor: "pointer", fontFamily: "inherit" }}>
+              Consult
+            </button>
+          </div>
+
+          {/* Consult panel */}
+          {consultOpen && (
+            <div style={{ background: C.surface2, border: `1px solid ${C.pm}33`,
+              borderRadius: 8, padding: "12px 14px", marginTop: 10 }}>
+
+              {!thread ? (
+                <>
+                  {/* Pills */}
+                  <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                    {[{ key: "srpm", label: "Sr. PM" }, { key: "field", label: "Field" }].map(({ key, label }) => (
+                      <button key={key} onClick={() => setPills(p => ({ ...p, [key]: !p[key] }))}
+                        style={{ fontSize: 11, fontWeight: 600, padding: "5px 14px", borderRadius: 20,
+                          border: `1px solid ${pills[key] ? C.pm + "66" : C.border}`,
+                          background: pills[key] ? C.pmDim : C.surface,
+                          color: pills[key] ? C.pm : C.muted,
                           cursor: "pointer", fontFamily: "inherit" }}>
-                        {label}
+                        {pills[key] ? "● " : "○ "}{label}
                       </button>
                     ))}
                   </div>
-                )}
 
-                <textarea value={replyText} onChange={e => setReplyText(e.target.value)}
-                  placeholder="Reply…"
-                  style={{ width: "100%", padding: "7px 10px", background: C.bg,
-                    border: `1px solid ${C.border}`, borderRadius: 6, color: C.text,
-                    fontSize: 11, fontFamily: "inherit", resize: "vertical",
-                    minHeight: 48, boxSizing: "border-box", marginBottom: 6 }} />
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input type="file" multiple onChange={e => setReplyFiles(Array.from(e.target.files))}
-                    style={{ fontSize: 11, color: C.muted, flex: 1 }} />
-                  <button onClick={handleReply} disabled={!replyText.trim()}
-                    style={{ fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7,
-                      border: `1px solid ${C.border}`, background: C.surface, color: C.muted,
-                      cursor: !replyText.trim() ? "default" : "pointer",
-                      opacity: !replyText.trim() ? 0.5 : 1, fontFamily: "inherit" }}>
-                    Send Reply
-                  </button>
+                  {/* Hidden file input */}
+                  <input ref={consultFileRef} type="file" multiple style={{ display: "none" }}
+                    onChange={e => setConsultFiles(Array.from(e.target.files))} />
+
+                  {/* File chips */}
+                  {consultFiles.length > 0 && (
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
+                      {consultFiles.map((f, i) => (
+                        <span key={i} style={{ fontSize: 10, padding: "2px 7px", borderRadius: 8,
+                          background: C.surface, color: C.muted, border: `1px solid ${C.border}`,
+                          display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          {f.name}
+                          <button onClick={() => setConsultFiles(prev => prev.filter((_, j) => j !== i))}
+                            style={{ background: "none", border: "none", color: C.hint,
+                              cursor: "pointer", fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Unified input box */}
+                  <div style={inputBoxStyle(consultDragOver)}
+                    onDragOver={e => { e.preventDefault(); setConsultDragOver(true); }}
+                    onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setConsultDragOver(false); }}
+                    onDrop={e => { e.preventDefault(); setConsultDragOver(false); setConsultFiles(Array.from(e.dataTransfer.files)); }}>
+                    <textarea value={consultText} onChange={e => setConsultText(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendConsult(); } }}
+                      placeholder="Add context or question for the consult…"
+                      style={{ width: "100%", background: "none", border: "none", outline: "none",
+                        color: C.text, fontSize: 12, fontFamily: "inherit", resize: "none",
+                        lineHeight: 1.6, padding: "10px 12px", boxSizing: "border-box",
+                        minHeight: 64, display: "block" }} />
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "4px 8px 7px", borderTop: `1px solid ${C.border}` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <button onClick={() => consultFileRef.current?.click()}
+                          style={paperclipBtnStyle}
+                          onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.background = "rgba(91,124,250,0.12)"; e.currentTarget.style.borderColor = "rgba(91,124,250,0.3)"; }}
+                          onMouseLeave={e => { e.currentTarget.style.color = C.hint; e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = "transparent"; }}>
+                          <span style={{ display: "flex", alignItems: "center" }}>{MI.paperclip}</span>
+                        </button>
+                        <span style={{ fontSize: 10, color: C.hint }}>
+                          {consultDragOver ? "Drop files to attach…" : "Shift+Enter for new line · drag & drop files"}
+                        </span>
+                      </div>
+                      <button onClick={handleSendConsult}
+                        disabled={!consultText.trim() || (!pills.srpm && !pills.field)}
+                        style={{ width: 27, height: 27, borderRadius: 7, border: "none",
+                          background: (consultText.trim() && (pills.srpm || pills.field)) ? C.pm : "rgba(255,255,255,0.05)",
+                          cursor: (consultText.trim() && (pills.srpm || pills.field)) ? "pointer" : "not-allowed",
+                          display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {sendArrow}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <p style={{ margin: "0 0 10px", fontSize: 9, fontWeight: 700, letterSpacing: "0.07em",
+                    textTransform: "uppercase", color: C.hint }}>
+                    Thread
+                    {thread.pills?.srpm  && <span style={{ color: C.pm,    marginLeft: 8 }}>● Sr. PM</span>}
+                    {thread.pills?.field && <span style={{ color: C.accent, marginLeft: 8 }}>● Field</span>}
+                  </p>
+                  {thread.messages.map((msg, idx) => {
+                    const isSystem   = msg.type === "system";
+                    const isDecision = msg.type === "decision";
+                    return (
+                      <div key={msg.id ?? idx} style={{ marginBottom: 8, padding: "8px 10px", borderRadius: 7,
+                        background: isSystem ? C.bg : isDecision ? "rgba(167,139,250,0.08)" : C.surface,
+                        borderLeft: isDecision ? `3px solid ${C.pm}` : "3px solid transparent" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700,
+                            color: isSystem ? C.hint : isDecision ? C.pm : C.text }}>
+                            {isSystem ? "📋 Kern Bot" : msg.sender}
+                          </span>
+                          <span style={{ fontSize: 10, color: C.hint }}>{fmtD(msg.timestamp)}</span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: 11, color: isSystem ? C.muted : C.text,
+                          lineHeight: 1.55, whiteSpace: "pre-wrap" }}>{msg.text}</p>
+                        {msg.attachmentNames?.length > 0 && (
+                          <div style={{ marginTop: 5, display: "flex", gap: 5, flexWrap: "wrap" }}>
+                            {msg.attachmentNames.map((n, i) => (
+                              <span key={i} style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8,
+                                background: C.surface2, color: C.muted, border: `1px solid ${C.border}` }}>
+                                📎 {n}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {isAdmin && (
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                      {[
+                        ["✓ Resolved",            "✓ Sr. PM marked this Resolved."],
+                        ["↩ Needs Clarification", "↩ Sr. PM: Needs further clarification."],
+                        ["→ Escalate as RFI",     "→ Sr. PM recommends escalating as RFI. PM to action."],
+                      ].map(([label, text]) => (
+                        <button key={label} onClick={() => handleDecision(text)}
+                          style={{ fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7,
+                            border: `1px solid ${C.pm}44`, background: C.pmDim, color: C.pm,
+                            cursor: "pointer", fontFamily: "inherit" }}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Hidden file input for reply */}
+                  <input ref={replyFileRef} type="file" multiple style={{ display: "none" }}
+                    onChange={e => setReplyFiles(Array.from(e.target.files))} />
+
+                  {/* Reply file chips */}
+                  {replyFiles.length > 0 && (
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
+                      {replyFiles.map((f, i) => (
+                        <span key={i} style={{ fontSize: 10, padding: "2px 7px", borderRadius: 8,
+                          background: C.surface, color: C.muted, border: `1px solid ${C.border}`,
+                          display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          {f.name}
+                          <button onClick={() => setReplyFiles(prev => prev.filter((_, j) => j !== i))}
+                            style={{ background: "none", border: "none", color: C.hint,
+                              cursor: "pointer", fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Reply input box */}
+                  <div style={inputBoxStyle(replyDragOver)}
+                    onDragOver={e => { e.preventDefault(); setReplyDragOver(true); }}
+                    onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setReplyDragOver(false); }}
+                    onDrop={e => { e.preventDefault(); setReplyDragOver(false); setReplyFiles(Array.from(e.dataTransfer.files)); }}>
+                    <textarea value={replyText} onChange={e => setReplyText(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleReply(); } }}
+                      placeholder="Reply…"
+                      style={{ width: "100%", background: "none", border: "none", outline: "none",
+                        color: C.text, fontSize: 11, fontFamily: "inherit", resize: "none",
+                        lineHeight: 1.6, padding: "8px 12px", boxSizing: "border-box",
+                        minHeight: 48, display: "block" }} />
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "4px 8px 7px", borderTop: `1px solid ${C.border}` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <button onClick={() => replyFileRef.current?.click()}
+                          style={paperclipBtnStyle}
+                          onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.background = "rgba(91,124,250,0.12)"; e.currentTarget.style.borderColor = "rgba(91,124,250,0.3)"; }}
+                          onMouseLeave={e => { e.currentTarget.style.color = C.hint; e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = "transparent"; }}>
+                          <span style={{ display: "flex", alignItems: "center" }}>{MI.paperclip}</span>
+                        </button>
+                        <span style={{ fontSize: 10, color: C.hint }}>
+                          {replyDragOver ? "Drop files to attach…" : "Shift+Enter for new line · drag & drop files"}
+                        </span>
+                      </div>
+                      <button onClick={handleReply} disabled={!replyText.trim()}
+                        style={{ width: 27, height: 27, borderRadius: 7, border: "none",
+                          background: replyText.trim() ? C.accent : "rgba(255,255,255,0.05)",
+                          cursor: replyText.trim() ? "pointer" : "not-allowed",
+                          display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {sendArrow}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1299,13 +1400,40 @@ export default function RFIApp({ user }) {
   const [triageAnalyzing, setTriageAnalyzing] = useState({});
   const [consultThreads,  setConsultThreads]  = useState({});
   const [kernbotLearning, setKernbotLearning] = useState([]);
-  const [createdRFIs,     setCreatedRFIs]     = useState({});
+  const [selectedPids,    setSelectedPids]    = useState(new Set());
 
-  const analyzedRef        = useRef(new Set());
-  const projectSectionRefs = useRef({});
+  const analyzedRef      = useRef(new Set());
+  const analysisQueueRef = useRef([]);
+  const isProcessingRef  = useRef(false);
 
   const isAdmin = user.tier === "admin" || user.tier === "sr_pm";
   const apiKey  = import.meta.env.VITE_ANTHROPIC_API_KEY;
+
+  // Sequential analysis queue — processes one issue at a time, 1500ms between each
+  async function runAnalysisQueue() {
+    if (isProcessingRef.current || !apiKey) return;
+    isProcessingRef.current = true;
+    while (analysisQueueRef.current.length > 0) {
+      const issue = analysisQueueRef.current.shift();
+      const iid   = issueId(issue);
+      if (analyzedRef.current.has(iid)) continue;
+      analyzedRef.current.add(iid);
+      setTriageAnalyzing(a => ({ ...a, [iid]: true }));
+      try {
+        const text   = issueDesc(issue) || issueTitle(issue) || "";
+        const result = await analyzeIssue(text, apiKey);
+        setTriageAnalysis(c => ({ ...c, [iid]: result }));
+      } catch (e) {
+        setTriageAnalysis(c => ({ ...c, [iid]: { error: e.message } }));
+      } finally {
+        setTriageAnalyzing(a => ({ ...a, [iid]: false }));
+      }
+      if (analysisQueueRef.current.length > 0) {
+        await new Promise(r => setTimeout(r, 1500));
+      }
+    }
+    isProcessingRef.current = false;
+  }
 
   // Load projects on mount
   useEffect(() => {
@@ -1336,23 +1464,11 @@ export default function RFIApp({ user }) {
             .filter(i => i.WorkflowStateName !== "Closed" && i.IsDraft === false);
           setPsIssues(prev => ({ ...prev, [pid]: open }));
           if (apiKey) {
-            open.forEach((issue, idx) => {
-              const iid = issueId(issue);
-              setTimeout(async () => {
-                if (analyzedRef.current.has(iid)) return;
-                analyzedRef.current.add(iid);
-                setTriageAnalyzing(a => ({ ...a, [iid]: true }));
-                try {
-                  const text   = issueDesc(issue) || issueTitle(issue) || "";
-                  const result = await analyzeIssue(text, apiKey);
-                  setTriageAnalysis(c => ({ ...c, [iid]: result }));
-                } catch (e) {
-                  setTriageAnalysis(c => ({ ...c, [iid]: { error: e.message } }));
-                } finally {
-                  setTriageAnalyzing(a => ({ ...a, [iid]: false }));
-                }
-              }, idx * 300);
-            });
+            const toAnalyze = open.filter(i => !analyzedRef.current.has(issueId(i)));
+            if (toAnalyze.length > 0) {
+              analysisQueueRef.current.push(...toAnalyze);
+              runAnalysisQueue();
+            }
           }
         })
         .catch(() => {});
@@ -1400,19 +1516,12 @@ export default function RFIApp({ user }) {
     return { total: openRFIs.length, overdue, due7, avgDays };
   }, [openRFIs]);
 
-  const handleAnalyze = async issue => {
+  const handleAnalyze = issue => {
     if (!apiKey) return;
     const iid = issueId(issue);
-    analyzedRef.current.add(iid);
-    setTriageAnalyzing(p => ({ ...p, [iid]: true }));
-    try {
-      const result = await analyzeIssue(issueDesc(issue) || issueTitle(issue) || "", apiKey);
-      setTriageAnalysis(p => ({ ...p, [iid]: result }));
-    } catch (e) {
-      setTriageAnalysis(p => ({ ...p, [iid]: { error: e.message } }));
-    } finally {
-      setTriageAnalyzing(p => ({ ...p, [iid]: false }));
-    }
+    analyzedRef.current.delete(iid);
+    analysisQueueRef.current.push(issue);
+    runAnalysisQueue();
   };
 
   const impOrder = { Urgent: 0, High: 1, Normal: 2, Low: 3 };
@@ -1420,7 +1529,12 @@ export default function RFIApp({ user }) {
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflowY: "auto",
       fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif" }}>
-      <style>{`@keyframes ksf-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
+      <style>{`
+        @keyframes ksf-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+        .ksf-hscroll::-webkit-scrollbar { height: 4px; }
+        .ksf-hscroll::-webkit-scrollbar-track { background: transparent; }
+        .ksf-hscroll::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 2px; }
+      `}</style>
 
       <div style={{ maxWidth: 1400, width: "100%", margin: "0 auto", padding: "20px 20px 48px" }}>
 
@@ -1507,7 +1621,7 @@ export default function RFIApp({ user }) {
         {/* ── Triage tab ───────────────────────────────────────────────────── */}
         {rfiTab === "triage" && (
           <>
-            {/* Consult Inbox — isAdmin only */}
+            {/* Consult Inbox — isAdmin only, shown when srpm threads exist */}
             {isAdmin && consultInboxIssues.length > 0 && (
               <div style={{ marginBottom: 28 }}>
                 <p style={{ margin: "0 0 12px", fontSize: 11, fontWeight: 700,
@@ -1523,24 +1637,24 @@ export default function RFIApp({ user }) {
                     analyzing={triageAnalyzing}
                     consultThreads={consultThreads}
                     setConsultThreads={setConsultThreads}
-                    createdRFIs={createdRFIs}
-                    setCreatedRFIs={setCreatedRFIs}
                     kernbotLearning={kernbotLearning}
                     setKernbotLearning={setKernbotLearning}
                     isAdmin={isAdmin}
                     onRetryAnalyze={handleAnalyze}
                     user={user}
                     defaultConsultOpen={true}
+                    defaultCollapsed={false}
                   />
                 ))}
               </div>
             )}
 
-            {/* Health card bar */}
+            {/* Health card bar — all users */}
             <TriageHealthBar
               projects={visibleProjects}
               psIssues={psIssues}
-              projectRefs={projectSectionRefs}
+              selectedPids={selectedPids}
+              setSelectedPids={setSelectedPids}
             />
 
             {/* Issue list */}
@@ -1554,8 +1668,15 @@ export default function RFIApp({ user }) {
                   All issues have been triaged or resolved.
                 </p>
               </div>
-            ) : (
-              visibleProjects.map(p => {
+            ) : (() => {
+              // isAdmin: no list until a card is selected; non-admin: always show (filtered if selected)
+              if (isAdmin && selectedPids.size === 0) return null;
+
+              const projectsToShow = isAdmin
+                ? visibleProjects.filter(p => selectedPids.has(`${p.portfolioId}-${p.ProjectID}`))
+                : visibleProjects.filter(p => selectedPids.size === 0 || selectedPids.has(`${p.portfolioId}-${p.ProjectID}`));
+
+              return projectsToShow.map(p => {
                 const pid    = `${p.portfolioId}-${p.ProjectID}`;
                 const issues = (psIssues[pid] || [])
                   .map(i => ({ ...i, _project: p }))
@@ -1567,8 +1688,7 @@ export default function RFIApp({ user }) {
                   });
                 if (!issues.length) return null;
                 return (
-                  <div key={pid} ref={el => { projectSectionRefs.current[pid] = el; }}
-                    style={{ marginBottom: 28 }}>
+                  <div key={pid} style={{ marginBottom: 28 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12,
                       paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>
                       <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{p.Name}</span>
@@ -1587,19 +1707,18 @@ export default function RFIApp({ user }) {
                         analyzing={triageAnalyzing}
                         consultThreads={consultThreads}
                         setConsultThreads={setConsultThreads}
-                        createdRFIs={createdRFIs}
-                        setCreatedRFIs={setCreatedRFIs}
                         kernbotLearning={kernbotLearning}
                         setKernbotLearning={setKernbotLearning}
                         isAdmin={isAdmin}
                         onRetryAnalyze={handleAnalyze}
                         user={user}
+                        defaultCollapsed={isAdmin}
                       />
                     ))}
                   </div>
                 );
-              })
-            )}
+              });
+            })()}
           </>
         )}
       </div>
