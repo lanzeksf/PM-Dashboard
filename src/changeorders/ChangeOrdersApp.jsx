@@ -8,7 +8,7 @@ const TERRITORY_MAP = {
   jacob:   null,
   tony:    'Tony',
   adam:    'Adam',
-  luis:    null,
+  luis:    'Luis',
   jillian: null,
 };
 
@@ -31,6 +31,11 @@ const MOCK_PROJECTS = [
   { id:'p2', job:'26541', name:'Kern County Solar Carport — Lot 7',      meta:'Solar · Tony Sanabria',      territory:'Tony'  },
   { id:'p3', job:'26588', name:'USAF Hangar Stand — Edwards AFB',         meta:'Aerospace · Adam Kneale',    territory:'Adam'  },
   { id:'p4', job:'26512', name:'Valley Republic Bank — Fresno',           meta:'Structural · Adam Kneale',   territory:'Adam'  },
+  { id:'p5', job:'26571', name:'CSUB Science Building — West Wing',       meta:'Structural · Tony Sanabria', territory:'Tony'  },
+  { id:'p6', job:'26595', name:'Kern Valley Hospital Carport',            meta:'Solar · Luis Avila',         territory:'Luis'  },
+  { id:'p7', job:'26614', name:'Mojave Air & Space Port Hangar',          meta:'Aerospace · Adam Kneale',    territory:'Adam'  },
+  { id:'p8', job:'26623', name:'Stockdale Tower — Parking Structure',     meta:'Structural · Luis Avila',    territory:'Luis'  },
+  { id:'p9', job:'26547', name:'Shafter Solar Field — Phase 1',           meta:'Solar · Tony Sanabria',      territory:'Tony'  },
 ];
 
 const MOCK_COS = [
@@ -44,7 +49,24 @@ const MOCK_COS = [
   { proj:'p2', job:'26541', co:'CO-005', desc:'Column base plate re-design',                     amt:5400,  sub:'Feb 20', age:null,status:'E'  },
   { proj:'p3', job:'26588', co:'CO-003', desc:'Gusset plate material upgrade per EO-2204',       amt:18900, sub:'May 8',  age:11,  status:'P'  },
   { proj:'p3', job:'26588', co:'CO-002', desc:'Alternate bolt pattern — customer rejected',      amt:3200,  sub:'Apr 20', age:null,status:'RJ' },
-  { proj:'p4', job:'26512', co:'CO-009', desc:'HSS column addition — grid 4 revision',           amt:7800,  sub:'Mar 5',  age:null,status:'E'  },
+  { proj:'p4', job:'26512', co:'CO-009', desc:'HSS column addition — grid 4 revision',           amt:7800,  sub:'Mar 5',  age:null, status:'E'  },
+  // p5 — CSUB Science (Tony) — 1 Escalate (24d), 1 Follow Up (17d)
+  { proj:'p5', job:'26571', co:'CO-021', desc:'Shear tab additions — grid B3 and B4',            amt:15200, sub:'Apr 15', age:24,   status:'P'  },
+  { proj:'p5', job:'26571', co:'CO-020', desc:'Deck opening frame — mechanical chase rev.',      amt:6700,  sub:'Apr 22', age:17,   status:'P'  },
+  { proj:'p5', job:'26571', co:'CO-019', desc:'Brace frame modification — lateral update',       amt:9400,  sub:'Feb 5',  age:null, status:'E'  },
+  // p6 — Kern Valley Hospital (Luis) — 1 Follow Up (15d)
+  { proj:'p6', job:'26595', co:'CO-017', desc:'Solar array rail attachment revision',            amt:4800,  sub:'May 4',  age:15,   status:'P'  },
+  { proj:'p6', job:'26595', co:'CO-016', desc:'Canopy fascia bracket addition',                  amt:3100,  sub:'May 9',  age:10,   status:'A'  },
+  // p7 — Mojave Hangar (Adam) — 1 Escalate (21d), 1 Follow Up (14d)
+  { proj:'p7', job:'26614', co:'CO-025', desc:'Blast door frame reinforcement per AF-spec',      amt:27500, sub:'Apr 18', age:21,   status:'P'  },
+  { proj:'p7', job:'26614', co:'CO-024', desc:'Truss chord upgrade — span C to F',               amt:13200, sub:'Apr 25', age:14,   status:'C'  },
+  { proj:'p7', job:'26614', co:'CO-023', desc:'Foundation anchor revision — pad A1',             amt:8900,  sub:'Jan 20', age:null, status:'E'  },
+  // p8 — Stockdale Tower (Luis) — 1 Escalate (29d)
+  { proj:'p8', job:'26623', co:'CO-022', desc:'Post-tension slab edge beam addition',            amt:19400, sub:'Apr 10', age:29,   status:'P'  },
+  { proj:'p8', job:'26623', co:'CO-018', desc:'Expansion joint cover replacement spec',          amt:2800,  sub:'May 11', age:8,    status:'P'  },
+  // p9 — Shafter Solar (Tony) — 2 Follow Up (14d, 19d)
+  { proj:'p9', job:'26547', co:'CO-027', desc:'Wire management bracket revision — row 12',       amt:3600,  sub:'May 5',  age:14,   status:'P'  },
+  { proj:'p9', job:'26547', co:'CO-026', desc:'Subframe splice plate addition',                  amt:5200,  sub:'Apr 30', age:19,   status:'P'  },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -61,8 +83,8 @@ function urgencyScore(cos) {
 
 function AgeCell({ age }) {
   if (age == null) return <span style={{ color: C.hint }}>—</span>;
-  if (age >= 21)   return <span style={{ color: C.danger,  fontWeight: 700 }}>⚠ {age}d</span>;
-  if (age >= 14)   return <span style={{ color: C.warning, fontWeight: 700 }}>{age}d</span>;
+  if (age >= 21)   return <span style={{ color: C.danger,  fontWeight: 700 }}>⚠ {age}d Escalate</span>;
+  if (age >= 14)   return <span style={{ color: C.warning, fontWeight: 700 }}>{age}d Follow Up</span>;
   return <span style={{ color: C.muted }}>{age}d</span>;
 }
 
@@ -174,19 +196,17 @@ function ProjectCard({ project, cos }) {
   const open     = visible.filter(isOpen);
   const executed = visible.filter(c => c.status === 'E');
 
-  const proposed    = open.filter(c => c.status === 'P');
-  const rejected    = open.filter(c => c.status === 'RJ');
-  const staleCount21 = open.filter(c => (c.age ?? 0) >= 21).length;
-  const staleCount14 = open.filter(c => (c.age ?? 0) >= 14).length;
-  const hasVeryStale = staleCount21 > 0;
-  const hasStale     = !hasVeryStale && staleCount14 > 0;
+  const proposed      = open.filter(c => c.status === 'P');
+  const rejected      = open.filter(c => c.status === 'RJ');
+  const escalateCount = open.filter(c => (c.age ?? 0) >= 21).length;
+  const followUpCount = open.filter(c => (c.age ?? 0) >= 14 && (c.age ?? 0) < 21).length;
 
-  const borderAccent = hasVeryStale ? C.danger : hasStale ? C.warning : C.border;
+  const borderAccent = escalateCount > 0 ? C.danger : followUpCount > 0 ? C.warning : C.border;
   const openTotal    = open.reduce((s, c) => s + c.amt, 0);
 
   const pills = [];
-  if (staleCount21 > 0) pills.push({ label: `${staleCount21} stale`, color: C.danger,     bg: 'rgba(248,113,113,0.12)' });
-  else if (staleCount14 > 0) pills.push({ label: `${staleCount14} stale`, color: C.warning, bg: 'rgba(251,191,36,0.12)' });
+  if (escalateCount > 0) pills.push({ label: `${escalateCount} Escalate`, color: C.danger,     bg: 'rgba(248,113,113,0.12)' });
+  if (followUpCount > 0) pills.push({ label: `${followUpCount} Follow Up`, color: C.warning,    bg: 'rgba(251,191,36,0.12)' });
   if (proposed.length > 0) pills.push({ label: `${proposed.length} proposed`, color: C.accentText, bg: C.accentDim });
   if (rejected.length > 0) pills.push({ label: `${rejected.length} rejected`, color: C.hint, bg: C.surface2 });
 
@@ -410,7 +430,7 @@ export default function ChangeOrdersApp({ user }) {
     ? `${searchCOs.length} result${searchCOs.length !== 1 ? 's' : ''} for "${search}"`
     : activeFilter === 'total'    ? 'All Open Change Orders'
     : activeFilter === 'proposed' ? 'Proposed Change Orders'
-    : activeFilter === 'stale'    ? 'Stale Change Orders (≥ 14 days)'
+    : activeFilter === 'stale'    ? 'Follow Up / Escalate Change Orders (≥ 14 days)'
     : '';
 
   const handleStatClick = key => {
@@ -449,7 +469,7 @@ export default function ChangeOrdersApp({ user }) {
         {/* Summary cards */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
           <SummaryCard
-            label="Total Open COs"
+            label="Total Open"
             value={stats.openCount}
             active={activeFilter === 'total'}
             onClick={() => handleStatClick('total')}
@@ -461,7 +481,7 @@ export default function ChangeOrdersApp({ user }) {
             onClick={() => handleStatClick('proposed')}
           />
           <SummaryCard
-            label="Stale > 14 Days"
+            label="Follow Up / Escalate"
             value={stats.staleCount}
             color={stats.staleCount > 0 ? C.warning : undefined}
             active={activeFilter === 'stale'}
