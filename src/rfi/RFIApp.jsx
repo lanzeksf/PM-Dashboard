@@ -31,6 +31,8 @@ const BAND_LABEL = {
   nodate:  "No Date",
 };
 
+/* KernBot analysis — disabled, restore when training is ready */
+/*
 const ISSUE_SYSTEM_PROMPT = `You are Kern Bot, an internal AI assistant for Kern Steel Fabrication (KSF) in Bakersfield, CA.
 KSF fabricates structural steel, solar carport structures, and aerospace maintenance stands.
 You are analyzing a raw issue submitted by an overseas steel detailer. Their English may be unclear.
@@ -61,6 +63,8 @@ Respond ONLY in this JSON format, no preamble, no markdown:
   "reasoning": "...",
   "references": ["drawing numbers, grid lines, etc."]
 }`;
+*/
+/* end KernBot analysis */
 
 // ── RFI field accessors ───────────────────────────────────────────────────────
 
@@ -154,6 +158,8 @@ const recStyle = rec => ({
 
 const psRFILink = (pid, projId, r) => `https://app.projectsight.com/${pid}/projects/${projId}/rfis/${rfiIdVal(r)}`;
 
+/* KernBot analysis — disabled, restore when training is ready */
+/*
 // ── Kern Bot analysis call ────────────────────────────────────────────────────
 
 async function analyzeIssue(text, apiKey) {
@@ -177,6 +183,8 @@ async function analyzeIssue(text, apiKey) {
   const raw  = data.content?.[0]?.text || "{}";
   return JSON.parse(raw.replace(/^```json\n?/, "").replace(/\n?```$/, "").trim());
 }
+*/
+/* end KernBot analysis */
 
 // ── Micro-components ──────────────────────────────────────────────────────────
 
@@ -860,13 +868,22 @@ function TriageHealthBar({ projects, psIssues, selectedPids, setSelectedPids }) 
 // ── Triage Issue Card ─────────────────────────────────────────────────────────
 
 function TriageIssueCard({
-  issue, project, analysis, analyzing, consultThreads, setConsultThreads,
-  kernbotLearning, setKernbotLearning,
-  isAdmin, onRetryAnalyze, user, defaultConsultOpen, defaultCollapsed = false,
+  issue, project, analysis, analyzing, /* analysis + analyzing kept in scope — const a below reads them */
+  consultThreads, setConsultThreads,
+  /* KernBot analysis — disabled, restore when training is ready */
+  /* kernbotLearning, setKernbotLearning, */
+  /* end KernBot analysis */
+  isAdmin,
+  /* KernBot analysis — disabled, restore when training is ready */
+  /* onRetryAnalyze, */
+  /* end KernBot analysis */
+  user, defaultConsultOpen, defaultCollapsed = false,
 }) {
   const iid       = issueId(issue);
-  const a         = analysis?.[iid];
-  const isAnalyz  = analyzing?.[iid];
+  const a         = analysis?.[iid]; // undefined when analysis disabled — handleSendConsult handles gracefully
+  /* KernBot analysis — disabled, restore when training is ready */
+  // const isAnalyz  = analyzing?.[iid];
+  /* end KernBot analysis */
   const age       = issueCreated(issue) ? daysOpenCalc(issueCreated(issue)) : null;
   const imp       = issueImportance(issue);
   const ics       = impChipStyle(imp);
@@ -949,6 +966,8 @@ function TriageIssueCard({
         lastUpdated: Date.now(),
       },
     }));
+    /* KernBot analysis — disabled, restore when training is ready */
+    /*
     if (decisionText.includes("Resolved") || decisionText.includes("Clarification")) {
       setKernbotLearning(prev => [...prev, {
         issueTitle: issueTitle(issue),
@@ -957,6 +976,8 @@ function TriageIssueCard({
         timestamp: Date.now(),
       }]);
     }
+    */
+    /* end KernBot analysis */
   };
 
   // ── Shared input box style ──────────────────────────────────────────────────
@@ -1035,118 +1056,54 @@ function TriageIssueCard({
       {!isCollapsed && (
         <div style={{ padding: "14px 16px" }}>
 
-          {/* KernBot analysis block */}
+          {/* KernBot analysis — disabled, restore when training is ready */}
+          {/*
           {isAnalyz ? (
             <div style={{ padding: "10px 0 12px" }}>
-              <Spinner label="Analyzing with Kern Bot…" />
+              <Spinner label="Analyzing with Kern Bot..." />
             </div>
           ) : a?.error ? (
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", marginBottom: 12 }}>
               <span style={{ fontSize: 12, color: C.danger }}>Analysis failed: {a.error}</span>
-              <button onClick={() => onRetryAnalyze(issue)}
-                style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
-                  background: C.surface2, color: C.muted, cursor: "pointer", fontFamily: "inherit" }}>
-                Retry
-              </button>
+              <button onClick={() => onRetryAnalyze(issue)}>Retry</button>
             </div>
           ) : a ? (
-            <div style={{ background: "rgba(91,124,250,0.05)", border: `1px solid ${C.accent}33`,
-              borderRadius: 8, padding: "12px 14px", marginBottom: 12 }}>
-
-              <p style={{ margin: "0 0 6px", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em",
-                textTransform: "uppercase", color: C.accentText }}>Kern Bot Summary</p>
-              <p style={{ margin: "0 0 6px", fontSize: 12, color: C.text, lineHeight: 1.65 }}>{a.cleanText}</p>
-
-              <button onClick={() => setShowOriginal(v => !v)}
-                style={{ fontSize: 11, color: C.hint, background: "none", border: "none",
-                  cursor: "pointer", padding: 0, marginBottom: showOriginal ? 8 : 0,
-                  fontFamily: "inherit", textDecoration: "underline" }}>
-                {showOriginal ? "Hide original ▲" : "Show original ▼"}
-              </button>
-              {showOriginal && (
-                <p style={{ margin: "6px 0 8px", fontSize: 11, color: C.muted, lineHeight: 1.65,
-                  padding: "8px 10px", background: C.bg, borderRadius: 6, whiteSpace: "pre-wrap" }}>
-                  {issueDesc(issue) || "(No description)"}
-                </p>
-              )}
-
-              {a.subQuestions?.length > 0 && (
-                <div style={{ margin: "10px 0" }}>
-                  {a.subQuestions.map(sq => {
-                    const cs = sq.confidence === "High"   ? { color: C.success, bg: "rgba(52,211,153,0.12)"  }
-                             : sq.confidence === "Medium" ? { color: C.warning, bg: "rgba(251,191,36,0.12)"  }
-                                                          : { color: C.danger,  bg: "rgba(248,113,113,0.12)" };
-                    return (
-                      <div key={sq.id} style={{ marginBottom: 10, paddingLeft: 12,
-                        borderLeft: `2px solid ${C.accent}44` }}>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: C.accent,
-                            minWidth: 16, flexShrink: 0, marginTop: 1 }}>{sq.id}.</span>
-                          <div style={{ flex: 1 }}>
-                            <p style={{ margin: "0 0 3px", fontSize: 12, color: C.text, lineHeight: 1.5 }}>
-                              {sq.question}
-                            </p>
-                            {sq.answer && (
-                              <p style={{ margin: "0 0 3px", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
-                                → {sq.answer}
-                              </p>
-                            )}
-                            {sq.missingInfo && (
-                              <p style={{ margin: "0 0 3px", fontSize: 11, color: C.warning, lineHeight: 1.5 }}>
-                                Missing: {sq.missingInfo}
-                              </p>
-                            )}
-                            <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 10,
-                              background: cs.bg, color: cs.color }}>
-                              {sq.confidence}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 4 }}>
-                {a.recommendation && (() => {
-                  const rs = recStyle(a.recommendation);
-                  return (
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20,
-                      background: rs.bg, color: rs.color, border: `1px solid ${rs.color}44` }}>
-                      {a.recommendation}
-                    </span>
-                  );
-                })()}
-              </div>
-              {a.reasoning && (
-                <p style={{ margin: "4px 0 4px", fontSize: 11, color: C.muted, lineHeight: 1.55 }}>
-                  {a.reasoning}
-                </p>
-              )}
-              {a.references?.length > 0 && (
-                <p style={{ margin: "4px 0 0", fontSize: 10, color: C.hint }}>
-                  Refs: {a.references.join(", ")}
-                </p>
-              )}
-
-              {fileLinks.length > 0 && (
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                  {fileLinks.map((fl, i) => (
-                    // Download URL TBD — pattern not yet confirmed from API discovery
-                    <a key={i} href="#" onClick={e => e.preventDefault()}
-                      style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10,
-                        background: C.surface2, color: C.muted, border: `1px solid ${C.border}`,
-                        textDecoration: "none", whiteSpace: "nowrap" }}>
-                      📎 {fl.FileName ?? fl.fileName ?? fl.name ?? `File ${i + 1}`}
-                    </a>
-                  ))}
-                </div>
-              )}
+            <div style={{ background: "rgba(91,124,250,0.05)", border: "1px solid ...", borderRadius: 8, padding: "12px 14px", marginBottom: 12 }}>
+              Kern Bot Summary: {a.cleanText}
+              Show original toggle
+              Sub-questions with confidence badges
+              Recommendation chip
+              Reasoning
+              References
+              FileLinks (moved to active block below when analysis is disabled)
             </div>
           ) : (
             <div style={{ padding: "8px 0 12px" }}>
-              <Spinner label="Queued for analysis…" />
+              <Spinner label="Queued for analysis..." />
+            </div>
+          )}
+          */}
+          {/* end KernBot analysis */}
+
+          {/* Raw description — rendered directly when KernBot analysis is disabled */}
+          {issueDesc(issue) && (
+            <p style={{ margin: "0 0 12px", fontSize: 12, color: C.muted, lineHeight: 1.65,
+              whiteSpace: "pre-wrap" }}>
+              {issueDesc(issue)}
+            </p>
+          )}
+          {/* FileLinks — moved outside analysis block so they always render */}
+          {fileLinks.length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+              {fileLinks.map((fl, i) => (
+                // Download URL TBD — pattern not yet confirmed from API discovery
+                <a key={i} href="#" onClick={e => e.preventDefault()}
+                  style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10,
+                    background: C.surface2, color: C.muted, border: `1px solid ${C.border}`,
+                    textDecoration: "none", whiteSpace: "nowrap" }}>
+                  📎 {fl.FileName ?? fl.fileName ?? fl.name ?? `File ${i + 1}`}
+                </a>
+              ))}
             </div>
           )}
 
@@ -1396,19 +1353,29 @@ export default function RFIApp({ user }) {
   const [projectsError,   setProjectsError]   = useState(null);
   const [expandedProject, setExpandedProject] = useState(null);
   const [rfiTab,          setRfiTab]          = useState("dashboard");
-  const [triageAnalysis,  setTriageAnalysis]  = useState({});
-  const [triageAnalyzing, setTriageAnalyzing] = useState({});
+  /* KernBot analysis — disabled, restore when training is ready */
+  // const [triageAnalysis,  setTriageAnalysis]  = useState({});
+  // const [triageAnalyzing, setTriageAnalyzing] = useState({});
+  /* end KernBot analysis */
   const [consultThreads,  setConsultThreads]  = useState({});
-  const [kernbotLearning, setKernbotLearning] = useState([]);
+  /* KernBot analysis — disabled, restore when training is ready */
+  // const [kernbotLearning, setKernbotLearning] = useState([]);
+  /* end KernBot analysis */
   const [selectedPids,    setSelectedPids]    = useState(new Set());
 
-  const analyzedRef      = useRef(new Set());
-  const analysisQueueRef = useRef([]);
-  const isProcessingRef  = useRef(false);
+  /* KernBot analysis — disabled, restore when training is ready */
+  // const analyzedRef      = useRef(new Set());
+  // const analysisQueueRef = useRef([]);
+  // const isProcessingRef  = useRef(false);
+  /* end KernBot analysis */
 
   const isAdmin = user.tier === "admin" || user.tier === "sr_pm";
-  const apiKey  = import.meta.env.VITE_ANTHROPIC_API_KEY;
+  /* KernBot analysis — disabled, restore when training is ready */
+  // const apiKey  = import.meta.env.VITE_ANTHROPIC_API_KEY;
+  /* end KernBot analysis */
 
+  /* KernBot analysis — disabled, restore when training is ready */
+  /*
   // Sequential analysis queue — processes one issue at a time, 1500ms between each
   async function runAnalysisQueue() {
     if (isProcessingRef.current || !apiKey) return;
@@ -1434,6 +1401,8 @@ export default function RFIApp({ user }) {
     }
     isProcessingRef.current = false;
   }
+  */
+  /* end KernBot analysis */
 
   // Load projects on mount
   useEffect(() => {
@@ -1463,6 +1432,8 @@ export default function RFIApp({ user }) {
           const open = (Array.isArray(rawIssues) ? rawIssues : [])
             .filter(i => i.WorkflowStateName !== "Closed" && i.IsDraft === false);
           setPsIssues(prev => ({ ...prev, [pid]: open }));
+          /* KernBot analysis — disabled, restore when training is ready */
+          /*
           if (apiKey) {
             const toAnalyze = open.filter(i => !analyzedRef.current.has(issueId(i)));
             if (toAnalyze.length > 0) {
@@ -1470,6 +1441,8 @@ export default function RFIApp({ user }) {
               runAnalysisQueue();
             }
           }
+          */
+          /* end KernBot analysis */
         })
         .catch(() => {});
     });
@@ -1516,6 +1489,8 @@ export default function RFIApp({ user }) {
     return { total: openRFIs.length, overdue, due7, avgDays };
   }, [openRFIs]);
 
+  /* KernBot analysis — disabled, restore when training is ready */
+  /*
   const handleAnalyze = issue => {
     if (!apiKey) return;
     const iid = issueId(issue);
@@ -1523,6 +1498,8 @@ export default function RFIApp({ user }) {
     analysisQueueRef.current.push(issue);
     runAnalysisQueue();
   };
+  */
+  /* end KernBot analysis */
 
   const impOrder = { Urgent: 0, High: 1, Normal: 2, Low: 3 };
 
@@ -1633,14 +1610,20 @@ export default function RFIApp({ user }) {
                     key={issueId(issue)}
                     issue={issue}
                     project={issue._project}
-                    analysis={triageAnalysis}
-                    analyzing={triageAnalyzing}
+                    /* KernBot analysis — disabled, restore when training is ready */
+                    // analysis={triageAnalysis}
+                    // analyzing={triageAnalyzing}
+                    /* end KernBot analysis */
                     consultThreads={consultThreads}
                     setConsultThreads={setConsultThreads}
-                    kernbotLearning={kernbotLearning}
-                    setKernbotLearning={setKernbotLearning}
+                    /* KernBot analysis — disabled, restore when training is ready */
+                    // kernbotLearning={kernbotLearning}
+                    // setKernbotLearning={setKernbotLearning}
+                    /* end KernBot analysis */
                     isAdmin={isAdmin}
-                    onRetryAnalyze={handleAnalyze}
+                    /* KernBot analysis — disabled, restore when training is ready */
+                    // onRetryAnalyze={handleAnalyze}
+                    /* end KernBot analysis */
                     user={user}
                     defaultConsultOpen={true}
                     defaultCollapsed={false}
@@ -1703,14 +1686,20 @@ export default function RFIApp({ user }) {
                         key={issueId(issue)}
                         issue={issue}
                         project={issue._project}
-                        analysis={triageAnalysis}
-                        analyzing={triageAnalyzing}
+                        /* KernBot analysis — disabled, restore when training is ready */
+                        // analysis={triageAnalysis}
+                        // analyzing={triageAnalyzing}
+                        /* end KernBot analysis */
                         consultThreads={consultThreads}
                         setConsultThreads={setConsultThreads}
-                        kernbotLearning={kernbotLearning}
-                        setKernbotLearning={setKernbotLearning}
+                        /* KernBot analysis — disabled, restore when training is ready */
+                        // kernbotLearning={kernbotLearning}
+                        // setKernbotLearning={setKernbotLearning}
+                        /* end KernBot analysis */
                         isAdmin={isAdmin}
-                        onRetryAnalyze={handleAnalyze}
+                        /* KernBot analysis — disabled, restore when training is ready */
+                        // onRetryAnalyze={handleAnalyze}
+                        /* end KernBot analysis */
                         user={user}
                         defaultCollapsed={isAdmin}
                       />

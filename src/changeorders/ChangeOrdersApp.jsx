@@ -98,7 +98,7 @@ function StatusChip({ status }) {
   );
 }
 
-function SummaryCard({ label, value, color, onClick, active }) {
+function SummaryCard({ label, definition, value, color, onClick, active }) {
   return (
     <div onClick={onClick}
       style={{ background: C.surface, border: `1px solid ${active ? C.accent : C.border}`,
@@ -110,6 +110,9 @@ function SummaryCard({ label, value, color, onClick, active }) {
         textTransform: 'uppercase', color: C.hint }}>{label}</p>
       <p style={{ margin: 0, fontSize: 26, fontWeight: 700, color: color || C.text,
         letterSpacing: '-0.03em', lineHeight: 1 }}>{value}</p>
+      {definition && (
+        <p style={{ margin: '6px 0 0', fontSize: 11, color: C.hint, lineHeight: 1.4 }}>{definition}</p>
+      )}
     </div>
   );
 }
@@ -370,11 +373,130 @@ function ProjectCard({ project, cos }) {
   );
 }
 
+// ── PM breakdown row (admin/sr_pm only) ──────────────────────────────────────
+
+function PMBreakdown({ visibleProjects, pmFilter, onPMClick }) {
+  const territories = [...new Set(visibleProjects.map(p => p.territory).filter(Boolean))];
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, letterSpacing: '0.07em',
+        textTransform: 'uppercase', color: C.hint }}>PM Breakdown</p>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        {territories.map(territory => {
+          const projIds      = new Set(visibleProjects.filter(p => p.territory === territory).map(p => p.id));
+          const cos          = MOCK_COS.filter(c => projIds.has(c.proj) && isVisible(c));
+          const proposedVal  = cos.filter(c => c.status === 'P').reduce((s, c) => s + c.amt, 0);
+          const approvedVal  = cos.filter(c => c.status === 'A').reduce((s, c) => s + c.amt, 0);
+          const escalateCount = cos.filter(c => isOpen(c) && (c.age ?? 0) >= 21).length;
+          const active = pmFilter === territory;
+          return (
+            <div key={territory} onClick={() => onPMClick(territory)}
+              style={{ background: C.surface, border: `1px solid ${active ? C.accent : C.border}`,
+                borderRadius: 10, padding: '12px 16px', cursor: 'pointer',
+                transition: 'border-color 0.15s', minWidth: 150 }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = active ? C.accent : C.borderHi}
+              onMouseLeave={e => e.currentTarget.style.borderColor = active ? C.accent : C.border}>
+              <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: C.text }}>{territory}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: 11, color: C.success }}>{fmtAmt(proposedVal)} proposed</span>
+                <span style={{ fontSize: 11, color: approvedVal > 0 ? C.warning : C.success }}>{fmtAmt(approvedVal)} approved</span>
+                <span style={{ fontSize: 11, fontWeight: escalateCount > 0 ? 700 : 400,
+                  color: escalateCount > 0 ? C.danger : C.success }}>{escalateCount} escalate</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Rejected CO log ───────────────────────────────────────────────────────────
+
+function RejectedLog({ cos }) {
+  const [open,      setOpen]      = useState(false);
+  const [dismissed, setDismissed] = useState(new Set());
+
+  const rows = cos.filter(c => c.status === 'RJ' && !dismissed.has(c.co));
+
+  return (
+    <div style={{ marginTop: 16, background: C.surface, border: `1px solid ${C.border}`,
+      borderRadius: 10, overflow: 'hidden' }}>
+      <div onClick={() => setOpen(v => !v)}
+        style={{ padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+        onMouseEnter={e => e.currentTarget.style.background = C.surface2}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.danger }}>Rejected COs</span>
+        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
+          background: 'rgba(248,113,113,0.12)', color: C.danger }}>{rows.length}</span>
+        <div style={{ flex: 1 }} />
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.hint} strokeWidth="2"
+          strokeLinecap="round"
+          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </div>
+      {open && (
+        <div style={{ borderTop: `1px solid ${C.border}` }}>
+          <p style={{ margin: 0, padding: '8px 16px', fontSize: 11, color: C.hint }}>
+            Cleared items will reappear if status changes in Spectrum.
+          </p>
+          {rows.length === 0 ? (
+            <p style={{ margin: 0, padding: '8px 16px 16px', fontSize: 12, color: C.muted }}>
+              No rejected change orders.
+            </p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                    {['Job #','CO #','Description','Amount','Date','Clear'].map(h => (
+                      <th key={h} style={{ padding: '8px 12px',
+                        textAlign: h === 'Amount' ? 'right' : 'left',
+                        fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+                        textTransform: 'uppercase', color: C.hint, whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((c, i) => (
+                    <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}
+                      onMouseEnter={e => e.currentTarget.style.background = C.surface2}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      <td style={{ padding: '8px 12px', color: C.muted, whiteSpace: 'nowrap' }}>{c.job}</td>
+                      <td style={{ padding: '8px 12px', color: C.text, whiteSpace: 'nowrap', fontWeight: 600 }}>{c.co}</td>
+                      <td style={{ padding: '8px 12px', color: C.text, maxWidth: 280,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        title={c.desc}>{c.desc}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'right', color: C.text,
+                        whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtAmt(c.amt)}</td>
+                      <td style={{ padding: '8px 12px', color: C.muted, whiteSpace: 'nowrap' }}>{c.sub}</td>
+                      <td style={{ padding: '8px 12px' }}>
+                        <button onClick={e => { e.stopPropagation(); setDismissed(prev => new Set([...prev, c.co])); }}
+                          style={{ fontSize: 11, padding: '3px 10px', borderRadius: 5,
+                            border: `1px solid ${C.border}`, background: C.surface2,
+                            color: C.muted, cursor: 'pointer', fontFamily: 'inherit' }}>
+                          Clear
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ChangeOrdersApp({ user }) {
-  const [activeFilter, setActiveFilter] = useState(null); // null | 'total' | 'proposed' | 'stale'
+  const [activeFilter, setActiveFilter] = useState(null);
   const [search,       setSearch]       = useState('');
+  const [pmFilter,     setPmFilter]     = useState(null);
 
   const visibleProjects = useMemo(() => {
     const territory = TERRITORY_MAP[user?.id];
@@ -382,7 +504,12 @@ export default function ChangeOrdersApp({ user }) {
     return MOCK_PROJECTS.filter(p => p.territory === territory);
   }, [user]);
 
-  const projectIds = useMemo(() => new Set(visibleProjects.map(p => p.id)), [visibleProjects]);
+  const pmFilteredProjects = useMemo(() =>
+    pmFilter ? visibleProjects.filter(p => p.territory === pmFilter) : visibleProjects,
+    [visibleProjects, pmFilter]
+  );
+
+  const projectIds = useMemo(() => new Set(pmFilteredProjects.map(p => p.id)), [pmFilteredProjects]);
 
   const allCOs = useMemo(() =>
     MOCK_COS.filter(c => projectIds.has(c.proj) && isVisible(c)),
@@ -392,23 +519,31 @@ export default function ChangeOrdersApp({ user }) {
   const stats = useMemo(() => {
     const open     = allCOs.filter(isOpen);
     const proposed = allCOs.filter(c => c.status === 'P');
-    const stale    = allCOs.filter(c => isOpen(c) && (c.age ?? 0) >= 14);
     const propVal  = proposed.reduce((s, c) => s + c.amt, 0);
-    return { openCount: open.length, proposedCount: proposed.length, staleCount: stale.length, propVal };
+    return {
+      openCount:     open.length,
+      proposedCount: proposed.length,
+      propVal,
+      approvedVal:   allCOs.filter(c => c.status === 'A').reduce((s, c) => s + c.amt, 0),
+      followUpCount: allCOs.filter(c => isOpen(c) && (c.age ?? 0) >= 14 && (c.age ?? 0) < 21).length,
+      escalateCount: allCOs.filter(c => isOpen(c) && (c.age ?? 0) >= 21).length,
+    };
   }, [allCOs]);
 
   const sortedProjects = useMemo(() =>
-    [...visibleProjects].sort((a, b) =>
+    [...pmFilteredProjects].sort((a, b) =>
       urgencyScore(allCOs.filter(c => c.proj === b.id)) -
       urgencyScore(allCOs.filter(c => c.proj === a.id))
     ),
-    [visibleProjects, allCOs]
+    [pmFilteredProjects, allCOs]
   );
 
   const filterCOs = useMemo(() => {
-    if (activeFilter === 'total')    return allCOs.filter(isOpen);
-    if (activeFilter === 'proposed') return allCOs.filter(c => c.status === 'P');
-    if (activeFilter === 'stale')    return [...allCOs.filter(c => isOpen(c) && (c.age ?? 0) >= 14)]
+    if (activeFilter === 'proposed')  return allCOs.filter(c => c.status === 'P');
+    if (activeFilter === 'approved')  return allCOs.filter(c => c.status === 'A');
+    if (activeFilter === 'followup')  return [...allCOs.filter(c => isOpen(c) && (c.age ?? 0) >= 14 && (c.age ?? 0) < 21)]
+                                             .sort((a, b) => (a.age ?? 0) - (b.age ?? 0));
+    if (activeFilter === 'escalate')  return [...allCOs.filter(c => isOpen(c) && (c.age ?? 0) >= 21)]
                                              .sort((a, b) => (b.age ?? 0) - (a.age ?? 0));
     return [];
   }, [activeFilter, allCOs]);
@@ -428,15 +563,18 @@ export default function ChangeOrdersApp({ user }) {
 
   const backLabel = search.trim()
     ? `${searchCOs.length} result${searchCOs.length !== 1 ? 's' : ''} for "${search}"`
-    : activeFilter === 'total'    ? 'All Open Change Orders'
-    : activeFilter === 'proposed' ? 'Proposed Change Orders'
-    : activeFilter === 'stale'    ? 'Follow Up / Escalate Change Orders (≥ 14 days)'
+    : activeFilter === 'proposed'  ? 'Proposed Change Orders'
+    : activeFilter === 'approved'  ? 'Approved Change Orders'
+    : activeFilter === 'followup'  ? 'Follow Up — 14 to 20 days'
+    : activeFilter === 'escalate'  ? 'Escalate — 21+ days, most overdue first'
     : '';
 
   const handleStatClick = key => {
     setSearch('');
     setActiveFilter(prev => prev === key ? null : key);
   };
+
+  const handlePMClick = territory => setPmFilter(prev => prev === territory ? null : territory);
 
   const handleBack = () => { setActiveFilter(null); setSearch(''); };
 
@@ -466,31 +604,47 @@ export default function ChangeOrdersApp({ user }) {
           </a>
         </div>
 
+        {/* PM breakdown — admin/sr_pm only */}
+        {(user?.role === 'admin' || user?.role === 'sr_pm') && (
+          <PMBreakdown
+            visibleProjects={visibleProjects}
+            pmFilter={pmFilter}
+            onPMClick={handlePMClick}
+          />
+        )}
+
         {/* Summary cards */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
           <SummaryCard
-            label="Total Open"
-            value={stats.openCount}
-            active={activeFilter === 'total'}
-            onClick={() => handleStatClick('total')}
-          />
-          <SummaryCard
             label="Proposed"
+            definition="Submitted, waiting on GC/client signature"
             value={stats.proposedCount}
             active={activeFilter === 'proposed'}
             onClick={() => handleStatClick('proposed')}
           />
           <SummaryCard
-            label="Follow Up / Escalate"
-            value={stats.staleCount}
-            color={stats.staleCount > 0 ? C.warning : undefined}
-            active={activeFilter === 'stale'}
-            onClick={() => handleStatClick('stale')}
+            label="Approved"
+            definition="Signed off, pending accounting execution"
+            value={fmtAmt(stats.approvedVal)}
+            color={C.warning}
+            active={activeFilter === 'approved'}
+            onClick={() => handleStatClick('approved')}
           />
           <SummaryCard
-            label="$ Proposed Value"
-            value={fmtAmt(stats.propVal)}
-            color={C.success}
+            label="Follow Up"
+            definition="Open COs aging 14–20 days"
+            value={stats.followUpCount}
+            color={stats.followUpCount > 0 ? C.warning : undefined}
+            active={activeFilter === 'followup'}
+            onClick={() => handleStatClick('followup')}
+          />
+          <SummaryCard
+            label="Escalate"
+            definition="Open COs past 21 days — needs action"
+            value={stats.escalateCount}
+            color={stats.escalateCount > 0 ? C.danger : undefined}
+            active={activeFilter === 'escalate'}
+            onClick={() => handleStatClick('escalate')}
           />
         </div>
 
@@ -542,6 +696,9 @@ export default function ChangeOrdersApp({ user }) {
             ))}
           </div>
         )}
+
+        {/* Rejected CO log */}
+        <RejectedLog cos={allCOs} />
 
       </div>
     </div>
