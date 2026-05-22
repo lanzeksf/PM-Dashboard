@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A React web application serving as an internal tool for **Kern Steel Fabrication (KSF)** in Bakersfield, CA. Currently deployed on **Vercel**, pending on-prem migration with Postgres. The app has a **shell** (user picker, nav, routing) wrapping a set of work modules. **Kern Bot** is the only fully-built module. All others are stubbed as Coming Soon, ready to be built out.
 
+This app is a **module within the larger FabOS platform**. All new modules and significant features must align with FabOS architecture — job anchors, event publishing, action items, and job context threads. See FabOS alignment section below.
+
 **Stack:** React 18, Vite 5, inline CSS-in-JS (no CSS files, no Tailwind), custom pub/sub state store (no Redux/Zustand). No backend yet — all state is in-memory and resets on page reload.
 
 ## Commands
@@ -203,6 +205,41 @@ Within KernBotApp: `isAdmin` = tier `admin` or `sr_pm` — gates queue access an
 - Accent blue `#5b7cfa` / text on accent `#8eaafe` / PM purple `#a78bfa`
 - Font: `-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif`
 - No external UI component libraries
+
+## FabOS Platform Alignment
+
+This app is a module within the **FabOS platform** — KSF's unified AI-at-the-center operating system. Every module built here must align with FabOS architecture. Sign-off authority for FabOS architectural decisions: **Jim (Operations Manager)**.
+
+### The four requirements for every module:
+1. **Link to the Job Anchor** — every meaningful data record must carry a `jobId` tied to a KSF job number
+2. **Publish to the Event Bus** — meaningful state changes (submittal approved, RFI opened, milestone hit) must emit a structured event
+3. **Create Action Items** — deadlines and pending approvals must generate action items that auto-escalate if overdue
+4. **Feed the Job Context Thread** — significant events update the job's running narrative so the system builds memory over time
+
+### Selective context reads — only load what the task requires:
+
+**Before any non-trivial task**, read:
+- `C:/Users/lanze/Desktop/GitHub/fabos-knowledge/company/context.md` — who KSF is, what we build
+- `C:/Users/lanze/Desktop/GitHub/fabos-knowledge/company/glossary.md` — Strumis terms, industry acronyms
+- `C:/Users/lanze/Desktop/GitHub/fabos-knowledge/tech/stack.md` — approved tools and frameworks
+- `C:/Users/lanze/Desktop/GitHub/fabos-knowledge/platform/roadmap.md` — FabOS build sequence and priorities
+
+**Before any UI/frontend work**, also read:
+- `C:/Users/lanze/Desktop/GitHub/fabos-knowledge/design/design-system.md` — FabOS design tokens, typography, components
+
+**Before building a new module**, also read:
+- `C:/Users/lanze/Desktop/GitHub/fabos-knowledge/development/module-guide.md` — step-by-step module build checklist
+- `C:/Users/lanze/Desktop/GitHub/fabos-knowledge/architecture/event-bus.md` — how to publish and subscribe to events
+- `C:/Users/lanze/Desktop/GitHub/fabos-knowledge/architecture/data-model.md` — database schema and key models
+
+**For bug fixes and small edits** — no FabOS reads required unless the change touches data models or state.
+
+### Keeping the knowledge base current:
+The `fabos-knowledge` folder is a local copy of Jim's Gitea repo. Pull updates periodically:
+```bash
+cd C:/Users/lanze/Desktop/GitHub/fabos-knowledge
+git pull
+```
 
 ## Git & Commit Rules
 
