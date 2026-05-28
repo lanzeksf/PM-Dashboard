@@ -1,5 +1,5 @@
 # KSF Command Center — Session Handoff
-Last updated: May 22, 2026
+Last updated: May 28, 2026
 
 ## How to use this file
 Paste this into any new Claude chat to get full context instantly.
@@ -17,16 +17,16 @@ Anything broken app-wide: Mock data (issue triage items) still multiplying in UI
 
 ## [Module: RFI]
 Status: Live
-File: src/rfi/RFIApp.jsx
-Last built: Full RFI dashboard with live ProjectSight data — 116 projects across Kern Solar Structures and Kern Steel Fabrications portfolios. Project Health Cards sorted worst-first. Stats row (Total Open, Overdue, Due Within 7 Days, Avg Days Open). Search bar with × clear. Show More / Show Less (default 12 cards). Expanded card with All / Open / Closed tabs. Role-based filtering via Territory field. Close-out project logic (hidden if no open RFIs, orange banner if open RFIs remain).
+File: src/rfi/RFIApp.jsx (~580 lines — Issue Triage tab embedded here, not a separate file)
+Last built: RFI Dashboard live and unchanged. Issue Triage tab rebuilt with 8 fixes: sequential KernBot analysis, filter cards by status, collapsed admin view, KB-style input, Issues/RFI deep links. KernBot auto-analysis subsequently disabled (commented out) — architecture decision pending on client-side vs. background worker.
 Open issues:
-- Mock issue triage items still active and multiplying in UI
+- KernBot auto-analysis in Issue Triage is commented out — needs architecture decision before re-enabling
 - Debug console logs not yet cleaned ([KSF COUNT], [KSF DEDUP], [RFI] Fetching…)
 - ProjectSight deep links not yet wired — RFI URL pattern in PS unconfirmed
 - Role filtering for Luis and Jillian pending — no Territory tag in ProjectSight yet
 - Frank and Ali exist as Territory values with no app users assigned
-Blocked on: Loren needs to update Territory field in ProjectSight for all active projects. PS deep link URL pattern needs confirmation.
-Next session: Strip mock data, remove debug logs, confirm PS RFI URL pattern, add vertical filter toggle (Structural / Solar / Aero), add active projects only toggle.
+Blocked on: Loren needs to update Territory field in ProjectSight for all active projects. PS deep link URL pattern needs confirmation. Architecture decision on KernBot analysis needed.
+Next session: Decide KernBot analysis architecture (client-side vs. background worker). Clean debug logs. Confirm PS RFI URL pattern. Add vertical filter toggle (Structural / Solar / Aero) and active projects only toggle.
 
 ---
 
@@ -91,7 +91,7 @@ Use a known active project (Kern Steel portfolio + LACCD or BC Student Housing P
 ## [Module: Change Orders]
 Status: Live — built and deployed, running on mock data
 File: src/changeorders/ChangeOrdersApp.jsx
-Last built: Full module live. Summary cards (Proposed, Approved, Follow Up, Escalate) with definition lines and click-to-filter flat table. PM Breakdown row (admin/sr_pm only) — per-PM proposed/approved/escalate stats, click to filter project view to that PM's territory. Project cards sorted by urgency score, expandable with Open/Executed tabs. Rejected COs collapsible panel (collapsed by default) with per-row Clear (session-dismissed; note cleared items reappear if status changes in Spectrum). Search by CO #, job #, description. Spectrum button top-right. Territory-based role filtering. All data mock until IT tunnel is live.
+Last built: Full module overhauled and live. Summary cards (Proposed, Approved, Follow Up, Escalate) with definition lines and click-to-filter flat table. PM Breakdown row (admin/sr_pm only) — per-PM proposed/approved/escalate stats, click to filter project view to that PM's territory. Project cards sorted by urgency score (staleCount × 50 + openCount × 10 + sum ages), expandable with Open/Executed tabs. Rejected COs collapsible panel (collapsed by default), per-row Clear (session-dismissed; reappear on status change). Search by CO #, job #, description. Spectrum button top-right. Territory-based role filtering. All data mock until IT tunnel is live.
 
 ### Design decisions — locked
 - Data source: Spectrum (kernsteel.dexterchaney.com) via local Postgres pull (30-min sync already running internally at ksf-metric.kernsteel.local). Mock data until IT exposes tunnel.
@@ -139,7 +139,7 @@ Open issues:
 Blocked on:
 - IT: Cloudflare Tunnel or reverse proxy for ksf-metric.kernsteel.local
 - Confirm which Postgres table(s) hold Spectrum CO data and exact column names
-Next session: Wire live Spectrum data once IT tunnel is live. Confirm Postgres table structure and column names.
+Next session: Wire live Spectrum data once IT exposes tunnel to ksf-metric.kernsteel.local. Confirm Postgres table and column names. No UI work needed — module is feature-complete on mock data.
 
 ---
 
