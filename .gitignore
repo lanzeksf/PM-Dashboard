@@ -14,3 +14,6 @@ users.config.json
 .DS_Store
 .vscode/
 *.swp
+.vercel
+.claude/settings.json
+.claude/settings.local.json
