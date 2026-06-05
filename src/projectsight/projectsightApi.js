@@ -141,8 +141,10 @@ export async function getProjects() {
         }
       })
     );
-    const combined = results.flat();
-    return combined.length > 0 ? combined : MOCK_PROJECTS;
+    const rawArray = results.flat();
+    console.log('[KSF RAW] Kern Steel raw count:', rawArray.length);
+    console.log('[KSF RAW] All Kern Steel projects:', JSON.stringify(rawArray.map(p => ({id: p.ProjectID, num: p.Number, name: p.Name}))));
+    return rawArray.length > 0 ? rawArray : MOCK_PROJECTS;
   } catch (e) {
     console.error("[ProjectSight] getProjects() FAILED:", e.message, e.stack);
     return MOCK_PROJECTS;
