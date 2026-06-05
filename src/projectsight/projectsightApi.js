@@ -132,9 +132,12 @@ export async function getProjects() {
                        : name.toLowerCase().includes("aero")  ? "Aero"
                        : "Structural";
         try {
-          const projData = await get(`/${pId}/projects`);
-          const projects = Array.isArray(projData) ? projData : projData?.projects ?? [];
-          return projects.map(p => ({ ...p, portfolioId: pId, vertical }));
+          const url = `/${pId}/projects`;
+          const rawResponse = await get(url);
+          const rawArray = Array.isArray(rawResponse) ? rawResponse : rawResponse?.projects ?? [];
+          console.log('[KSF RAW]', name, 'raw count:', rawArray.length, 'fetch URL:', url);
+          console.log('[KSF META]', name, 'response keys:', Array.isArray(rawResponse) ? '[array]' : Object.keys(rawResponse ?? {}));
+          return rawArray.map(p => ({ ...p, portfolioId: pId, vertical }));
         } catch (e) {
           console.warn(`[ProjectSight] Could not load projects for portfolio ${pId} (${name}):`, e.message);
           return [];
