@@ -125,7 +125,7 @@ function normalizeStatus(r) {
   return rfiStatusVal(r);
 }
 
-const isOpenRFI = r => r.WorkflowStateName !== "Closed";
+const isOpenRFI = r => r.WorkflowStateName !== "Closed" && r.WorkflowStateName !== "Void";
 
 const fmtD = d => d
   ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
