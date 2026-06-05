@@ -435,19 +435,20 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
                   </thead>
                   <tbody>
                     {tabRfis.map(r => {
-                      const open = isOpenRFI(r);
-                      const band = open ? ageBand(rfiDue(r)) : "nodate";
-                      const wfn  = r.WorkflowStateName || "—";
-                      const sc   = wfnChipStyle(r.WorkflowStateName);
+                      const isVoid = r.WorkflowStateName === "Void";
+                      const open   = isOpenRFI(r);
+                      const band   = open ? ageBand(rfiDue(r)) : "nodate";
+                      const wfn    = r.WorkflowStateName || "—";
+                      const sc     = wfnChipStyle(r.WorkflowStateName);
                       return (
-                        <tr key={rfiIdVal(r)} style={{ borderBottom: `1px solid ${C.border}` }}
+                        <tr key={rfiIdVal(r)} style={{ borderBottom: `1px solid ${C.border}`, opacity: isVoid ? 0.5 : 1 }}
                           onMouseEnter={e => e.currentTarget.style.background = C.surface2}
                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                           <td style={{ padding: "8px 10px" }}>
                             {open
                               ? <BandDot band={band} />
                               : <div style={{ width: 8, height: 8, borderRadius: "50%",
-                                  background: C.success, flexShrink: 0 }} />}
+                                  background: isVoid ? C.border : C.success, flexShrink: 0 }} />}
                           </td>
                           <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
                             <a href={psRFILink(p.portfolioId, p.ProjectID, r)} target="_blank" rel="noopener noreferrer"
