@@ -4,7 +4,7 @@ import { getProjects, getRFIs, getIssues } from "../projectsight/projectsightApi
 
 // ── KSF team → Territory filter mapping ──────────────────────────────────────
 
-const TERRITORY_MAP = {
+const KSF_LEAD_MAP = {
   loren:   null,
   lanze:   null,
   jacob:   null,
@@ -1450,9 +1450,9 @@ export default function RFIApp({ user }) {
 
   // Derived: visible projects for this user
   const visibleProjects = useMemo(() => {
-    const territory = TERRITORY_MAP[user?.id];
-    if (territory === null || territory === undefined) return psProjects;
-    return psProjects.filter(p => (p.Territory ?? "").trim() === territory);
+    const lead = KSF_LEAD_MAP[user?.id];
+    if (lead === null || lead === undefined) return psProjects;
+    return psProjects.filter(p => (p.TypeOfBuilding ?? "").trim() === lead);
   }, [psProjects, user]);
 
   // Derived: all RFIs across visible projects, decorated with _project
