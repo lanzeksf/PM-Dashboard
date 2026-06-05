@@ -142,6 +142,12 @@ export async function getProjects() {
       })
     );
     const combined = results.flat();
+    console.log('[KSF Lead] Building type fields:', combined.slice(0,3).map(p => ({
+      name: p.Name,
+      TypeOfBuilding: p.TypeOfBuilding,
+      TypeOfBuildingID: p.TypeOfBuildingID,
+      BuildingType: p.BuildingType,
+    })));
     return combined.length > 0 ? combined : MOCK_PROJECTS;
   } catch (e) {
     console.error("[ProjectSight] getProjects() FAILED:", e.message, e.stack);
