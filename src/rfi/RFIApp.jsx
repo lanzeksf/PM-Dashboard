@@ -7,10 +7,10 @@ import { getProjects, getRFIs, getIssues } from "../projectsight/projectsightApi
 const KSF_LEAD_MAP = {
   loren:   null,
   lanze:   null,
-  jacob:   null,
+  jacob:   'Jake',
   tony:    'Tony',
-  luis:    null,
-  jillian: null,
+  luis:    'Luis',
+  jillian: 'Jillian',
   adam:    'Adam',
 };
 
@@ -293,7 +293,23 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
           color: C.text, fontSize: 12, fontFamily: "inherit", boxSizing: "border-box", outline: "none" }}
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px,1fr))", gap: 12, marginBottom: 12 }}>
+      <div style={showAll
+        ? { maxHeight: "70vh", overflowY: "auto", border: `1px solid ${C.border}`, borderRadius: 10,
+            padding: "0 12px 12px", marginBottom: 12,
+            display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px,1fr))", gap: 12 }
+        : { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px,1fr))", gap: 12, marginBottom: 12 }}>
+        {showAll && (
+          <div style={{ gridColumn: "1/-1", position: "sticky", top: 0, zIndex: 1,
+            background: C.bg, paddingTop: 10, paddingBottom: 8,
+            display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
+            <button onClick={() => setShowAll(false)}
+              style={{ padding: "5px 14px", borderRadius: 6, fontFamily: "inherit",
+                background: C.surface, border: `1px solid ${C.border}`,
+                color: C.hint, fontSize: 12, cursor: "pointer" }}>
+              Collapse ↑
+            </button>
+          </div>
+        )}
         {visible.map(p => {
           const pid      = `${p.portfolioId}-${p.ProjectID}`;
           const loading  = rfiLoading[pid];
@@ -370,12 +386,12 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
         })}
       </div>
 
-      {filtered.length > 12 && (
-        <button onClick={() => setShowAll(v => !v)}
+      {!showAll && filtered.length > 12 && (
+        <button onClick={() => setShowAll(true)}
           style={{ display: "block", width: "100%", padding: "8px", marginBottom: 12,
             background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8,
             color: C.hint, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-          {showAll ? "Show Less ↑" : `Show All ${filtered.length} Projects ↓`}
+          Show All {filtered.length} Projects ↓
         </button>
       )}
 
@@ -1363,6 +1379,7 @@ export default function RFIApp({ user }) {
   // const [kernbotLearning, setKernbotLearning] = useState([]);
   /* end KernBot analysis */
   const [selectedPids,    setSelectedPids]    = useState(new Set());
+  const [leadFilter,      setLeadFilter]      = useState("All");
 
   /* KernBot analysis — disabled, restore when training is ready */
   // const analyzedRef      = useRef(new Set());
@@ -1451,10 +1468,14 @@ export default function RFIApp({ user }) {
 
   // Derived: visible projects for this user
   const visibleProjects = useMemo(() => {
+    if (user?.id === "lanze" || user?.id === "loren") {
+      if (leadFilter === "All") return psProjects;
+      return psProjects.filter(p => (p.TypeOfBuilding ?? "").trim() === leadFilter);
+    }
     const lead = KSF_LEAD_MAP[user?.id];
     if (lead === null || lead === undefined) return psProjects;
     return psProjects.filter(p => (p.TypeOfBuilding ?? "").trim() === lead);
-  }, [psProjects, user]);
+  }, [psProjects, user, leadFilter]);
 
   // Derived: all RFIs across visible projects, decorated with _project
   const allRFIs = useMemo(() =>
@@ -1578,10 +1599,25 @@ export default function RFIApp({ user }) {
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 700,
-                letterSpacing: "0.07em", textTransform: "uppercase", color: C.hint }}>
-                Project Health
-              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 700,
+                  letterSpacing: "0.07em", textTransform: "uppercase", color: C.hint }}>
+                  Project Health
+                </p>
+                {(user?.id === "lanze" || user?.id === "loren") && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
+                    <span style={{ fontSize: 11, color: C.hint }}>KSF Lead:</span>
+                    <select value={leadFilter} onChange={e => setLeadFilter(e.target.value)}
+                      style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit",
+                        background: C.surface, border: `1px solid ${leadFilter !== "All" ? C.accent + "66" : C.border}`,
+                        color: leadFilter !== "All" ? C.accentText : C.muted, cursor: "pointer", outline: "none" }}>
+                      {["All", "Tony", "Adam", "Loren", "Jake", "Luis", "Jillian", "Frank", "Ali"].map(o => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
               <ProjectCards
                 projects={visibleProjects}
                 psRFIs={psRFIs}
