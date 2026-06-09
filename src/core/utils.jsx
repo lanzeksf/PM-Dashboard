@@ -134,18 +134,18 @@ export const USERS_LIST = [
     department: { label: "Solar", color: "#888", bg: "#2a2a2a" },
   },
   {
-    id: "jillian", name: "Jillian H.", initials: "JH", color: "#f472b6",
-    position: "Project Coordinator", role: "coordinator",
-    tier: "standard", canRespond: false, stdWrite: false,
-    badge: null,
-    department: { label: "Solar", color: "#888", bg: "#2a2a2a" },
-  },
-  {
     id: "adam",    name: "Adam K.",    initials: "AK", color: "#fb923c",
     position: "Assistant Project Manager", role: "apm",
     tier: "standard", canRespond: false, stdWrite: false,
     badge: null,
     department: { label: "Aero", color: "#888", bg: "#2a2a2a" },
+  },
+  {
+    id: "lisbet",  name: "Lisbet L.",  initials: "LL", color: "#2dd4bf",
+    position: "Intern", role: "apm",
+    tier: "standard", canRespond: false, stdWrite: false,
+    badge: null,
+    department: null,
   },
   {
     id: "jacob",   name: "Jacob T.",   initials: "JT", color: "#4ade80",

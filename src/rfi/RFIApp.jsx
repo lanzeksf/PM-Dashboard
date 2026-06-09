@@ -5,13 +5,13 @@ import { getProjects, getRFIs, getIssues } from "../projectsight/projectsightApi
 // ── KSF team → Territory filter mapping ──────────────────────────────────────
 
 const KSF_LEAD_MAP = {
-  loren:   null,
   lanze:   null,
-  jacob:   'Jake',
-  tony:    'Tony',
-  luis:    'Luis',
-  jillian: 'Jillian',
-  adam:    'Adam',
+  loren:   null,
+  jacob:   null,
+  tony:    'Antonio S.',
+  luis:    'Luis A.',
+  lisbet:  null,
+  adam:    'Adam K.',
 };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -1474,7 +1474,12 @@ export default function RFIApp({ user }) {
     }
     const lead = KSF_LEAD_MAP[user?.id];
     if (lead === null || lead === undefined) return psProjects;
-    return psProjects.filter(p => (p.TypeOfBuilding ?? "").trim() === lead);
+    return psProjects.filter(p => {
+      const tob = (p.TypeOfBuilding ?? "").trim();
+      if (tob === lead) return true;
+      const firstName = lead.split(" ")[0].toLowerCase();
+      return tob.toLowerCase().includes(firstName);
+    });
   }, [psProjects, user, leadFilter]);
 
   // Derived: all RFIs across visible projects, decorated with _project
@@ -1611,7 +1616,7 @@ export default function RFIApp({ user }) {
                       style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit",
                         background: C.surface, border: `1px solid ${leadFilter !== "All" ? C.accent + "66" : C.border}`,
                         color: leadFilter !== "All" ? C.accentText : C.muted, cursor: "pointer", outline: "none" }}>
-                      {["All", "Tony", "Adam", "Loren", "Jake", "Luis", "Jillian", "Frank", "Ali"].map(o => (
+                      {["All", "Antonio S.", "Adam K.", "Loren", "Jake", "Luis A.", "Frank", "Ali"].map(o => (
                         <option key={o} value={o}>{o}</option>
                       ))}
                     </select>
