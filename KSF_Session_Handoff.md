@@ -1,5 +1,5 @@
 # KSF Command Center — Session Handoff
-Last updated: May 28, 2026
+Last updated: June 9, 2026
 
 ## How to use this file
 Paste this into any new Claude chat to get full context instantly.
@@ -10,23 +10,23 @@ Do not update mid-session — only on the final commit.
 
 ## App-wide status
 Deployment: https://pm-dashboard-liard.vercel.app
-Last confirmed working: May 20, 2026
-Anything broken app-wide: Mock data (issue triage items) still multiplying in UI — needs cleanup. Debug console logs still present ([KSF COUNT], [KSF DEDUP], [RFI] Fetching…).
+Last confirmed working: June 9, 2026
+Anything broken app-wide: Temp diagnostic logs [KSF RAW] and [KSF META] still present in projectsightApi.js — added to diagnose 93 vs 123 project count discrepancy, clean once resolved.
 
 ---
 
 ## [Module: RFI]
 Status: Live
-File: src/rfi/RFIApp.jsx (~580 lines — Issue Triage tab embedded here, not a separate file)
-Last built: RFI Dashboard live and unchanged. Issue Triage tab rebuilt with 8 fixes: sequential KernBot analysis, filter cards by status, collapsed admin view, KB-style input, Issues/RFI deep links. KernBot auto-analysis subsequently disabled (commented out) — architecture decision pending on client-side vs. background worker.
+File: src/rfi/RFIApp.jsx (~1730 lines — Issue Triage tab embedded here, not a separate file)
+Last built: Multiple updates this session — Void RFIs now counted as closed everywhere (isOpenRFI predicate excludes Void). Void rows visually dimmed in expanded table (gray dot, 50% opacity). Show All opens scrollable 70vh container with sticky Collapse button. KSF Lead dropdown (lanze/loren only) filters project cards by exact TypeOfBuilding value. Role-based project filtering wired for all users via KSF_LEAD_MAP using exact Trimble name format + case-insensitive first-name fallback. Jillian removed from roster, Lisbet added (null = sees all). Per-portfolio [KSF RAW]/[KSF META] diagnostic logs added to projectsightApi.js to debug project count.
 Open issues:
 - KernBot auto-analysis in Issue Triage is commented out — needs architecture decision before re-enabling
-- Debug console logs not yet cleaned ([KSF COUNT], [KSF DEDUP], [RFI] Fetching…)
+- Temp diagnostic logs [KSF RAW] and [KSF META] in projectsightApi.js — remove once project count confirmed
 - ProjectSight deep links not yet wired — RFI URL pattern in PS unconfirmed
-- Role filtering for Luis and Jillian pending — no Territory tag in ProjectSight yet
-- Frank and Ali exist as Territory values with no app users assigned
-Blocked on: Loren needs to update Territory field in ProjectSight for all active projects. PS deep link URL pattern needs confirmation. Architecture decision on KernBot analysis needed.
-Next session: Decide KernBot analysis architecture (client-side vs. background worker). Clean debug logs. Confirm PS RFI URL pattern. Add vertical filter toggle (Structural / Solar / Aero) and active projects only toggle.
+- 93 vs 123 project count discrepancy still unresolved — [KSF RAW] logs added, needs console check after latest deploy
+- Frank and Ali exist as TypeOfBuilding values with no app users mapped to them
+Blocked on: PS deep link URL pattern needs confirmation. Architecture decision on KernBot analysis needed. Project count needs console verification on prod after deploy of 3f349b5.
+Next session: Check [KSF RAW] console output on prod to diagnose project count. Clean diagnostic logs once confirmed. Decide KernBot analysis architecture. Confirm PS RFI URL pattern. Add vertical filter toggle and active-only toggle.
 
 ---
 
@@ -255,17 +255,17 @@ Next session: Once tunnel is live, explore Strumis MCP connection and production
 ---
 
 ## Users & roles
-| ID | Name | Role | Territory | Trimble Name |
+| ID | Name | Role | TypeOfBuilding filter | Trimble Name |
 |---|---|---|---|---|
-| lanze | Lanze A. | admin | — | Lanze Alviar |
-| loren | Loren C. | sr_pm | Loren | Loren Castro |
-| tony | Tony S. | coordinator | Tony | Antonio Sanabria |
-| luis | Luis A. | apm | — (none yet) | Jose Arrezola |
-| jillian | Jillian H. | coordinator | — (none yet) | Jillian Hawkins |
-| adam | Adam K. | apm | Adam | Adam Kneale |
-| jacob | Jacob T. | field | Jake | Jacob Tiffany |
+| lanze | Lanze A. | admin | — (sees all) | Lanze Alviar |
+| loren | Loren C. | sr_pm | — (sees all, + lead dropdown) | Loren Castro |
+| tony | Tony S. | coordinator | Antonio S. | Antonio Sanabria |
+| luis | Luis A. | apm | Luis A. | Jose Arrezola |
+| adam | Adam K. | apm | Adam K. | Adam Kneale |
+| lisbet | Lisbet L. | apm (Intern) | — (sees all) | — |
+| jacob | Jacob T. | field | — (sees all) | Jacob Tiffany |
 
-Other Territory values in ProjectSight with no app users: Frank, Ali
+Other TypeOfBuilding values in ProjectSight: Jake, Loren, Frank, Ali (no app users filtered by these; visible in lanze/loren dropdown)
 
 ---
 
@@ -287,11 +287,11 @@ Endpoints not yet tested:
 - POST /{PortfolioID}/{ProjectID}/issues/{IssueID}/comments — needed to post responses
 - POST /{PortfolioID}/{ProjectID}/rfis — needed to create RFIs from Issues
 
-Key project fields: ProjectID, Name, Number, ProjectManager, StartDate, FinishDate, Territory, Status
-Key RFI fields: RFI_ID, Number, Subject, DateCreated, DateDue, DateResolved, WorkflowStateName, Importance, Discipline, AuthorContactName, ProjectID
+Key project fields: ProjectID, Name, Number, ProjectManager, StartDate, FinishDate, TypeOfBuilding, Status
+Key RFI fields: RFIID, Number, Subject, DateCreated, DateDue, DateResolved, WorkflowStateName, Importance, Discipline, AuthorContactName, ProjectID
 
-RFI WorkflowStateName values: Draft, Open, KSF PM Review, Submitted to GC, Closed
-RFI open/closed: open = not Closed, closed = WorkflowStateName === 'Closed'
+RFI WorkflowStateName values: Draft, Open, KSF PM Review, Submitted to GC, Closed, Void
+RFI open/closed: open = WorkflowStateName is not 'Closed' and not 'Void'; closed = WorkflowStateName === 'Closed' OR 'Void'
 
 Issue fields: NOT YET CONFIRMED — API discovery is first step of Issue Triage build
 
