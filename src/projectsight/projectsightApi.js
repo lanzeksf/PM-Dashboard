@@ -179,11 +179,38 @@ export async function getSubmittals(portfolioId, projectId) {
 // Returns issues for a specific project.
 export async function getIssues(portfolioId, projectId) {
   try {
-    const data = await get(`/${portfolioId}/${projectId}/issues`);
-    return Array.isArray(data) ? data : data?.issues ?? [];
+    let token = await getToken();
+    let response = await fetch(`${BASE}/${portfolioId}/${projectId}/issues`, {
+      method: "GET",
+      headers: buildHeaders(token),
+    });
+    if (response.status === 401 || response.status === 403) {
+      _tokenCache = null;
+      token = await getToken();
+      response = await fetch(`${BASE}/${portfolioId}/${projectId}/issues`, {
+        method: "GET",
+        headers: buildHeaders(token),
+      });
+    }
+    console.log('[Issues] HTTP status:', response.status);
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`ProjectSight ${response.status}: ${body}`);
+    }
+    const data = await response.json();
+    const issues = Array.isArray(data) ? data : data?.issues ?? [];
+    console.log('[Issues] Count:', issues.length);
+    if (issues.length > 0) {
+      console.log('[Issues] Sample keys:', Object.keys(issues[0]));
+      console.log('[Issues] Sample issue:', JSON.stringify(issues[0]).slice(0, 800));
+    }
+    return issues;
   } catch (e) {
     console.warn("[ProjectSight] getIssues() failed:", e.message);
     return [];
   }
 }
+
+// Discovery — LACCD Theater (portfolioId: 5ce1bcb1-…, projectId: 36)
+getIssues("5ce1bcb1-c811-49ac-9039-ec36f3e75f78", "36");
 
