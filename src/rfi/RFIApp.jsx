@@ -8,7 +8,7 @@ const KSF_LEAD_MAP = {
   lanze:   null,
   loren:   null,
   jacob:   null,
-  tony:    'Antonio S.',
+  tony:    'Tony S.',
   luis:    'Luis A.',
   lisbet:  null,
   adam:    'Adam K.',
