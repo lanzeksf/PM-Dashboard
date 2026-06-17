@@ -117,7 +117,7 @@ function StdEditor({ std, onSave, onCancel, isNew }) {
             {VERTICALS.map(v => {
               const a = vert === v;
               return (
-                <button key={v} onClick={() => setVert(v)} style={{ flex: 1, padding: "6px", fontSize: 11, borderRadius: 6, border: `1px solid ${a ? "rgba(79,110,247,0.4)" : C.border}`, background: a ? C.accentDim : "none", color: a ? C.accentText : C.muted, cursor: "pointer", fontFamily: "inherit" }}>
+                <button key={v} onClick={() => setVert(v)} style={{ flex: 1, padding: "6px", fontSize: 11, borderRadius: 6, border: `1px solid ${a ? "rgba(91,141,184,0.4)" : C.border}`, background: a ? C.accentDim : "none", color: a ? C.accentText : C.muted, cursor: "pointer", fontFamily: "inherit" }}>
                   {v}
                 </button>
               );
@@ -175,7 +175,7 @@ export function StdList({ user, canWrite = false }) {
           <p style={{ margin: 0, fontSize: 10, color: C.hint }}>Tier 0 — highest priority in bot responses</p>
         </div>
         {canWrite && (
-          <button onClick={() => setIsNew(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: C.accentDim, border: `1px solid rgba(79,110,247,0.3)`, borderRadius: 7, color: C.accentText, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+          <button onClick={() => setIsNew(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: C.accentDim, border: `1px solid rgba(91,141,184,0.3)`, borderRadius: 7, color: C.accentText, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
             New
           </button>

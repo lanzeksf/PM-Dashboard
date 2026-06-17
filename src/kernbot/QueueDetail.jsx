@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+wimport React, { useState, useRef, useEffect } from "react";
 import { C, MI, fmtDate } from "../core/utils.jsx";
 import { UrgBadge } from "../components/UI.jsx";
 import { Bubble } from "../components/Chat.jsx";
@@ -78,7 +78,7 @@ export function QueueDetail({ item, user, onSend, onResolve, onUnresolve }) {
           {!editing ? (
             <button onClick={startEdit}
               style={{ width: 26, height: 26, borderRadius: 6, background: "none", border: `1px solid ${C.border}`, cursor: "pointer", color: C.hint, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}
-              onMouseEnter={e => { e.currentTarget.style.background = C.accentDim; e.currentTarget.style.borderColor = "rgba(79,110,247,0.35)"; e.currentTarget.style.color = C.accentText; }}
+              onMouseEnter={e => { e.currentTarget.style.background = C.accentDim; e.currentTarget.style.borderColor = "rgba(91,141,184,0.35)"; e.currentTarget.style.color = C.accentText; }}
               onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.hint; }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
@@ -139,7 +139,7 @@ export function QueueDetail({ item, user, onSend, onResolve, onUnresolve }) {
       <div style={{ flex: 1, overflowY: "auto", padding: "14px 16px" }}>
         <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12 }}>
           {item.additionalContext && (
-            <div style={{ background: C.accentDim, border: `1px solid rgba(79,110,247,0.2)`, borderRadius: 9, padding: "10px 13px" }}>
+            <div style={{ background: C.accentDim, border: `1px solid rgba(91,141,184,0.2)`, borderRadius: 9, padding: "10px 13px" }}>
               <p style={{ fontSize: 10, color: C.accentText, margin: "0 0 4px", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>Additional context</p>
               <p style={{ fontSize: 13, color: C.text, margin: 0, lineHeight: 1.7 }}>{item.additionalContext}</p>
             </div>

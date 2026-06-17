@@ -86,7 +86,7 @@ export function SourcePanel({ source, onClose }) {
             Full document content will appear here once the KSF knowledge base is connected. For now this confirms the source cited by Kern Bot.
           </p>
         </div>
-        <div style={{ marginTop: 12, padding: "10px 12px", background: C.accentDim, border: `1px solid rgba(91,124,250,0.2)`, borderRadius: 8 }}>
+        <div style={{ marginTop: 12, padding: "10px 12px", background: C.accentDim, border: `1px solid rgba(91,141,184,0.2)`, borderRadius: 8 }}>
           <p style={{ margin: 0, fontSize: 11, color: C.accentText, lineHeight: 1.65 }}>
             📚 Knowledge base integration coming soon. Sources will display full text, page references, and revision history.
           </p>

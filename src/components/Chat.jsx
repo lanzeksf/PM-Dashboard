@@ -118,7 +118,7 @@ export function Bubble({ m, isMe, userColor, userInitials, onView, onSourceClick
                 {m.sources.map((s, j) => (
                   <button key={j} onClick={() => onSourceClick && onSourceClick(s)}
                     style={{ display: "inline-flex", alignItems: "center", gap: 5, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6, padding: "3px 9px", cursor: "pointer", fontFamily: "inherit", transition: "all 0.12s" }}
-                    onMouseEnter={e => { e.currentTarget.style.background = C.accentDim; e.currentTarget.style.borderColor = "rgba(91,124,250,0.3)"; }}
+                    onMouseEnter={e => { e.currentTarget.style.background = C.accentDim; e.currentTarget.style.borderColor = "rgba(91,141,184,0.3)"; }}
                     onMouseLeave={e => { e.currentTarget.style.background = C.surface2; e.currentTarget.style.borderColor = C.border; }}
                   >
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none">

@@ -143,7 +143,7 @@ const statusChipStyle = s => {
   const ls = (s || "").toLowerCase();
   if (ls.includes("draft"))                             return { color: C.hint,    bg: C.surface2 };
   if (ls.includes("submit"))                            return { color: C.warning, bg: "rgba(251,191,36,0.12)" };
-  if (ls.includes("review"))                            return { color: C.accent,  bg: "rgba(91,124,250,0.12)" };
+  if (ls.includes("review"))                            return { color: C.accent,  bg: "rgba(91,141,184,0.12)" };
   if (ls.includes("answer") || ls.includes("respond")) return { color: C.success, bg: "rgba(52,211,153,0.12)" };
   if (ls.includes("close")  || ls.includes("void"))    return { color: C.hint,    bg: C.surface2 };
   return { color: C.muted, bg: C.surface2 };
@@ -512,7 +512,7 @@ function ProjectCards({ projects, psRFIs, rfiLoading, rfiErrors, expandedProject
 
 const impChipStyle = imp => ({
   Low:    { color: C.hint,    bg: C.surface2 },
-  Normal: { color: C.accent,  bg: "rgba(91,124,250,0.12)"  },
+  Normal: { color: C.accent,  bg: "rgba(91,141,184,0.12)"  },
   High:   { color: C.warning, bg: "rgba(251,191,36,0.12)"  },
   Urgent: { color: C.danger,  bg: "rgba(248,113,113,0.12)" },
 }[imp] || { color: C.muted, bg: C.surface2 });
@@ -1085,7 +1085,7 @@ function TriageIssueCard({
               <button onClick={() => onRetryAnalyze(issue)}>Retry</button>
             </div>
           ) : a ? (
-            <div style={{ background: "rgba(91,124,250,0.05)", border: "1px solid ...", borderRadius: 8, padding: "12px 14px", marginBottom: 12 }}>
+            <div style={{ background: "rgba(91,141,184,0.05)", border: "1px solid ...", borderRadius: 8, padding: "12px 14px", marginBottom: 12 }}>
               Kern Bot Summary: {a.cleanText}
               Show original toggle
               Sub-questions with confidence badges
@@ -1220,7 +1220,7 @@ function TriageIssueCard({
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <button onClick={() => consultFileRef.current?.click()}
                           style={paperclipBtnStyle}
-                          onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.background = "rgba(91,124,250,0.12)"; e.currentTarget.style.borderColor = "rgba(91,124,250,0.3)"; }}
+                          onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.background = "rgba(91,141,184,0.12)"; e.currentTarget.style.borderColor = "rgba(91,141,184,0.3)"; }}
                           onMouseLeave={e => { e.currentTarget.style.color = C.hint; e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = "transparent"; }}>
                           <span style={{ display: "flex", alignItems: "center" }}>{MI.paperclip}</span>
                         </button>
@@ -1331,7 +1331,7 @@ function TriageIssueCard({
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <button onClick={() => replyFileRef.current?.click()}
                           style={paperclipBtnStyle}
-                          onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.background = "rgba(91,124,250,0.12)"; e.currentTarget.style.borderColor = "rgba(91,124,250,0.3)"; }}
+                          onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.background = "rgba(91,141,184,0.12)"; e.currentTarget.style.borderColor = "rgba(91,141,184,0.3)"; }}
                           onMouseLeave={e => { e.currentTarget.style.color = C.hint; e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = "transparent"; }}>
                           <span style={{ display: "flex", alignItems: "center" }}>{MI.paperclip}</span>
                         </button>
