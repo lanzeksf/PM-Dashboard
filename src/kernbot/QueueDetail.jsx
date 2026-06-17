@@ -1,4 +1,4 @@
-wimport React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { C, MI, fmtDate } from "../core/utils.jsx";
 import { UrgBadge } from "../components/UI.jsx";
 import { Bubble } from "../components/Chat.jsx";
