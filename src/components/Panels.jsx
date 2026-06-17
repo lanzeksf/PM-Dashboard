@@ -22,7 +22,7 @@ export function ChatRow({ c, active, isAdmin, onSelect, onRename, onEscalate, on
   return (
     <div style={{ position: "relative", marginBottom: 1 }}>
       <div onClick={() => onSelect(c.id)}
-        style={{ display: "flex", alignItems: "center", borderRadius: 6, cursor: "pointer", background: active ? "rgba(79,110,247,0.11)" : "none", border: `1px solid ${active ? "rgba(79,110,247,0.28)" : "transparent"}`, padding: "4px 4px 4px 6px", transition: "background 0.1s" }}
+        style={{ display: "flex", alignItems: "center", borderRadius: 6, cursor: "pointer", background: active ? "rgba(91,141,184,0.11)" : "none", border: `1px solid ${active ? "rgba(91,141,184,0.28)" : "transparent"}`, padding: "4px 4px 4px 6px", transition: "background 0.1s" }}
         onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
         onMouseLeave={e => { if (!active) e.currentTarget.style.background = "none"; }}
       >

@@ -243,7 +243,7 @@ export function KernBotApp({ preloadUser }) {
           )}
           <div style={{ marginTop: isAdmin ? 0 : 6 }}>
             {!isAdmin && <div style={{ height: 1, background: C.border, margin: "6px 0 2px" }} />}
-            <button onClick={() => setAdminView("standards")} style={{ width: "100%", marginTop: 4, background: adminView === "standards" ? "rgba(79,110,247,0.1)" : "none", border: `1px solid ${adminView === "standards" ? "rgba(79,110,247,0.28)" : "transparent"}`, borderRadius: 6, padding: "5px 7px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit" }}>
+            <button onClick={() => setAdminView("standards")} style={{ width: "100%", marginTop: 4, background: adminView === "standards" ? "rgba(91,141,184,0.1)" : "none", border: `1px solid ${adminView === "standards" ? "rgba(91,141,184,0.28)" : "transparent"}`, borderRadius: 6, padding: "5px 7px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit" }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={adminView === "standards" ? C.accentText : C.hint} strokeWidth="1.5" strokeLinecap="round" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={adminView === "standards" ? C.accentText : C.hint} strokeWidth="1.5" /></svg>
               <span style={{ fontSize: 11, color: adminView === "standards" ? C.accentText : C.hint }}>Standards library</span>
             </button>

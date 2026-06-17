@@ -161,7 +161,7 @@ export function QueueDetail({ item, user, onSend, onResolve, onUnresolve }) {
         >
           <div style={{ maxWidth: 640, margin: "0 auto" }}>
             {attErr && <p style={{ fontSize: 11, color: C.danger, margin: "0 0 5px" }}>{attErr}</p>}
-            <div style={{ background: C.surface, border: `1px solid ${dragOver ? "rgba(79,110,247,0.6)" : C.borderHi}`, borderRadius: 10, overflow: "hidden", marginBottom: 8, transition: "border-color 0.15s", boxShadow: dragOver ? "0 0 0 3px rgba(79,110,247,0.12)" : "none" }}>
+            <div style={{ background: C.surface, border: `1px solid ${dragOver ? "rgba(91,141,184,0.6)" : C.borderHi}`, borderRadius: 10, overflow: "hidden", marginBottom: 8, transition: "border-color 0.15s", boxShadow: dragOver ? "0 0 0 3px rgba(91,141,184,0.12)" : "none" }}>
               <AttachTray attachments={attachments} onRemove={removeAt} />
               <textarea
                 ref={taRef} value={input}
@@ -174,7 +174,7 @@ export function QueueDetail({ item, user, onSend, onResolve, onUnresolve }) {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 8px 7px", borderTop: `1px solid ${C.border}` }}>
                 <button onClick={openPicker}
                   style={{ background: "none", border: "1px solid transparent", cursor: "pointer", color: C.hint, padding: "4px 5px", display: "flex", borderRadius: 6, transition: "all 0.15s", alignItems: "center" }}
-                  onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.background = "rgba(79,110,247,0.12)"; e.currentTarget.style.borderColor = "rgba(79,110,247,0.3)"; }}
+                  onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.background = "rgba(91,141,184,0.12)"; e.currentTarget.style.borderColor = "rgba(91,141,184,0.3)"; }}
                   onMouseLeave={e => { e.currentTarget.style.color = C.hint; e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = "transparent"; }}
                 >
                   <span style={{ display: "flex", alignItems: "center" }}>{MI.paperclip}</span>

@@ -164,7 +164,7 @@ export function ChatPane({ chat, user, isAdmin, onEscalate, onResolve, onUnresol
         >
           <div style={{ maxWidth: 640, margin: "0 auto" }}>
             {attErr && <p style={{ fontSize: 11, color: C.danger, margin: "0 0 5px" }}>{attErr}</p>}
-            <div style={{ background: C.surface, border: `1px solid ${dragOver ? "rgba(79,110,247,0.6)" : isEscalated ? "rgba(167,139,250,0.32)" : C.borderHi}`, borderRadius: 10, overflow: "hidden", transition: "border-color 0.15s", boxShadow: dragOver ? "0 0 0 3px rgba(79,110,247,0.12)" : "none" }}>
+            <div style={{ background: C.surface, border: `1px solid ${dragOver ? "rgba(91,141,184,0.6)" : isEscalated ? "rgba(167,139,250,0.32)" : C.borderHi}`, borderRadius: 10, overflow: "hidden", transition: "border-color 0.15s", boxShadow: dragOver ? "0 0 0 3px rgba(91,141,184,0.12)" : "none" }}>
               <AttachTray attachments={attachments} onRemove={removeAt} />
               <textarea
                 ref={taRef} value={input}
@@ -185,7 +185,7 @@ export function ChatPane({ chat, user, isAdmin, onEscalate, onResolve, onUnresol
                   <button
                     onClick={openPicker} title="Attach files — images, PDFs, drawings, docs"
                     style={{ background: "none", border: "1px solid transparent", cursor: "pointer", color: C.hint, padding: "4px 5px", display: "flex", borderRadius: 6, transition: "all 0.15s", alignItems: "center" }}
-                    onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.background = "rgba(79,110,247,0.12)"; e.currentTarget.style.borderColor = "rgba(79,110,247,0.3)"; }}
+                    onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.background = "rgba(91,141,184,0.12)"; e.currentTarget.style.borderColor = "rgba(91,141,184,0.3)"; }}
                     onMouseLeave={e => { e.currentTarget.style.color = C.hint; e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = "transparent"; }}
                   >
                     <span style={{ display: "flex", alignItems: "center" }}>{MI.paperclip}</span>
