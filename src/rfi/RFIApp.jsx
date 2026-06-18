@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { C, MI } from "../core/utils.jsx";
+import { store } from "../core/store.js";
 import { getProjects, getRFIs, getIssues } from "../projectsight/projectsightApi.js";
 
 // ── KSF team → Territory filter mapping ──────────────────────────────────────
@@ -130,6 +131,14 @@ const isOpenRFI = r => r.WorkflowStateName !== "Closed" && r.WorkflowStateName !
 const fmtD = d => d
   ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   : "—";
+
+function relTime(ts) {
+  if (!ts) return null;
+  const mins = Math.floor((Date.now() - ts) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  return `${Math.floor(mins / 60)} hr ago`;
+}
 
 const wfnChipStyle = s => ({
   "Draft":           { color: C.muted,   bg: C.surface2 },
@@ -1366,8 +1375,11 @@ export default function RFIApp({ user }) {
   const [psIssues,        setPsIssues]        = useState({});
   const [rfiLoading,      setRfiLoading]      = useState({});
   const [rfiErrors,       setRfiErrors]       = useState({});
-  const [projectsLoading, setProjectsLoading] = useState(true);
+  const [projectsLoading, setProjectsLoading] = useState(() => store.projectsightCache.projects.length === 0);
   const [projectsError,   setProjectsError]   = useState(null);
+  const [refreshKey,      setRefreshKey]      = useState(0);
+  const [lastSynced,      setLastSynced]      = useState(store.projectsightCache.lastSynced);
+  const [,                setTimeTick]        = useState(0);
   const [expandedProject, setExpandedProject] = useState(null);
   const [rfiTab,          setRfiTab]          = useState("dashboard");
   /* KernBot analysis — disabled, restore when training is ready */
@@ -1422,29 +1434,70 @@ export default function RFIApp({ user }) {
   */
   /* end KernBot analysis */
 
-  // Load projects on mount
+  // Tick every minute so "Last synced" display stays accurate
   useEffect(() => {
-    setProjectsLoading(true);
-    getProjects()
-      .then(projects => { setPsProjects(projects); setProjectsLoading(false); })
-      .catch(err      => { setProjectsError(err.message); setProjectsLoading(false); });
+    const id = setInterval(() => setTimeTick(t => t + 1), 60000);
+    return () => clearInterval(id);
   }, []);
 
-  // Load RFIs + Issues per project as projects arrive
+  const handleRefresh = () => {
+    store.clearProjectsightCache();
+    setPsProjects([]);
+    setPsRFIs({});
+    setPsIssues({});
+    setRfiLoading({});
+    setRfiErrors({});
+    setProjectsError(null);
+    setLastSynced(null);
+    setRefreshKey(k => k + 1);
+  };
+
+  // Load projects + RFIs — uses cache when available, otherwise fetches and populates cache
+  useEffect(() => {
+    const cache = store.projectsightCache;
+    if (cache.projects.length > 0) {
+      setPsProjects(cache.projects);
+      setPsRFIs(cache.rfis);
+      setLastSynced(cache.lastSynced);
+      setProjectsLoading(false);
+      return;
+    }
+    setProjectsLoading(true);
+    getProjects()
+      .then(projects => {
+        setPsProjects(projects);
+        setProjectsLoading(false);
+        const rfiMap = {};
+        Promise.all(
+          projects.map(p => {
+            const pid = `${p.portfolioId}-${p.ProjectID}`;
+            setRfiLoading(prev => ({ ...prev, [pid]: true }));
+            return getRFIs(p.portfolioId, p.ProjectID)
+              .then(rfis => {
+                rfiMap[pid] = rfis;
+                setPsRFIs(prev => ({ ...prev, [pid]: rfis }));
+                setRfiLoading(prev => ({ ...prev, [pid]: false }));
+              })
+              .catch(err => {
+                rfiMap[pid] = [];
+                setRfiErrors(prev => ({ ...prev, [pid]: err.message }));
+                setRfiLoading(prev => ({ ...prev, [pid]: false }));
+              });
+          })
+        ).then(() => {
+          const ts = Date.now();
+          store.setProjectsightCache(projects, rfiMap, ts);
+          setLastSynced(ts);
+        });
+      })
+      .catch(err => { setProjectsError(err.message); setProjectsLoading(false); });
+  }, [refreshKey]);
+
+  // Load Issues per project as projects arrive
   useEffect(() => {
     if (!psProjects.length) return;
     psProjects.forEach(p => {
       const pid = `${p.portfolioId}-${p.ProjectID}`;
-      setRfiLoading(prev => ({ ...prev, [pid]: true }));
-      getRFIs(p.portfolioId, p.ProjectID)
-        .then(rfis => {
-          setPsRFIs(prev => ({ ...prev, [pid]: rfis }));
-          setRfiLoading(prev => ({ ...prev, [pid]: false }));
-        })
-        .catch(err => {
-          setRfiErrors(prev => ({ ...prev, [pid]: err.message }));
-          setRfiLoading(prev => ({ ...prev, [pid]: false }));
-        });
       getIssues(p.portfolioId, p.ProjectID)
         .then(rawIssues => {
           const open = (Array.isArray(rawIssues) ? rawIssues : [])
@@ -1552,10 +1605,33 @@ export default function RFIApp({ user }) {
               Live from ProjectSight · {visibleProjects.length} project{visibleProjects.length !== 1 ? "s" : ""}
             </p>
           </div>
-          {projectsLoading && <Spinner />}
-          {projectsError && (
-            <span style={{ fontSize: 12, color: C.danger }}>⚠ {projectsError}</span>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            {projectsLoading ? (
+              <Spinner />
+            ) : (
+              <>
+                {lastSynced && (
+                  <span style={{ fontSize: 11, color: C.hint }}>
+                    Last synced: {relTime(lastSynced)}
+                  </span>
+                )}
+                <button
+                  onClick={handleRefresh}
+                  title="Refresh data"
+                  style={{ width: 26, height: 26, borderRadius: 6, background: "none",
+                    border: `1px solid ${C.border}`, color: C.hint, fontSize: 16, lineHeight: 1,
+                    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: "inherit", transition: "all 0.15s" }}
+                  onMouseEnter={e => { e.currentTarget.style.color = C.text; e.currentTarget.style.borderColor = C.borderHi; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = C.hint; e.currentTarget.style.borderColor = C.border; }}>
+                  ↻
+                </button>
+              </>
+            )}
+            {projectsError && (
+              <span style={{ fontSize: 12, color: C.danger }}>⚠ {projectsError}</span>
+            )}
+          </div>
         </div>
 
         {/* Tab bar */}

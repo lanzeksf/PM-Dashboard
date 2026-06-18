@@ -1,5 +1,5 @@
 # KSF Command Center — Session Handoff
-Last updated: June 9, 2026
+Last updated: June 18, 2026
 
 ## How to use this file
 Paste this into any new Claude chat to get full context instantly.
@@ -17,15 +17,15 @@ Anything broken app-wide: Temp diagnostic logs [KSF RAW] and [KSF META] still pr
 
 ## [Module: RFI]
 Status: Live
-File: src/rfi/RFIApp.jsx (~1730 lines — Issue Triage tab embedded here, not a separate file)
-Last built: Multiple updates this session — Void RFIs now counted as closed everywhere (isOpenRFI predicate excludes Void). Void rows visually dimmed in expanded table (gray dot, 50% opacity). Show All opens scrollable 70vh container with sticky Collapse button. KSF Lead dropdown (lanze/loren only) filters project cards by exact TypeOfBuilding value. Role-based project filtering wired for all users via KSF_LEAD_MAP using exact Trimble name format + case-insensitive first-name fallback. Jillian removed from roster, Lisbet added (null = sees all). Per-portfolio [KSF RAW]/[KSF META] diagnostic logs added to projectsightApi.js to debug project count.
+File: src/rfi/RFIApp.jsx (~1800 lines — Issue Triage tab embedded here, not a separate file)
+Last built: ProjectSight cache — projects + RFIs fetched once on login and stored in store.projectsightCache (projects[], rfis{}, lastSynced timestamp). Shell.jsx handleLogin() fires a background parallel fetch of all projects and all RFIs immediately after login; result written to store.projectsightCache. RFIApp reads from cache on mount and skips the full fetch if cache is populated. Manual ↻ refresh button in module header clears cache and re-fetches. "Last synced: X min ago" indicator auto-ticks every 60s. Issues fetch decoupled into its own useEffect — no longer bundled with RFI fetch.
 Open issues:
 - KernBot auto-analysis in Issue Triage is commented out — needs architecture decision before re-enabling
 - Temp diagnostic logs [KSF RAW] and [KSF META] in projectsightApi.js — remove once project count confirmed
 - ProjectSight deep links not yet wired — RFI URL pattern in PS unconfirmed
 - 93 vs 123 project count discrepancy still unresolved — [KSF RAW] logs added, needs console check after latest deploy
 - Frank and Ali exist as TypeOfBuilding values with no app users mapped to them
-Blocked on: PS deep link URL pattern needs confirmation. Architecture decision on KernBot analysis needed. Project count needs console verification on prod after deploy of 3f349b5.
+Blocked on: PS deep link URL pattern needs confirmation. Architecture decision on KernBot analysis needed. Project count needs console verification on prod after deploy.
 Next session: Check [KSF RAW] console output on prod to diagnose project count. Clean diagnostic logs once confirmed. Decide KernBot analysis architecture. Confirm PS RFI URL pattern. Add vertical filter toggle and active-only toggle.
 
 ---

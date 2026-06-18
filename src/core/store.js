@@ -19,15 +19,22 @@ const STORE = {
       updatedBy: "Loren C.", updatedAt: "Mar 2, 2026", status: "active", history: [],
     },
   ],
+
+  projectsightCache: {
+    projects:   [],
+    rfis:       {},
+    lastSynced: null,
+  },
 };
 
 // ── Reactive store ────────────────────────────────────────────────────────────
 const _listeners = new Set();
 
 export const store = {
-  get chats()     { return STORE.chats; },
-  get queue()     { return STORE.queue; },
-  get standards() { return STORE.standards; },
+  get chats()             { return STORE.chats; },
+  get queue()             { return STORE.queue; },
+  get standards()         { return STORE.standards; },
+  get projectsightCache() { return STORE.projectsightCache; },
 
   subscribe(fn) { _listeners.add(fn); return () => _listeners.delete(fn); },
   notify()      { _listeners.forEach(fn => fn()); },
@@ -66,6 +73,15 @@ export const store = {
   unresolveByPMQ(pmqId) {
     STORE.chats.forEach((c, i) => { if (c.pmqId === pmqId) STORE.chats[i] = { ...c, resolved: false, lastActivity: nowStamp() }; });
     STORE.queue.forEach((q, i) => { if (q.pmqId === pmqId) STORE.queue[i] = { ...q, resolved: false }; });
+    store.notify();
+  },
+
+  setProjectsightCache(projects, rfis, ts) {
+    STORE.projectsightCache = { projects, rfis, lastSynced: ts };
+    store.notify();
+  },
+  clearProjectsightCache() {
+    STORE.projectsightCache = { projects: [], rfis: {}, lastSynced: null };
     store.notify();
   },
 };

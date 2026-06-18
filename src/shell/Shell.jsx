@@ -5,6 +5,8 @@ import RFIApp from "../rfi/RFIApp.jsx";
 import ContractsApp from "../contracts/ContractsApp.jsx";
 import ChangeOrdersApp from "../changeorders/ChangeOrdersApp.jsx";
 import FabricationApp from "../fab/FabricationApp.jsx";
+import { store } from "../core/store.js";
+import { getProjects, getRFIs } from "../projectsight/projectsightApi.js";
 
 export const SHELL_COLORS = { bg: "#05080b" };
 const SHELL_ONLY_TABS = new Set(["queue", "standards"]);
@@ -143,7 +145,25 @@ export default function KSFCommandCenter({ KernBotApp }) {
   const [tab,         setTab]         = useState("dashboard"); // Dashboard is now the default landing tab
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (!user) return <UserPicker onLogin={u => { setUser(u); setTab("dashboard"); }} />;
+  function handleLogin(u) {
+    setUser(u);
+    setTab("dashboard");
+    getProjects()
+      .then(projects => {
+        const rfiMap = {};
+        return Promise.all(
+          projects.map(p => {
+            const pid = `${p.portfolioId}-${p.ProjectID}`;
+            return getRFIs(p.portfolioId, p.ProjectID)
+              .then(rfis => { rfiMap[pid] = rfis; })
+              .catch(() => { rfiMap[pid] = []; });
+          })
+        ).then(() => store.setProjectsightCache(projects, rfiMap, Date.now()));
+      })
+      .catch(() => {});
+  }
+
+  if (!user) return <UserPicker onLogin={handleLogin} />;
 
   const handleSignOut = () => { setUser(null); setTab("dashboard"); setSidebarOpen(false); };
 
