@@ -201,8 +201,8 @@ export async function getIssues(portfolioId, projectId) {
     const issues = Array.isArray(data) ? data : data?.issues ?? [];
     console.log('[Issues] Count:', issues.length);
     if (issues.length > 0) {
-      console.log('[Issues] Sample keys:', Object.keys(issues[0]));
-      console.log('[Issues] Sample issue:', JSON.stringify(issues[0]).slice(0, 800));
+      console.log('[KSF ISSUES FIELDS]', Object.keys(issues[0]));
+      console.log('[KSF ISSUES SAMPLE]', issues[0]);
     }
     return issues;
   } catch (e) {
@@ -213,4 +213,56 @@ export async function getIssues(portfolioId, projectId) {
 
 // Discovery — LACCD Theater (portfolioId: 5ce1bcb1-…, projectId: 36)
 getIssues("5ce1bcb1-c811-49ac-9039-ec36f3e75f78", "36");
+
+// POST a comment to an existing issue (test only)
+export async function postIssueComment(portfolioId, projectId, issueId, commentText) {
+  let token = await getToken();
+  let res = await fetch(`${BASE}/${portfolioId}/${projectId}/issues/${issueId}/comments`, {
+    method: "POST",
+    headers: buildHeaders(token),
+    body: JSON.stringify({ text: commentText }),
+  });
+  if (res.status === 401 || res.status === 403) {
+    _tokenCache = null;
+    token = await getToken();
+    res = await fetch(`${BASE}/${portfolioId}/${projectId}/issues/${issueId}/comments`, {
+      method: "POST",
+      headers: buildHeaders(token),
+      body: JSON.stringify({ text: commentText }),
+    });
+  }
+  if (res.ok) {
+    const response = await res.json().catch(() => ({}));
+    console.log('[KSF COMMENT POST 200]', response);
+  } else {
+    const errBody = await res.text();
+    console.log('[KSF COMMENT POST FAIL]', res.status, errBody);
+  }
+}
+
+// POST a new RFI from an issue (test only)
+export async function postRFIFromIssue(portfolioId, projectId, subject, body) {
+  let token = await getToken();
+  let res = await fetch(`${BASE}/${portfolioId}/${projectId}/rfis`, {
+    method: "POST",
+    headers: buildHeaders(token),
+    body: JSON.stringify({ Subject: subject, Body: body }),
+  });
+  if (res.status === 401 || res.status === 403) {
+    _tokenCache = null;
+    token = await getToken();
+    res = await fetch(`${BASE}/${portfolioId}/${projectId}/rfis`, {
+      method: "POST",
+      headers: buildHeaders(token),
+      body: JSON.stringify({ Subject: subject, Body: body }),
+    });
+  }
+  if (res.ok) {
+    const response = await res.json().catch(() => ({}));
+    console.log('[KSF RFI POST 200]', response);
+  } else {
+    const errBody = await res.text();
+    console.log('[KSF RFI POST FAIL]', res.status, errBody);
+  }
+}
 

@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { C, MI } from "../core/utils.jsx";
 import { store } from "../core/store.js";
-import { getProjects, getRFIs, getIssues } from "../projectsight/projectsightApi.js";
+import { getProjects, getRFIs, getIssues, postIssueComment, postRFIFromIssue } from "../projectsight/projectsightApi.js";
+
+// Set true to run API discovery calls once — flip back to false after
+const RUN_ISSUE_DISCOVERY = false;
 
 // ── KSF team → Territory filter mapping ──────────────────────────────────────
 
@@ -1517,6 +1520,18 @@ export default function RFIApp({ user }) {
         })
         .catch(() => {});
     });
+
+    // ── API Discovery test harness ─────────────────────────────────────────
+    if (RUN_ISSUE_DISCOVERY) {
+      const ksfPid  = "5ce1bcb1-c811-49ac-9039-ec36f3e75f78";
+      const ksfProj = psProjects.find(p => p.portfolioId === ksfPid);
+      if (ksfProj) {
+        getIssues(ksfProj.portfolioId, ksfProj.ProjectID);
+        postIssueComment(ksfProj.portfolioId, ksfProj.ProjectID, "PLACEHOLDER_ISSUE_ID", "KSF API test — ignore");
+        postRFIFromIssue(ksfProj.portfolioId, ksfProj.ProjectID, "API Test RFI — ignore", "This is an automated test. Please discard.");
+      }
+    }
+    // ── end discovery ──────────────────────────────────────────────────────
   }, [psProjects]);
 
   // Derived: visible projects for this user
