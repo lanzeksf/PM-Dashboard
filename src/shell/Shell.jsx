@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { USERS_LIST, ROLE_MODULES, C } from "../core/utils.jsx";
 import DashboardApp from "../dashboard/DashboardApp.jsx";
 import RFIApp from "../rfi/RFIApp.jsx";
+import IssueTriageApp from "../issuetriage/IssueTriageApp.jsx";
 import ContractsApp from "../contracts/ContractsApp.jsx";
 import ChangeOrdersApp from "../changeorders/ChangeOrdersApp.jsx";
 import FabricationApp from "../fab/FabricationApp.jsx";
@@ -21,6 +22,7 @@ const ALL_NAV_ITEMS = [
   { id: "changes",       label: "Change Orders" },
   { id: "detailing",     label: "Detailing" },
   { id: "rfi",           label: "RFI Log" },
+  { id: "issuetriage",   label: "Issue Triage" },
   { id: "fab",           label: "Fabrication & Shipping" },
   { id: "field",         label: "Field Needs" },
   { id: "user_mgmt",     label: "User Management" },
@@ -44,6 +46,7 @@ const NAV_ICONS = {
   detailing:     () => <Icon><circle cx="12" cy="12" r="2"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></Icon>,
   contracts:     () => <Icon><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></Icon>,
   rfi:           () => <Icon><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></Icon>,
+  issuetriage:   () => <Icon><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></Icon>,
   fab:           () => <Icon><line x1="4" y1="5" x2="20" y2="5"/><line x1="4" y1="19" x2="20" y2="19"/><line x1="12" y1="5" x2="12" y2="19"/></Icon>,
   field:         () => <Icon><path d="M2 18a1 1 0 001 1h18a1 1 0 001-1v-1H2v1z"/><path d="M12 2a8 8 0 018 8v6H4V10a8 8 0 018-8z"/><line x1="7" y1="17" x2="7" y2="12"/><line x1="17" y1="17" x2="17" y2="12"/></Icon>,
   standards:     () => <Icon><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></Icon>,
@@ -194,6 +197,7 @@ export default function KSFCommandCenter({ KernBotApp }) {
         {tab === "changes"       && <ChangeOrdersApp user={user}/>}
         {tab === "detailing"     && <ComingSoon label="Detailing"/>}
         {tab === "rfi"           && <RFIApp user={user}/>}
+        {tab === "issuetriage"   && <IssueTriageApp user={user}/>}
         {tab === "fab"           && <FabricationApp user={user}/>}
         {tab === "field"         && <ComingSoon label="Field Needs"/>}
         {tab === "user_mgmt"     && <ComingSoon label="User Management"/>}

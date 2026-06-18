@@ -76,22 +76,22 @@ export const MAX_ATTACHMENTS = 6;
 export const ROLE_MODULES = {
   admin: [
     "kernbot", "dashboard", "queue", "owner", "scope", "changes",
-    "detailing", "rfi", "fab", "field", "standards", "contracts", "user_mgmt", "system_config",
+    "detailing", "rfi", "issuetriage", "fab", "field", "standards", "contracts", "user_mgmt", "system_config",
   ],
   sr_pm: [
     "kernbot", "dashboard", "queue", "owner", "scope", "changes",
-    "detailing", "rfi", "fab", "field", "standards", "contracts", "user_mgmt",
+    "detailing", "rfi", "issuetriage", "fab", "field", "standards", "contracts", "user_mgmt",
   ],
   apm: [
     "kernbot", "dashboard", "owner", "scope", "changes",
-    "detailing", "rfi", "fab", "field", "standards", "contracts",
+    "detailing", "rfi", "issuetriage", "fab", "field", "standards", "contracts",
   ],
   coordinator: [
     "kernbot", "dashboard", "owner", "scope", "changes",
-    "detailing", "rfi", "fab", "field", "standards", "contracts",
+    "detailing", "rfi", "issuetriage", "fab", "field", "standards", "contracts",
   ],
   mfg_eng: [
-    "kernbot", "dashboard", "fab", "standards", "contracts",
+    "kernbot", "dashboard", "issuetriage", "fab", "standards", "contracts",
   ],
   field: [
     "kernbot", "dashboard", "owner", "scope", "fab", "field", "standards", "contracts",
