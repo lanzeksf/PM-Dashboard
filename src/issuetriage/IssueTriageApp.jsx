@@ -710,7 +710,13 @@ export default function IssueTriageApp({ user }) {
       : false;
     const isProcessing = !triage || triage._processing;
 
-    const issueNumber = issNum(selectedIssue);
+    const issueNumber  = issNum(selectedIssue);
+    const psPortfolioId = selectedIssue._project?.portfolioId ?? null;
+    const psProjectId   = selectedIssue._project?.ProjectID ?? null;
+    const psIssuesUrl   = psPortfolioId && psProjectId
+      ? `https://prod.projectsightapp.trimble.com/Web/app/Project?listid=-4075&orgid=${psPortfolioId}&projid=${psProjectId}`
+      : "https://app.trimblepaas.com/projectsight";
+    console.log('[KSF PS ISSUES LINK]', psIssuesUrl);
 
     return (
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
@@ -760,7 +766,7 @@ export default function IssueTriageApp({ user }) {
 
           {/* Open ProjectSight + issue number copy chip */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-            <a href="https://app.trimblepaas.com/projectsight" target="_blank" rel="noopener noreferrer"
+            <a href={psIssuesUrl} target="_blank" rel="noopener noreferrer"
               style={{ display: "inline-block", fontSize: 12, fontWeight: 600,
                 padding: "7px 16px", borderRadius: 7,
                 background: "rgba(91,141,184,0.14)", border: `1px solid ${C.accent}44`,
