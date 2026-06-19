@@ -86,7 +86,7 @@ const issLinks     = i => Array.isArray(i.FileLinks) ? i.FileLinks : [];
 const issComments  = i => Array.isArray(i.RecordComments) ? i.RecordComments : [];
 const issCostImp   = i => i.IsCostImpact ?? false;
 const issSchedImp  = i => i.IsSchedImpact ?? false;
-const isOpenIssue  = i => i.WorkflowStateName !== "Closed" && i.WorkflowStateName !== "Void";
+const isOpenIssue  = i => i.WorkflowStateName === "Open";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const daysOpen = iso => iso ? Math.max(0, Math.floor((Date.now() - new Date(iso)) / 86400000)) : 0;
@@ -117,8 +117,8 @@ const issueGroup = (id, cache) => {
   return "review";
 };
 
-const issueDeepLink = p =>
-  `https://prod.projectsightapp.trimble.com/Web/app/Project?listid=-4075&orgid=${p.portfolioId}&projid=${p.ProjectID}`;
+const issueDeepLink = (p, i) =>
+  `https://app.trimblepaas.com/projectsight/projects/${p.ProjectID}/issues/${issId(i)}`;
 
 // ── Micro-components ──────────────────────────────────────────────────────────
 
@@ -740,7 +740,7 @@ export default function IssueTriageApp({ user }) {
           display: "flex", alignItems: "center", justifyContent: "space-between",
           gap: 12, flexWrap: "wrap" }}>
           {selectedIssue._project ? (
-            <a href={issueDeepLink(selectedIssue._project)}
+            <a href={issueDeepLink(selectedIssue._project, selectedIssue)}
               target="_blank" rel="noopener noreferrer"
               style={{ fontSize: 12, fontWeight: 600, padding: "7px 16px", borderRadius: 7,
                 background: "rgba(91,141,184,0.14)", border: `1px solid ${C.accent}44`,
