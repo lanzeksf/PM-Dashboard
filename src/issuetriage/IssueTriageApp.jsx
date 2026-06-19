@@ -576,6 +576,12 @@ export default function IssueTriageApp({ user }) {
   const selectedIssue  = cappedIssues.find(i => issId(i) === selectedId) || null;
   const selectedTriage = selectedId ? triageCache[selectedId] : null;
 
+  useEffect(() => {
+    if (selectedIssue) {
+      console.log('[KSF COMMENTS]', selectedIssue.RecordComments);
+    }
+  }, [selectedIssue]);
+
   const toggleCollapse = key => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
 
   const selStyle = active => ({
@@ -678,6 +684,14 @@ export default function IssueTriageApp({ user }) {
       : false;
     const isProcessing = !triage || triage._processing;
 
+    const psProjectId = selectedIssue._project?.ProjectID ?? null;
+    const psIssueId   = issId(selectedIssue) || null;
+    const hasPsLink   = psProjectId != null && psIssueId;
+    const psUrl       = hasPsLink
+      ? `https://app.trimblepaas.com/projectsight/projects/${psProjectId}/issues/${psIssueId}`
+      : null;
+    console.log('[KSF PS LINK]', psProjectId, psIssueId);
+
     return (
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
 
@@ -722,6 +736,26 @@ export default function IssueTriageApp({ user }) {
                 {isProcessing ? "Analyzing…" : "Re-analyze"}
               </button>
             </div>
+          </div>
+
+          {/* Open in ProjectSight — primary action, top of detail */}
+          <div style={{ marginBottom: 10 }}>
+            {hasPsLink ? (
+              <a href={psUrl} target="_blank" rel="noopener noreferrer"
+                style={{ display: "inline-block", fontSize: 12, fontWeight: 600,
+                  padding: "7px 16px", borderRadius: 7,
+                  background: "rgba(91,141,184,0.14)", border: `1px solid ${C.accent}44`,
+                  color: "#ffffff", textDecoration: "none", whiteSpace: "nowrap" }}>
+                Open in ProjectSight ↗
+              </a>
+            ) : (
+              <span style={{ display: "inline-block", fontSize: 12, fontWeight: 600,
+                padding: "7px 16px", borderRadius: 7,
+                background: C.surface2, border: `1px solid ${C.border}`,
+                color: C.hint, whiteSpace: "nowrap" }}>
+                Link unavailable
+              </span>
+            )}
           </div>
 
           {/* View Original toggle */}
@@ -940,18 +974,7 @@ export default function IssueTriageApp({ user }) {
         </div>
 
         {/* Footer */}
-        <div style={{ marginTop: 24, paddingTop: 14, borderTop: `1px solid ${C.border}`,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          gap: 12, flexWrap: "wrap" }}>
-          {selectedIssue._project ? (
-            <a href={issueDeepLink(selectedIssue._project, selectedIssue)}
-              target="_blank" rel="noopener noreferrer"
-              style={{ fontSize: 12, fontWeight: 600, padding: "7px 16px", borderRadius: 7,
-                background: "rgba(91,141,184,0.14)", border: `1px solid ${C.accent}44`,
-                color: "#ffffff", textDecoration: "none", whiteSpace: "nowrap" }}>
-              Open in ProjectSight ↗
-            </a>
-          ) : <span />}
+        <div style={{ marginTop: 24, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
           <p style={{ margin: 0, fontSize: 11, color: C.hint, fontStyle: "italic" }}>
             Act in ProjectSight — post response or submit RFI there. Issue leaves this module when closed.
           </p>
