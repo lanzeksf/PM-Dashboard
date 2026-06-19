@@ -6,6 +6,9 @@ import { getProjects, getIssues } from "../projectsight/projectsightApi.js";
 // ── Dev cap — temporary, remove before production ────────────────────────────
 const DEV_ISSUE_CAP = 4;
 
+// Temporary: fires once on the first issue found with FileLinks
+let _fileLinksLogged = false;
+
 // ── Territory filter map ──────────────────────────────────────────────────────
 const KSF_LEAD_MAP = {
   lanze:  null,
@@ -368,6 +371,10 @@ export default function IssueTriageApp({ user }) {
         .then(raw => {
           const open = (Array.isArray(raw) ? raw : []).filter(isOpenIssue);
           setPsIssues(prev => ({ ...prev, [pid]: open }));
+          if (!_fileLinksLogged) {
+            const sample = open.find(i => Array.isArray(i.FileLinks) && i.FileLinks.length > 0);
+            if (sample) { console.log('[KSF FILELINKS SAMPLE]', sample.FileLinks); _fileLinksLogged = true; }
+          }
         })
         .catch(() => {});
     });
