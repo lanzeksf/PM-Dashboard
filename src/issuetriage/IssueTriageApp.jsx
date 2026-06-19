@@ -351,7 +351,7 @@ export default function IssueTriageApp({ user }) {
 
   // Temporary: test file download with known fileId from FileLinks sample
   useEffect(() => {
-    testFileDownload("54bfcdfd-5be5-4e20-b70b-ea11f2549510", "32", "8108");
+    testFileDownload("54bfcdfd-5be5-4e20-b70b-ea11f2549510", "32", "8108", "7221");
   }, []);
 
   // ── Load projects ─────────────────────────────────────────────────────────

@@ -266,24 +266,29 @@ export async function postRFIFromIssue(portfolioId, projectId, subject, body) {
   }
 }
 
-// ── Temp: test file download endpoint ────────────────────────────────────────
-export async function testFileDownload(portfolioId, projectId, fileId) {
-  let token = await getToken();
-  let res = await fetch(`${BASE}/${portfolioId}/${projectId}/files/${fileId}/download`, {
+// ── Temp: test file endpoint patterns ────────────────────────────────────────
+export async function testFileDownload(portfolioId, projectId, fileId, fileVersionId) {
+  const token = await getToken();
+
+  // Attempt 1: GET /{portfolioId}/{projectId}/files/{fileId}
+  const res1 = await fetch(`${BASE}/${portfolioId}/${projectId}/files/${fileId}`, {
     method: "GET",
     headers: buildHeaders(token),
   });
-  if (res.status === 401 || res.status === 403) {
-    _tokenCache = null;
-    token = await getToken();
-    res = await fetch(`${BASE}/${portfolioId}/${projectId}/files/${fileId}/download`, {
-      method: "GET",
-      headers: buildHeaders(token),
-    });
-  }
-  if (res.ok) {
-    console.log('[KSF FILE DOWNLOAD 200]', res.headers.get('content-type'), 'size:', res.headers.get('content-length'));
+  if (res1.ok) {
+    console.log('[KSF FILE TEST 1] 200', res1.headers.get('content-type'));
   } else {
-    console.log('[KSF FILE DOWNLOAD FAIL]', res.status);
+    console.log('[KSF FILE TEST 1] FAIL', res1.status);
+  }
+
+  // Attempt 2: GET /{portfolioId}/{projectId}/files/{fileVersionId}/download
+  const res2 = await fetch(`${BASE}/${portfolioId}/${projectId}/files/${fileVersionId}/download`, {
+    method: "GET",
+    headers: buildHeaders(token),
+  });
+  if (res2.ok) {
+    console.log('[KSF FILE TEST 2] 200', res2.headers.get('content-type'), 'size:', res2.headers.get('content-length'));
+  } else {
+    console.log('[KSF FILE TEST 2] FAIL', res2.status);
   }
 }
