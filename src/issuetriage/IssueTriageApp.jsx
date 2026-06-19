@@ -3,6 +3,9 @@ import { C } from "../core/utils.jsx";
 import { store } from "../core/store.js";
 import { getProjects, getIssues } from "../projectsight/projectsightApi.js";
 
+// ── Dev cap — temporary, remove before production ────────────────────────────
+const DEV_ISSUE_CAP = 4;
+
 // ── Territory filter map ──────────────────────────────────────────────────────
 const KSF_LEAD_MAP = {
   lanze:  null,
@@ -398,6 +401,16 @@ export default function IssueTriageApp({ user }) {
     [visibleProjects, psIssues]
   );
 
+  // ── Dev cap: 4 oldest issues only ────────────────────────────────────────
+  const cappedIssues = useMemo(() => {
+    const sorted = [...allIssues].sort((a, b) => {
+      const da = issCreated(a) ? new Date(issCreated(a)).getTime() : 0;
+      const db = issCreated(b) ? new Date(issCreated(b)).getTime() : 0;
+      return da - db;
+    });
+    return sorted.slice(0, DEV_ISSUE_CAP);
+  }, [allIssues]);
+
   // ── Drain triage queue ────────────────────────────────────────────────────
   const drainQueue = useCallback(async () => {
     if (processingRef.current || !apiKey) return;
@@ -417,10 +430,10 @@ export default function IssueTriageApp({ user }) {
     processingRef.current = false;
   }, [apiKey]);
 
-  // ── Queue new issues for triage ───────────────────────────────────────────
+  // ── Queue new issues for triage (capped) ─────────────────────────────────
   useEffect(() => {
-    if (!allIssues.length) return;
-    const newIssues = allIssues.filter(i => !queuedRef.current.has(issId(i)));
+    if (!cappedIssues.length) return;
+    const newIssues = cappedIssues.filter(i => !queuedRef.current.has(issId(i)));
     if (!newIssues.length) return;
     newIssues.forEach(i => queuedRef.current.add(issId(i)));
     const updates = {};
@@ -428,7 +441,7 @@ export default function IssueTriageApp({ user }) {
     setTriageCache(prev => ({ ...prev, ...updates }));
     queueRef.current.push(...newIssues);
     setTimeout(() => drainQueue(), 0);
-  }, [allIssues, drainQueue]);
+  }, [cappedIssues, drainQueue]);
 
   // ── Sub-question reclassify ───────────────────────────────────────────────
   const handleReclassify = useCallback(async (issue, sqNumber, newCat) => {
@@ -461,7 +474,7 @@ export default function IssueTriageApp({ user }) {
 
   // ── Filtered + sorted issues ──────────────────────────────────────────────
   const filteredIssues = useMemo(() => {
-    let list = allIssues;
+    let list = cappedIssues;
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter(i => {
@@ -477,7 +490,7 @@ export default function IssueTriageApp({ user }) {
       const db = issCreated(b) ? new Date(issCreated(b)).getTime() : 0;
       return sortOrder === "newest" ? db - da : da - db;
     });
-  }, [allIssues, search, sortOrder, triageCache]);
+  }, [cappedIssues, search, sortOrder, triageCache]);
 
   // ── Group into decision / review / processing ─────────────────────────────
   const grouped = useMemo(() => {
@@ -491,7 +504,7 @@ export default function IssueTriageApp({ user }) {
     return { decision, review, processing };
   }, [filteredIssues, triageCache]);
 
-  const selectedIssue  = allIssues.find(i => issId(i) === selectedId) || null;
+  const selectedIssue  = cappedIssues.find(i => issId(i) === selectedId) || null;
   const selectedTriage = selectedId ? triageCache[selectedId] : null;
 
   const toggleCollapse = key => setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
@@ -761,6 +774,15 @@ export default function IssueTriageApp({ user }) {
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg,
       overflow: "hidden", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif" }}>
       <style>{`@keyframes ksf-it-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
+
+      {/* Dev mode banner */}
+      <div style={{ padding: "6px 20px", flexShrink: 0,
+        background: "rgba(251,191,36,0.1)", borderBottom: `1px solid rgba(251,191,36,0.3)`,
+        display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: C.warning }}>
+          ⚠ Dev mode — showing {DEV_ISSUE_CAP} oldest issues only.
+        </span>
+      </div>
 
       {/* Module header */}
       <div style={{ padding: "14px 20px 10px", borderBottom: `1px solid ${C.border}`,
