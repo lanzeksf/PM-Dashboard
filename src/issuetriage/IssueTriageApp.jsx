@@ -24,9 +24,25 @@ const KSF_LEAD_MAP = {
 const TRIAGE_SYSTEM_PROMPT = `You are KSF's Issue Triage assistant. KSF is a structural steel fabricator in Bakersfield, CA specializing in structural steel, solar carports, and aerospace maintenance stands for Lockheed Martin and the US Air Force. You have knowledge of AISC 303, AISC 360, AWS D1.1, and KSF internal standards.`;
 
 // ── Anthropic triage call — full issue ───────────────────────────────────────
-async function callTriageBot(issueText, apiKey) {
+async function callTriageBot(issueText, apiKey, attachments = [], commentContext = "") {
   if (!apiKey) throw new Error("API key not configured");
-  const prompt = `Raw issue text:\n${issueText}\n\nInstructions:\n1. Rewrite the issue in clear professional English. Fix grammar. Preserve all technical content exactly.\n2. Identify and number each distinct sub-question within the issue.\n3. For each sub-question, classify as:\n   A: Answerable from project documents — provide answer and cite source\n   B: Answerable from published code (AISC/AWS) — provide answer and cite section\n   C: Needs RFI — cannot be answered from available information\n4. For each sub-question provide a confidence score 0–100.\n5. For Category C sub-questions, draft an RFI:\n   Question: [rewritten question]\n   Recommended Solution: [KernBot recommendation or "Requires EOR determination"]\n   Reference: [drawing number and/or spec section from issue context]\n\nRespond in JSON only, no markdown:\n{\n  "rewritten_summary": "one-line summary under 60 chars",\n  "rewritten_full": "full rewritten issue text",\n  "sub_questions": [\n    {\n      "number": 1,\n      "question": "clean question text",\n      "category": "A|B|C",\n      "confidence": 85,\n      "answer": "answer text or null",\n      "citation": "source + section or null",\n      "rfi_draft": { "question": "", "recommended_solution": "", "reference": "" }\n    }\n  ]\n}`;
+
+  let prompt = `Raw issue text:\n${issueText}`;
+  if (commentContext) prompt += `\n\nAdditional context from discussion thread:\n${commentContext}`;
+  prompt += `\n\nInstructions:\n1. Rewrite the issue in clear professional English. Fix grammar. Preserve all technical content exactly.\n2. Identify and number each distinct sub-question within the issue.\n3. For each sub-question, classify as:\n   A: Answerable from project documents — provide answer and cite source\n   B: Answerable from published code (AISC/AWS) — provide answer and cite section\n   C: Needs RFI — cannot be answered from available information\n4. For each sub-question provide a confidence score 0–100.\n5. For Category C sub-questions, draft an RFI:\n   Question: [rewritten question]\n   Recommended Solution: [KernBot recommendation or "Requires EOR determination"]\n   Reference: [drawing number and/or spec section from issue context]\n\nRespond in JSON only, no markdown:\n{\n  "rewritten_summary": "one-line summary under 60 chars",\n  "rewritten_full": "full rewritten issue text",\n  "sub_questions": [\n    {\n      "number": 1,\n      "question": "clean question text",\n      "category": "A|B|C",\n      "confidence": 85,\n      "answer": "answer text or null",\n      "citation": "source + section or null",\n      "rfi_draft": { "question": "", "recommended_solution": "", "reference": "" }\n    }\n  ]\n}`;
+
+  // Build content array — attachments first, prompt text last
+  const content = [];
+  for (const att of attachments) {
+    if (att.mimeType === "application/pdf") {
+      content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: att.base64 } });
+    } else if (att.mimeType.startsWith("image/")) {
+      content.push({ type: "image", source: { type: "base64", media_type: att.mimeType, data: att.base64 } });
+    }
+  }
+  content.push({ type: "text", text: prompt });
+  const messageContent = content.length === 1 ? prompt : content;
+
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -39,7 +55,7 @@ async function callTriageBot(issueText, apiKey) {
       model: "claude-sonnet-4-5",
       max_tokens: 2048,
       system: TRIAGE_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: messageContent }],
     }),
   });
   if (!res.ok) { const err = await res.text(); throw new Error(`API ${res.status}: ${err}`); }
@@ -86,6 +102,7 @@ const issNum       = i => i.Number ?? "—";
 const issTitle     = i => i.Subject ?? "(No subject)";
 const issDesc      = i => i.Details ?? i.Body ?? i.description ?? "";
 const issCreated   = i => { const d = i.DateCreated ?? null; return (d && !String(d).startsWith("0001")) ? d : null; };
+const issModified  = i => { const d = i.DateModified ?? i.LastModified ?? i.DateUpdated ?? null; return (d && !String(d).startsWith("0001")) ? d : null; };
 const issImp       = i => i.Importance ?? "Normal";
 const issSubmitter = i => i.AuthorContactName ?? "Unknown";
 const issLinks     = i => Array.isArray(i.FileLinks) ? i.FileLinks : [];
@@ -97,6 +114,14 @@ const isOpenIssue  = i => i.WorkflowStateName === "Open";
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const daysOpen = iso => iso ? Math.max(0, Math.floor((Date.now() - new Date(iso)) / 86400000)) : 0;
 const fmtD     = d => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+const fmtTs    = iso => iso ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : null;
+
+const readBase64 = file => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload  = () => resolve(reader.result.split(",")[1]);
+  reader.onerror = reject;
+  reader.readAsDataURL(file);
+});
 
 const vcol = v => ({
   Structural: { color: "#38bdf8", bg: "rgba(56,189,248,0.12)"  },
@@ -299,13 +324,11 @@ function SubQuestionBlock({ sq, onReclassify, reclassifying }) {
       </div>
 
       <div style={{ padding: "10px 14px 12px" }}>
-        {/* Divider + question text */}
         <div style={{ height: 1, background: C.border, marginBottom: 8 }} />
         <p style={{ margin: "0 0 10px", fontSize: 12, color: C.text, lineHeight: 1.65 }}>
           {sq.question}
         </p>
 
-        {/* Answer block */}
         {sq.answer && (
           <div style={{ background: C.surface2, borderRadius: 6, padding: "10px 12px", marginBottom: 4 }}>
             <p style={{ margin: "0 0 4px", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
@@ -319,7 +342,7 @@ function SubQuestionBlock({ sq, onReclassify, reclassifying }) {
           </div>
         )}
 
-        {/* RFI Draft for Cat C */}
+        {/* RFI Draft — isolated per issue+question via key on SubQuestionBlock */}
         {sq.category === "C" && <RFIDraftBlock draft={sq.rfi_draft} />}
       </div>
     </div>
@@ -340,6 +363,7 @@ export default function IssueTriageApp({ user }) {
   const [showOriginal, setShowOriginal] = useState(false);
   const [collapsed,    setCollapsed]    = useState({ decision: false, review: false, processing: false });
   const [loading,      setLoading]      = useState(true);
+  const [attachedFiles, setAttachedFiles] = useState([]);
 
   const queueRef      = useRef([]);
   const queuedRef     = useRef(new Set());
@@ -348,6 +372,9 @@ export default function IssueTriageApp({ user }) {
   const apiKey        = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
   useEffect(() => { cacheRef.current = triageCache; });
+
+  // Reset attached files when switching issues
+  useEffect(() => { setAttachedFiles([]); }, [selectedId]);
 
   // Temporary: test file download with known fileId from FileLinks sample
   useEffect(() => {
@@ -433,7 +460,7 @@ export default function IssueTriageApp({ user }) {
       try {
         const text   = [issTitle(issue), issDesc(issue)].filter(Boolean).join("\n\n");
         const result = await callTriageBot(text, apiKey);
-        setTriageCache(prev => ({ ...prev, [id]: result }));
+        setTriageCache(prev => ({ ...prev, [id]: { ...result, _analyzedAt: new Date().toISOString() } }));
       } catch (e) {
         setTriageCache(prev => ({ ...prev, [id]: { error: e.message } }));
       }
@@ -481,6 +508,36 @@ export default function IssueTriageApp({ user }) {
       // silent — leave original classification in place
     } finally {
       setReclassing(prev => { const n = { ...prev }; delete n[key]; return n; });
+    }
+  }, [apiKey]);
+
+  // ── Re-analyze ────────────────────────────────────────────────────────────
+  const handleReanalyze = useCallback(async (issue, files = []) => {
+    if (!apiKey) return;
+    const id = issId(issue);
+    setTriageCache(prev => ({ ...prev, [id]: { _processing: true } }));
+
+    const comments = issComments(issue);
+    const commentContext = comments.length > 0
+      ? comments.map(c =>
+          `${c.AuthorContactName ?? "Unknown"} (${fmtD(c.DateCreated ?? c.dateCreated)}): ${c.Text ?? c.text ?? ""}`
+        ).join("\n")
+      : "";
+
+    const attachments = [];
+    for (const f of files) {
+      try {
+        const base64 = await readBase64(f);
+        attachments.push({ name: f.name, base64, mimeType: f.type });
+      } catch { /* skip unreadable files */ }
+    }
+
+    try {
+      const text = [issTitle(issue), issDesc(issue)].filter(Boolean).join("\n\n");
+      const result = await callTriageBot(text, apiKey, attachments, commentContext);
+      setTriageCache(prev => ({ ...prev, [id]: { ...result, _analyzedAt: new Date().toISOString() } }));
+    } catch (e) {
+      setTriageCache(prev => ({ ...prev, [id]: { error: e.message } }));
     }
   }, [apiKey]);
 
@@ -614,6 +671,13 @@ export default function IssueTriageApp({ user }) {
     const comments = issComments(selectedIssue);
     const links    = issLinks(selectedIssue);
 
+    const analyzedAt  = triage?._analyzedAt || null;
+    const modifiedAt  = issModified(selectedIssue);
+    const isStale     = analyzedAt && modifiedAt
+      ? new Date(modifiedAt) > new Date(analyzedAt)
+      : false;
+    const isProcessing = !triage || triage._processing;
+
     return (
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
 
@@ -639,7 +703,7 @@ export default function IssueTriageApp({ user }) {
                 {selectedIssue._project?.Name}
               </h2>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
               <span style={{ fontSize: 10, color: C.hint }}>
                 {fmtD(issCreated(selectedIssue))} · {issSubmitter(selectedIssue)}
               </span>
@@ -647,6 +711,16 @@ export default function IssueTriageApp({ user }) {
                 color: ageColor(age), background: ageBg(age) }}>
                 {age}d open
               </span>
+              <button
+                disabled={isProcessing}
+                onClick={() => handleReanalyze(selectedIssue, attachedFiles)}
+                style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, fontFamily: "inherit",
+                  background: isProcessing ? C.surface2 : "rgba(91,141,184,0.14)",
+                  border: `1px solid ${isProcessing ? C.border : C.accent + "55"}`,
+                  color: isProcessing ? C.hint : "#ffffff",
+                  cursor: isProcessing ? "not-allowed" : "pointer" }}>
+                {isProcessing ? "Analyzing…" : "Re-analyze"}
+              </button>
             </div>
           </div>
 
@@ -666,22 +740,12 @@ export default function IssueTriageApp({ user }) {
               <p style={{ margin: 0, fontSize: 12, color: C.muted, lineHeight: 1.65, whiteSpace: "pre-wrap" }}>
                 {issDesc(selectedIssue) || issTitle(selectedIssue) || "—"}
               </p>
-              {links.length > 0 && (
-                <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {links.map((fl, i) => (
-                    <span key={i} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10,
-                      background: C.surface, color: C.muted, border: `1px solid ${C.border}` }}>
-                      📎 {fl.FileName ?? fl.fileName ?? fl.name ?? `File ${i + 1}`}
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
           )}
         </div>
 
         {/* Triage body */}
-        {!triage || triage._processing ? (
+        {isProcessing ? (
           <div style={{ padding: "24px 0" }}>
             <Spinner label="Analyzing with KernBot…" />
           </div>
@@ -691,11 +755,7 @@ export default function IssueTriageApp({ user }) {
               Analysis failed: {triage.error}
             </p>
             <button
-              onClick={() => {
-                setTriageCache(prev => ({ ...prev, [id]: { _processing: true } }));
-                queueRef.current.push(selectedIssue);
-                setTimeout(() => drainQueue(), 0);
-              }}
+              onClick={() => handleReanalyze(selectedIssue, [])}
               style={{ fontSize: 11, padding: "5px 14px", borderRadius: 6, fontFamily: "inherit",
                 background: C.surface2, border: `1px solid ${C.border}`,
                 color: C.muted, cursor: "pointer" }}>
@@ -704,20 +764,134 @@ export default function IssueTriageApp({ user }) {
           </div>
         ) : (
           <>
+            {/* Last analyzed + stale warning */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+              {analyzedAt && (
+                <span style={{ fontSize: 10, color: C.hint }}>
+                  Last analyzed: {fmtTs(analyzedAt)}
+                </span>
+              )}
+              {isStale && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8,
+                  background: "rgba(251,191,36,0.1)", border: `1px solid rgba(251,191,36,0.3)`,
+                  borderRadius: 6, padding: "3px 10px" }}>
+                  <span style={{ fontSize: 11, color: C.warning }}>⚠ Issue updated since last analysis</span>
+                  <button
+                    onClick={() => handleReanalyze(selectedIssue, attachedFiles)}
+                    style={{ fontSize: 11, padding: "2px 10px", borderRadius: 5, fontFamily: "inherit",
+                      background: "rgba(251,191,36,0.15)", border: `1px solid rgba(251,191,36,0.4)`,
+                      color: C.warning, cursor: "pointer" }}>
+                    Re-analyze
+                  </button>
+                </span>
+              )}
+            </div>
+
             {/* Rewritten issue */}
             {triage.rewritten_full && (
               <div style={{ marginBottom: 16, padding: "12px 14px", background: C.surface,
                 border: `1px solid ${C.border}`, borderRadius: 8 }}>
                 <p style={{ margin: "0 0 6px", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
                   textTransform: "uppercase", color: C.hint }}>Rewritten Issue</p>
-                <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.65,
-                  whiteSpace: "pre-wrap" }}>
+                <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.65, whiteSpace: "pre-wrap" }}>
                   {triage.rewritten_full}
                 </p>
               </div>
             )}
 
-            {/* Sub-questions */}
+            {/* Attachments section */}
+            <div style={{ marginBottom: 16, padding: "12px 14px", background: C.surface,
+              border: `1px solid ${C.border}`, borderRadius: 8 }}>
+              <p style={{ margin: "0 0 8px", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
+                textTransform: "uppercase", color: C.hint }}>Attachments</p>
+
+              {/* FileLinks from ProjectSight */}
+              {links.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 12 }}>
+                  {links.map((fl, i) => {
+                    const name     = fl.FileName ?? fl.fileName ?? fl.name ?? `File ${i + 1}`;
+                    const fileType = (fl.FileType ?? "").toLowerCase();
+                    const isPdf    = fileType.includes("pdf") || name.toLowerCase().endsWith(".pdf");
+                    return (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 8,
+                        padding: "5px 8px", background: C.surface2, borderRadius: 6,
+                        border: `1px solid ${C.border}` }}>
+                        <span style={{ color: isPdf ? C.danger : C.accent, flexShrink: 0, lineHeight: 1 }}>
+                          {isPdf ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                                stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                              <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="1.6"
+                                strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.6"/>
+                              <circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" strokeWidth="1.4"/>
+                              <polyline points="21 15 16 10 5 21" stroke="currentColor" strokeWidth="1.6"
+                                strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </span>
+                        <span style={{ fontSize: 12, color: C.muted, flex: 1,
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {name}
+                        </span>
+                        <span style={{ fontSize: 10, color: C.hint, flexShrink: 0, whiteSpace: "nowrap" }}>
+                          Download from ProjectSight to view
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p style={{ margin: "0 0 12px", fontSize: 11, color: C.hint }}>No attachments in ProjectSight.</p>
+              )}
+
+              {/* Local file upload for KernBot */}
+              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
+                <label style={{ fontSize: 10, color: C.hint, display: "block", marginBottom: 6 }}>
+                  Upload attachments for KernBot analysis
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={e => setAttachedFiles(Array.from(e.target.files || []))}
+                  style={{ display: "none" }}
+                  id={`file-upload-${id}`}
+                />
+                <label htmlFor={`file-upload-${id}`}
+                  style={{ display: "inline-block", fontSize: 11, padding: "5px 14px", borderRadius: 6,
+                    background: C.surface2, border: `1px solid ${C.border}`,
+                    color: C.muted, cursor: "pointer" }}>
+                  Choose files…
+                </label>
+                {attachedFiles.length > 0 && (
+                  <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
+                    {attachedFiles.map((f, i) => (
+                      <span key={i} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10,
+                        background: "rgba(91,141,184,0.12)", color: C.accent,
+                        border: `1px solid ${C.accent}33` }}>
+                        {f.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {attachedFiles.length > 0 && (
+                  <button
+                    onClick={() => handleReanalyze(selectedIssue, attachedFiles)}
+                    style={{ marginTop: 8, display: "block", fontSize: 11, padding: "5px 14px",
+                      borderRadius: 6, fontFamily: "inherit",
+                      background: "rgba(91,141,184,0.14)", border: `1px solid ${C.accent}55`,
+                      color: "#ffffff", cursor: "pointer" }}>
+                    Re-analyze with attachments
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Sub-questions — keyed by issueId+sqNumber to isolate RFIDraftBlock state */}
             {sqs.length > 0 ? (
               <div>
                 <p style={{ margin: "0 0 12px", fontSize: 10, fontWeight: 700, letterSpacing: "0.07em",
@@ -726,7 +900,7 @@ export default function IssueTriageApp({ user }) {
                 </p>
                 {sqs.map(sq => (
                   <SubQuestionBlock
-                    key={sq.number}
+                    key={`${id}-${sq.number}`}
                     sq={sq}
                     onReclassify={(sqNum, newCat) => handleReclassify(selectedIssue, sqNum, newCat)}
                     reclassifying={!!reclassing[`${id}-${sq.number}`]}
@@ -736,29 +910,34 @@ export default function IssueTriageApp({ user }) {
             ) : (
               <p style={{ fontSize: 12, color: C.muted }}>No sub-questions identified.</p>
             )}
-
-            {/* ProjectSight comments */}
-            {comments.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                <p style={{ margin: "0 0 8px", fontSize: 10, fontWeight: 700, letterSpacing: "0.07em",
-                  textTransform: "uppercase", color: C.hint }}>
-                  ProjectSight Comments ({comments.length})
-                </p>
-                {comments.map((c, i) => (
-                  <div key={i} style={{ padding: "8px 12px", background: C.surface2,
-                    border: `1px solid ${C.border}`, borderRadius: 7, marginBottom: 6 }}>
-                    <p style={{ margin: "0 0 3px", fontSize: 10, color: C.hint }}>
-                      {c.AuthorContactName ?? c.authorName ?? "Unknown"} · {fmtD(c.DateCreated ?? c.dateCreated)}
-                    </p>
-                    <p style={{ margin: 0, fontSize: 11, color: C.muted, lineHeight: 1.55 }}>
-                      {c.Text ?? c.text ?? c.comment ?? ""}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
           </>
         )}
+
+        {/* Discussion Thread — always shown when issue is selected */}
+        <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+          <p style={{ margin: "0 0 10px", fontSize: 10, fontWeight: 700, letterSpacing: "0.07em",
+            textTransform: "uppercase", color: C.hint }}>
+            Discussion Thread
+          </p>
+          {comments.length === 0 ? (
+            <p style={{ margin: 0, fontSize: 12, color: C.hint, fontStyle: "italic" }}>No comments yet.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {comments.map((c, i) => (
+                <div key={i} style={{ padding: "10px 12px", background: C.surface2,
+                  border: `1px solid ${C.border}`, borderRadius: 7 }}>
+                  <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 600, color: C.muted }}>
+                    {c.AuthorContactName ?? c.authorName ?? "Unknown"}
+                    <span style={{ fontWeight: 400, color: C.hint }}> — {fmtD(c.DateCreated ?? c.dateCreated)}</span>
+                  </p>
+                  <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.6 }}>
+                    {c.Text ?? c.text ?? c.comment ?? ""}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Footer */}
         <div style={{ marginTop: 24, paddingTop: 14, borderTop: `1px solid ${C.border}`,
