@@ -349,6 +349,32 @@ function SubQuestionBlock({ sq, onReclassify, reclassifying }) {
   );
 }
 
+// ── Issue number copy chip ────────────────────────────────────────────────────
+
+function IssueNumberChip({ number }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(String(number))
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); })
+      .catch(() => {});
+  };
+  return (
+    <button onClick={handleCopy}
+      style={{ display: "inline-flex", alignItems: "center", gap: 5,
+        fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 7,
+        fontFamily: "inherit", cursor: "pointer", whiteSpace: "nowrap",
+        background: copied ? "rgba(52,211,153,0.1)" : C.surface2,
+        border: `1px solid ${copied ? C.success + "55" : C.border}`,
+        color: copied ? C.success : C.muted }}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+        strokeLinecap="round" strokeLinejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+      </svg>
+      {copied ? "Copied!" : `Issue #${number}`}
+    </button>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function IssueTriageApp({ user }) {
@@ -684,14 +710,7 @@ export default function IssueTriageApp({ user }) {
       : false;
     const isProcessing = !triage || triage._processing;
 
-    const psProjectId  = selectedIssue._project?.ProjectID ?? null;
-    const psPortfolioId = selectedIssue._project?.portfolioId ?? null;
-    const psIssueId    = issId(selectedIssue) || null;
-    const hasPsLink    = psProjectId != null && psPortfolioId && psIssueId;
-    const psUrl        = hasPsLink
-      ? `https://app.us.trimblecloud.com/projectsight/${psPortfolioId}/projects/${psProjectId}/issues/${psIssueId}`
-      : null;
-    console.log('[KSF PS LINK BUILT]', psUrl);
+    const issueNumber = issNum(selectedIssue);
 
     return (
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
@@ -739,24 +758,16 @@ export default function IssueTriageApp({ user }) {
             </div>
           </div>
 
-          {/* Open in ProjectSight — primary action, top of detail */}
-          <div style={{ marginBottom: 10 }}>
-            {hasPsLink ? (
-              <a href={psUrl} target="_blank" rel="noopener noreferrer"
-                style={{ display: "inline-block", fontSize: 12, fontWeight: 600,
-                  padding: "7px 16px", borderRadius: 7,
-                  background: "rgba(91,141,184,0.14)", border: `1px solid ${C.accent}44`,
-                  color: "#ffffff", textDecoration: "none", whiteSpace: "nowrap" }}>
-                Open in ProjectSight ↗
-              </a>
-            ) : (
-              <span style={{ display: "inline-block", fontSize: 12, fontWeight: 600,
+          {/* Open ProjectSight + issue number copy chip */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            <a href="https://app.trimblepaas.com/projectsight" target="_blank" rel="noopener noreferrer"
+              style={{ display: "inline-block", fontSize: 12, fontWeight: 600,
                 padding: "7px 16px", borderRadius: 7,
-                background: C.surface2, border: `1px solid ${C.border}`,
-                color: C.hint, whiteSpace: "nowrap" }}>
-                Link unavailable
-              </span>
-            )}
+                background: "rgba(91,141,184,0.14)", border: `1px solid ${C.accent}44`,
+                color: "#ffffff", textDecoration: "none", whiteSpace: "nowrap" }}>
+              Open ProjectSight ↗
+            </a>
+            <IssueNumberChip number={issueNumber} />
           </div>
 
           {/* View Original toggle */}
