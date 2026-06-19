@@ -684,13 +684,14 @@ export default function IssueTriageApp({ user }) {
       : false;
     const isProcessing = !triage || triage._processing;
 
-    const psProjectId = selectedIssue._project?.ProjectID ?? null;
-    const psIssueId   = issId(selectedIssue) || null;
-    const hasPsLink   = psProjectId != null && psIssueId;
-    const psUrl       = hasPsLink
-      ? `https://app.trimblepaas.com/projectsight/projects/${psProjectId}/issues/${psIssueId}`
+    const psProjectId  = selectedIssue._project?.ProjectID ?? null;
+    const psPortfolioId = selectedIssue._project?.portfolioId ?? null;
+    const psIssueId    = issId(selectedIssue) || null;
+    const hasPsLink    = psProjectId != null && psPortfolioId && psIssueId;
+    const psUrl        = hasPsLink
+      ? `https://app.us.trimblecloud.com/projectsight/${psPortfolioId}/projects/${psProjectId}/issues/${psIssueId}`
       : null;
-    console.log('[KSF PS LINK]', psProjectId, psIssueId);
+    console.log('[KSF PS LINK BUILT]', psUrl);
 
     return (
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
@@ -953,24 +954,29 @@ export default function IssueTriageApp({ user }) {
             textTransform: "uppercase", color: C.hint }}>
             Discussion Thread
           </p>
-          {comments.length === 0 ? (
-            <p style={{ margin: 0, fontSize: 12, color: C.hint, fontStyle: "italic" }}>No comments yet.</p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {comments.map((c, i) => (
-                <div key={i} style={{ padding: "10px 12px", background: C.surface2,
-                  border: `1px solid ${C.border}`, borderRadius: 7 }}>
-                  <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 600, color: C.muted }}>
-                    {c.AuthorContactName ?? c.authorName ?? "Unknown"}
-                    <span style={{ fontWeight: 400, color: C.hint }}> — {fmtD(c.DateCreated ?? c.dateCreated)}</span>
-                  </p>
-                  <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.6 }}>
-                    {c.Text ?? c.text ?? c.comment ?? ""}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
+          {(() => {
+            const visible = [...comments]
+              .filter(c => c.Deleted !== true)
+              .sort((a, b) => new Date(a.WhenCreated) - new Date(b.WhenCreated));
+            return visible.length === 0 ? (
+              <p style={{ margin: 0, fontSize: 12, color: C.hint, fontStyle: "italic" }}>No comments yet.</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {visible.map((c, i) => (
+                  <div key={i} style={{ padding: "10px 12px", background: C.surface2,
+                    border: `1px solid ${C.border}`, borderRadius: 7 }}>
+                    <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 600, color: C.muted }}>
+                      {c.CreatedByDisplayName ?? "Unknown"}
+                      <span style={{ fontWeight: 400, color: C.hint }}> — {fmtD(c.WhenCreated)}</span>
+                    </p>
+                    <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.6 }}>
+                      {c.Comments ?? ""}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Footer */}
