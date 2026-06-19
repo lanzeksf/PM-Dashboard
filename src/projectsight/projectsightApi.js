@@ -266,3 +266,24 @@ export async function postRFIFromIssue(portfolioId, projectId, subject, body) {
   }
 }
 
+// ── Temp: test file download endpoint ────────────────────────────────────────
+export async function testFileDownload(portfolioId, projectId, fileId) {
+  let token = await getToken();
+  let res = await fetch(`${BASE}/${portfolioId}/${projectId}/files/${fileId}/download`, {
+    method: "GET",
+    headers: buildHeaders(token),
+  });
+  if (res.status === 401 || res.status === 403) {
+    _tokenCache = null;
+    token = await getToken();
+    res = await fetch(`${BASE}/${portfolioId}/${projectId}/files/${fileId}/download`, {
+      method: "GET",
+      headers: buildHeaders(token),
+    });
+  }
+  if (res.ok) {
+    console.log('[KSF FILE DOWNLOAD 200]', res.headers.get('content-type'), 'size:', res.headers.get('content-length'));
+  } else {
+    console.log('[KSF FILE DOWNLOAD FAIL]', res.status);
+  }
+}

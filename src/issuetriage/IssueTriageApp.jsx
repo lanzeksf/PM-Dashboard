@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { C } from "../core/utils.jsx";
 import { store } from "../core/store.js";
-import { getProjects, getIssues } from "../projectsight/projectsightApi.js";
+import { getProjects, getIssues, testFileDownload } from "../projectsight/projectsightApi.js";
 
 // ── Dev cap — temporary, remove before production ────────────────────────────
 const DEV_ISSUE_CAP = 4;
@@ -348,6 +348,11 @@ export default function IssueTriageApp({ user }) {
   const apiKey        = import.meta.env.VITE_ANTHROPIC_API_KEY;
 
   useEffect(() => { cacheRef.current = triageCache; });
+
+  // Temporary: test file download with known fileId from FileLinks sample
+  useEffect(() => {
+    testFileDownload("54bfcdfd-5be5-4e20-b70b-ea11f2549510", "32", "8108");
+  }, []);
 
   // ── Load projects ─────────────────────────────────────────────────────────
   useEffect(() => {
