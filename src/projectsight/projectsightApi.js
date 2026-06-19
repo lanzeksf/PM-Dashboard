@@ -276,7 +276,8 @@ export async function testFileDownload(portfolioId, projectId, fileId, fileVersi
     headers: buildHeaders(token),
   });
   if (res1.ok) {
-    console.log('[KSF FILE TEST 1] 200', res1.headers.get('content-type'));
+    const meta = await res1.json();
+    console.log('[KSF FILE META]', JSON.stringify(meta, null, 2));
   } else {
     console.log('[KSF FILE TEST 1] FAIL', res1.status);
   }
