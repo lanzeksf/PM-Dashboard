@@ -2,26 +2,34 @@ import React from "react";
 
 // ── Color palette ─────────────────────────────────────────────────────────────
 export const C = {
-  bg:         "#0a0a0a",
-  sidebar:    "#000000",
-  surface:    "#111111",
-  surface2:   "#1a1a1a",
-  border:     "rgba(255,255,255,0.13)",
-  borderHi:   "rgba(255,255,255,0.22)",
-  text:       "#ededed",
-  muted:      "#aaaaaa",
-  hint:       "#777777",
-  accent:     "#5b8db8",
-  accentDim:  "rgba(91,141,184,0.14)",
-  accentText: "#ffffff",
-  success:    "#34d399",
-  successDim: "rgba(52,211,153,0.12)",
-  warning:    "#fbbf24",
-  warningDim: "rgba(251,191,36,0.12)",
-  danger:     "#f87171",
-  dangerDim:  "rgba(248,113,113,0.12)",
-  pm:         "#a78bfa",
+  bg:         "#0d0e0f",
+  sidebar:    "#15171a",
+  surface:    "#1c1f23",
+  surface2:   "#252a30",
+  border:     "rgba(240,237,229,0.08)",
+  borderHi:   "rgba(240,237,229,0.16)",
+  text:       "#f0ede5",
+  muted:      "#a8a59a",
+  hint:       "#6b6964",
+  accent:     "#d4af3c",
+  accentDim:  "rgba(212,175,60,0.14)",
+  accentText: "#0d0e0f",
+  success:    "#7fb582",
+  successDim: "rgba(127,181,130,0.14)",
+  warning:    "#d4a44a",
+  warningDim: "rgba(212,164,74,0.14)",
+  danger:     "#c87878",
+  dangerDim:  "rgba(200,120,120,0.14)",
+  pm:         "#a78bfa",   // role-badge exception only — never nav/buttons/data
   pmDim:      "rgba(167,139,250,0.16)",
+};
+
+// ── Font stack ─────────────────────────────────────────────────────────────
+export const F = {
+  display: '"Fraunces", Georgia, serif',        // dashboard titles / big numbers only
+  head:    '"Inter Tight", "Inter", sans-serif', // card / section titles
+  body:    '"Inter", sans-serif',                // running text
+  mono:    '"JetBrains Mono", ui-monospace, monospace', // IDs, dates, money, RFI numbers
 };
 
 // ── Option lists ──────────────────────────────────────────────────────────────
@@ -90,6 +98,10 @@ export const ROLE_MODULES = {
     "kernbot", "dashboard", "owner", "scope", "changes",
     "detailing", "rfi", "issuetriage", "fab", "field", "standards", "contracts",
   ],
+  superintendent: [
+    "kernbot", "dashboard", "owner", "scope", "changes",
+    "detailing", "rfi", "issuetriage", "fab", "field", "standards",
+  ],
   mfg_eng: [
     "kernbot", "dashboard", "issuetriage", "fab", "standards", "contracts",
   ],
@@ -118,6 +130,20 @@ export const USERS_LIST = [
     tier: "sr_pm",  canRespond: true,  stdWrite: true,
     badge: { label: "Senior PM", color: "#c4b5fd", bg: "rgba(196,181,253,0.12)" },
     department: null,
+  },
+  {
+    id: "jr",      name: "JR",         initials: "JR", color: "#f472b6",
+    position: "Superintendent", role: "superintendent",
+    tier: "standard", canRespond: false, stdWrite: false,
+    badge: null,
+    department: { label: "All", color: "#888", bg: "#2a2a2a" },
+  },
+  {
+    id: "josh",    name: "Josh",       initials: "JO", color: "#60a5fa",
+    position: "Project Manager", role: "coordinator",
+    tier: "standard", canRespond: false, stdWrite: false,
+    badge: null,
+    department: { label: "Structural", color: "#888", bg: "#2a2a2a" },
   },
   {
     id: "tony",    name: "Tony S.",    initials: "TS", color: "#38bdf8",
