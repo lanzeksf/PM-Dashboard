@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { USERS_LIST, ROLE_MODULES, C } from "../core/utils.jsx";
+import React, { useState, useEffect } from "react";
+import { ROLE_MODULES, C, F } from "../core/utils.jsx";
 import DashboardApp from "../dashboard/DashboardApp.jsx";
 import RFIApp from "../rfi/RFIApp.jsx";
 import IssueTriageApp from "../issuetriage/IssueTriageApp.jsx";
@@ -9,7 +9,7 @@ import FabricationApp from "../fab/FabricationApp.jsx";
 import { store } from "../core/store.js";
 import { getProjects, getRFIs } from "../projectsight/projectsightApi.js";
 
-export const SHELL_COLORS = { bg: "#05080b" };
+export const SHELL_COLORS = { bg: C.bg };
 const SHELL_ONLY_TABS = new Set(["queue", "standards"]);
 
 // Dashboard is now first — it is the landing page after login
@@ -21,7 +21,7 @@ const ALL_NAV_ITEMS = [
   { id: "contracts",     label: "Contracts" },
   { id: "changes",       label: "Change Orders" },
   { id: "detailing",     label: "Detailing" },
-  { id: "rfi",           label: "RFI Log" },
+  { id: "rfi",           label: "RFIs" },
   { id: "issuetriage",   label: "Issue Triage" },
   { id: "fab",           label: "Fabrication & Shipping" },
   { id: "field",         label: "Field Needs" },
@@ -56,10 +56,10 @@ const NAV_ICONS = {
 
 function ComingSoon({ label }) {
   return (
-    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: SHELL_COLORS.bg, color: "#f7fafc" }}>
+    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: SHELL_COLORS.bg, color: C.text }}>
       <div style={{ maxWidth: 540, padding: 24, textAlign: "center" }}>
         <p style={{ margin: 0, fontSize: 32, fontWeight: 700, letterSpacing: "-0.03em" }}>{label}</p>
-        <p style={{ margin: "14px 0 0", fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.7 }}>
+        <p style={{ margin: "14px 0 0", fontSize: 14, color: C.hint, lineHeight: 1.7 }}>
           This feature is not available yet. Check back soon when KSF Command Center adds the next phase of workflow tools.
         </p>
       </div>
@@ -67,36 +67,103 @@ function ComingSoon({ label }) {
   );
 }
 
-function UserPicker({ onLogin }) {
+const LOGIN_BG_STYLE = { minHeight: "100vh", background: "#05080b", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif", padding: "2rem" };
+const LOGIN_INPUT_STYLE = { padding: "10px 12px", borderRadius: 8, background: "#111111", border: "1px solid rgba(255,255,255,0.1)", color: "#ededed", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box", width: "100%" };
+const LOGIN_BUTTON_STYLE = loading => ({ padding: "10px 12px", borderRadius: 8, background: C.accent, border: "none", color: C.accentText, fontSize: 13, fontWeight: 600, fontFamily: "inherit", cursor: loading ? "default" : "pointer", opacity: loading ? 0.6 : 1 });
+
+function LoginForm({ onLoggedIn }) {
+  const [email,    setEmail]    = useState("");
+  const [password, setPassword] = useState("");
+  const [error,    setError]    = useState("");
+  const [loading,  setLoading]  = useState(false);
+
+  const submit = async e => {
+    e.preventDefault();
+    if (!email.trim() || !password || loading) return;
+    setLoading(true); setError("");
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(data.error || "Login failed"); setLoading(false); return; }
+      onLoggedIn(data.user);
+    } catch {
+      setError("Could not reach the server");
+      setLoading(false);
+    }
+  };
+
   return (
-    <div style={{ minHeight: "100vh", background: "#05080b", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif", padding: "2rem" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
+    <div style={LOGIN_BG_STYLE}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
         <div style={{ width: 36, height: 36, borderRadius: 9, background: "#1e2340", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#cccccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
         <div>
           <p style={{ margin: 0, fontWeight: 700, fontSize: 18, color: "#f0f2f8", letterSpacing: "-0.02em" }}>KSF Command Center</p>
-          <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.35)" }}>Select your profile to continue</p>
+          <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.35)" }}>Sign in to continue</p>
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, width: "100%", maxWidth: 700 }}>
-        {USERS_LIST.map(u => (
-          <button key={u.id} onClick={() => onLogin(u)}
-            style={{ background: "#111111", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "18px 14px", cursor: "pointer", textAlign: "center", fontFamily: "inherit", transition: "border-color 0.15s, background 0.15s", outline: "none" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = u.color + "60"; e.currentTarget.style.background = "#161616"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.background = "#111111"; }}>
-            <div style={{ width: 44, height: 44, borderRadius: "50%", background: u.color + "22", border: `1.5px solid ${u.color}44`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: u.color }}>{u.initials}</span>
-            </div>
-            <p style={{ margin: 0, fontWeight: 600, fontSize: 13, color: "#ededed" }}>{u.name}</p>
-            <p style={{ margin: "3px 0 8px", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{u.position}</p>
-            <div style={{ display: "flex", gap: 4, justifyContent: "center", flexWrap: "wrap" }}>
-              {u.badge && <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: u.badge.bg, color: u.badge.color, border: `1px solid ${u.badge.color}33` }}>{u.badge.label}</span>}
-              {u.department && <span style={{ fontSize: 10, fontWeight: 500, padding: "2px 8px", borderRadius: 20, background: u.department.bg, color: u.department.color }}>{u.department.label}</span>}
-            </div>
-          </button>
-        ))}
+      <form onSubmit={submit} style={{ width: "100%", maxWidth: 340, display: "flex", flexDirection: "column", gap: 10 }}>
+        <input type="email" autoFocus autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" style={LOGIN_INPUT_STYLE} />
+        <input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" style={LOGIN_INPUT_STYLE} />
+        {error && <p style={{ margin: 0, fontSize: 12, color: "#f87171" }}>{error}</p>}
+        <button type="submit" disabled={loading} style={LOGIN_BUTTON_STYLE(loading)}>
+          {loading ? "Signing in…" : "Sign in"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function ChangePasswordForm({ user, onChanged }) {
+  const [newPassword, setNewPassword] = useState("");
+  const [confirm,     setConfirm]     = useState("");
+  const [error,       setError]       = useState("");
+  const [loading,     setLoading]     = useState(false);
+
+  const submit = async e => {
+    e.preventDefault();
+    if (loading) return;
+    if (newPassword.length < 8) { setError("Password must be at least 8 characters"); return; }
+    if (newPassword !== confirm) { setError("Passwords don't match"); return; }
+    setLoading(true); setError("");
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(data.error || "Could not update password"); setLoading(false); return; }
+      onChanged();
+    } catch {
+      setError("Could not reach the server");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={LOGIN_BG_STYLE}>
+      <div style={{ marginBottom: 20, textAlign: "center", maxWidth: 340 }}>
+        <p style={{ margin: 0, fontWeight: 700, fontSize: 18, color: "#f0f2f8" }}>Set your password</p>
+        <p style={{ margin: "6px 0 0", fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
+          Welcome, {user.name.split(" ")[0]} — choose a new password to replace your temporary one.
+        </p>
       </div>
+      <form onSubmit={submit} style={{ width: "100%", maxWidth: 340, display: "flex", flexDirection: "column", gap: 10 }}>
+        <input type="password" autoFocus autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="New password" style={LOGIN_INPUT_STYLE} />
+        <input type="password" autoComplete="new-password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Confirm new password" style={LOGIN_INPUT_STYLE} />
+        {error && <p style={{ margin: 0, fontSize: 12, color: "#f87171" }}>{error}</p>}
+        <button type="submit" disabled={loading} style={LOGIN_BUTTON_STYLE(loading)}>
+          {loading ? "Saving…" : "Save password"}
+        </button>
+      </form>
     </div>
   );
 }
@@ -106,16 +173,16 @@ function ShellSidebar({ user, tab, setTab, onSignOut, mobile, onClose }) {
   const visibleNav = ALL_NAV_ITEMS.filter(item => allowedModules.includes(item.id) && !SHELL_ONLY_TABS.has(item.id));
 
   return (
-    <aside style={{ width: 200, flexShrink: 0, display: "flex", flexDirection: "column", background: "#000000", borderRight: "1px solid rgba(255,255,255,0.06)", height: "100vh", overflow: "hidden", fontFamily: "inherit", ...(mobile ? { position: "absolute", left: 0, top: 0, zIndex: 200, height: "100%" } : {}) }}>
+    <aside style={{ width: 200, flexShrink: 0, display: "flex", flexDirection: "column", background: C.sidebar, borderRight: `1px solid ${C.onDarkBorder}`, height: "100vh", overflow: "hidden", fontFamily: "inherit", ...(mobile ? { position: "absolute", left: 0, top: 0, zIndex: 200, height: "100%" } : {}) }}>
       <div style={{ padding: "14px 14px 10px", display: "flex", alignItems: "center", gap: 8 }}>
-        {mobile && <button onClick={onClose} style={{ background: "none", border: "none", color: "#666", cursor: "pointer", padding: 2, marginRight: 2, display: "flex" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 6L6 18M6 6l12 12"/></svg></button>}
-        <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#cccccc" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        {mobile && <button onClick={onClose} style={{ background: "none", border: "none", color: C.onDarkHint, cursor: "pointer", padding: 2, marginRight: 2, display: "flex" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 6L6 18M6 6l12 12"/></svg></button>}
+        <div style={{ width: 24, height: 24, borderRadius: 6, background: C.onDarkHover, border: `1px solid ${C.onDarkBorderHi}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke={C.onDarkMuted} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#f0f2f8", letterSpacing: "-0.02em", whiteSpace: "nowrap" }}>KSF Command Center</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.onDarkText, letterSpacing: "-0.02em", whiteSpace: "nowrap" }}>KSF Command Center</span>
       </div>
-      <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "0 12px 6px" }}/>
-      <style>{`.ksf-nav-btn{width:100%;display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-family:inherit;margin-bottom:2px;color:#888;font-size:13px;font-weight:400;text-align:left;transition:background .1s,color .1s;border-left:2px solid transparent;}.ksf-nav-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0e0;}.ksf-nav-btn.active{background:rgba(255,255,255,0.13);color:#ffffff;font-weight:600;border-left:2px solid rgba(255,255,255,0.7);}.ksf-nav-icon{flex-shrink:0;display:flex;align-items:center;opacity:0.55;}.ksf-nav-btn:hover .ksf-nav-icon,.ksf-nav-btn.active .ksf-nav-icon{opacity:1;}`}</style>
+      <div style={{ height: 1, background: C.onDarkBorder, margin: "0 12px 6px" }}/>
+      <style>{`.ksf-nav-btn{width:100%;display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-family:inherit;margin-bottom:2px;color:${C.onDarkMuted};font-size:13px;font-weight:400;text-align:left;transition:background .1s,color .1s;border-left:2px solid transparent;}.ksf-nav-btn:hover{background:${C.onDarkHover};color:${C.onDarkText};}.ksf-nav-btn.active{background:${C.accentDim};color:${C.accent};font-weight:600;border-left:2px solid ${C.accent};}.ksf-nav-icon{flex-shrink:0;display:flex;align-items:center;opacity:0.55;}.ksf-nav-btn:hover .ksf-nav-icon,.ksf-nav-btn.active .ksf-nav-icon{opacity:1;}`}</style>
       <nav style={{ flex: 1, overflowY: "auto", padding: "2px 8px" }}>
         {visibleNav.map(item => {
           const NavIcon = NAV_ICONS[item.id];
@@ -128,14 +195,14 @@ function ShellSidebar({ user, tab, setTab, onSignOut, mobile, onClose }) {
           );
         })}
       </nav>
-      <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "6px 12px 0" }}/>
+      <div style={{ height: 1, background: C.onDarkBorder, margin: "6px 12px 0" }}/>
       <div style={{ padding: "10px 12px 14px", display: "flex", alignItems: "center", gap: 8 }}>
         <div style={{ width: 28, height: 28, borderRadius: "50%", background: user.color + "22", border: `1px solid ${user.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 10, color: user.color, flexShrink: 0 }}>{user.initials}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "#ddd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</p>
-          <p style={{ margin: 0, fontSize: 11, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.position}</p>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: C.onDarkText, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</p>
+          <p style={{ margin: 0, fontSize: 11, color: C.onDarkHint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.position}</p>
         </div>
-        <button onClick={onSignOut} title="Sign out" style={{ width: 26, height: 26, borderRadius: 6, background: "none", border: "none", color: "#555", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, padding: 0, transition: "all 0.15s" }} onMouseEnter={e => { e.currentTarget.style.color = "#aaa"; e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }} onMouseLeave={e => { e.currentTarget.style.color = "#555"; e.currentTarget.style.background = "none"; }}>
+        <button onClick={onSignOut} title="Sign out" style={{ width: 26, height: 26, borderRadius: 6, background: "none", border: "none", color: C.onDarkHint, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, padding: 0, transition: "all 0.15s" }} onMouseEnter={e => { e.currentTarget.style.color = C.onDarkText; e.currentTarget.style.background = C.onDarkHover; }} onMouseLeave={e => { e.currentTarget.style.color = C.onDarkHint; e.currentTarget.style.background = "none"; }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
       </div>
@@ -144,13 +211,12 @@ function ShellSidebar({ user, tab, setTab, onSignOut, mobile, onClose }) {
 }
 
 export default function KSFCommandCenter({ KernBotApp }) {
-  const [user,        setUser]        = useState(null);
-  const [tab,         setTab]         = useState("dashboard"); // Dashboard is now the default landing tab
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [user,            setUser]            = useState(null);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [tab,             setTab]             = useState("dashboard"); // Dashboard is now the default landing tab
+  const [sidebarOpen,     setSidebarOpen]     = useState(false);
 
-  function handleLogin(u) {
-    setUser(u);
-    setTab("dashboard");
+  function prefetchProjectsight() {
     getProjects()
       .then(projects => {
         const rfiMap = {};
@@ -166,9 +232,40 @@ export default function KSFCommandCenter({ KernBotApp }) {
       .catch(() => {});
   }
 
-  if (!user) return <UserPicker onLogin={handleLogin} />;
+  // Restore an existing session on load (e.g. after a page refresh) instead
+  // of always starting at the login screen.
+  useEffect(() => {
+    fetch("/api/auth/session", { credentials: "include" })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (data?.user) {
+          setUser(data.user);
+          if (!data.user.mustChangePassword) prefetchProjectsight();
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCheckingSession(false));
+  }, []);
 
-  const handleSignOut = () => { setUser(null); setTab("dashboard"); setSidebarOpen(false); };
+  function handleLoggedIn(u) {
+    setUser(u);
+    setTab("dashboard");
+    if (!u.mustChangePassword) prefetchProjectsight();
+  }
+
+  function handlePasswordChanged() {
+    setUser(u => ({ ...u, mustChangePassword: false }));
+    prefetchProjectsight();
+  }
+
+  async function handleSignOut() {
+    try { await fetch("/api/auth/logout", { method: "POST", credentials: "include" }); } catch {}
+    setUser(null); setTab("dashboard"); setSidebarOpen(false);
+  }
+
+  if (checkingSession) return <div style={{ minHeight: "100vh", background: "#05080b" }} />;
+  if (!user) return <LoginForm onLoggedIn={handleLoggedIn} />;
+  if (user.mustChangePassword) return <ChangePasswordForm user={user} onChanged={handlePasswordChanged} />;
 
   return (
     <div style={{ display: "flex", height: "100vh", background: SHELL_COLORS.bg, fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif", overflow: "hidden", position: "relative" }}>
@@ -182,12 +279,12 @@ export default function KSFCommandCenter({ KernBotApp }) {
         </>
       )}
       <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", minWidth: 0 }}>
-        <div className="ksf-mobile-bar" style={{ display: "none", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0, background: "#000" }}>
-          <button onClick={() => setSidebarOpen(true)} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", padding: 4, display: "flex", alignItems: "center" }}>
+        <div className="ksf-mobile-bar" style={{ display: "none", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${C.onDarkBorder}`, flexShrink: 0, background: C.sidebar }}>
+          <button onClick={() => setSidebarOpen(true)} style={{ background: "none", border: "none", color: C.onDarkHint, cursor: "pointer", padding: 4, display: "flex", alignItems: "center" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#ddd" }}>KSF Command Center</span>
-          <span style={{ fontSize: 11, color: "#999", marginLeft: "auto" }}>{ALL_NAV_ITEMS.find(i => i.id === tab)?.label}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: C.onDarkText }}>KSF Command Center</span>
+          <span style={{ fontSize: 11, color: C.onDarkHint, marginLeft: "auto" }}>{ALL_NAV_ITEMS.find(i => i.id === tab)?.label}</span>
         </div>
         {tab === "dashboard"     && <DashboardApp user={user} setTab={setTab}/>}
         {tab === "kernbot"       && <KernBotApp preloadUser={user}/>}

@@ -47,14 +47,14 @@ export function CtxMenu({ items, onClose, style }) {
   }, [onClose]);
 
   return (
-    <div ref={ref} style={{ position: "absolute", background: "#1e2235", border: `1px solid ${C.borderHi}`, borderRadius: 9, padding: 4, zIndex: 300, minWidth: 164, boxShadow: "0 6px 28px rgba(0,0,0,0.65)", ...style }}>
+    <div ref={ref} style={{ position: "absolute", background: C.surface, border: `1px solid ${C.borderHi}`, borderRadius: 9, padding: 4, zIndex: 300, minWidth: 164, boxShadow: "0 6px 28px rgba(13,14,15,0.18)", ...style }}>
       {items.map((it, i) =>
         it === "---"
           ? <div key={i} style={{ height: 1, background: C.border, margin: "3px 0" }} />
           : (
             <button key={i} onClick={() => { it.fn(); onClose(); }}
               style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "7px 10px", background: "none", border: "none", cursor: "pointer", color: it.danger ? C.danger : C.text, fontSize: 12, fontFamily: "inherit", borderRadius: 6, textAlign: "left" }}
-              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+              onMouseEnter={e => e.currentTarget.style.background = C.surface2}
               onMouseLeave={e => e.currentTarget.style.background = "none"}
             >
               <span style={{ width: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: it.danger ? 1 : 0.6 }}>

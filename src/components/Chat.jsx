@@ -105,8 +105,8 @@ export function Bubble({ m, isMe, userColor, userInitials, onView, onSourceClick
         </div>
 
         {m.escalationNotice ? (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "rgba(139,92,246,0.10)", border: "1px solid rgba(139,92,246,0.3)", borderRadius: 8, fontSize: 13, color: "#c4b5fd", lineHeight: 1.5 }}>
-            <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4, background: "rgba(139,92,246,0.2)", color: "#a78bfa", letterSpacing: "0.03em" }}>ESCALATED</span>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "rgba(139,92,246,0.10)", border: "1px solid rgba(139,92,246,0.3)", borderRadius: 8, fontSize: 13, color: "#6d3fd6", lineHeight: 1.5 }}>
+            <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4, background: "rgba(139,92,246,0.2)", color: "#6d3fd6", letterSpacing: "0.03em" }}>ESCALATED</span>
             {renderEscalationText(m.text)}
           </div>
         ) : (

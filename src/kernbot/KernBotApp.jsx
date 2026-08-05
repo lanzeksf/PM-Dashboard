@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
-import { C, nowStamp, nextId, nextPMQ, USERS_LIST } from "../core/utils.jsx";
+import { C, F, nowStamp, nextId, nextPMQ, USERS_LIST } from "../core/utils.jsx";
 import { store } from "../core/store.js";
 import { useStore } from "../core/store.js";
 import { callKernBot } from "./kernBot.js";
@@ -157,7 +157,7 @@ export function KernBotApp({ preloadUser }) {
   // ── Section header ────────────────────────────────────────────────────────
   const SecHdr = ({ label, count, color }) => (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "8px 2px 3px" }}>
-      <span style={{ fontSize: 10, color: C.hint, textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</span>
+      <span style={{ fontSize: 10, color: C.onDarkHint, textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</span>
       {count > 0 && <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 10, background: color + "22", color }}>{count}</span>}
     </div>
   );
@@ -176,7 +176,7 @@ export function KernBotApp({ preloadUser }) {
     <div style={{ display: "flex", flex: 1, height: "100%", background: C.bg, fontFamily: "system-ui,-apple-system,sans-serif", overflow: "hidden", position: "relative" }}>
 
       {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <div style={{ width: 240, background: C.sidebar, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden" }}>
+      <div style={{ width: 240, background: C.sidebar, borderRight: `1px solid ${C.onDarkBorder}`, display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden" }}>
 
         {/* Top: logo + new chat + search */}
         <div style={{ padding: "9px 8px 7px", flexShrink: 0 }}>
@@ -184,25 +184,25 @@ export function KernBotApp({ preloadUser }) {
             <div style={{ width: 25, height: 25, borderRadius: 6, background: "#1e2340", border: `1px solid rgba(255,255,255,0.1)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <span style={{ color: "#fff", fontWeight: 700, fontSize: 10 }}>KSF</span>
             </div>
-            <span style={{ fontWeight: 500, fontSize: 13, color: C.text, flex: 1 }}>Kern Bot</span>
+            <span style={{ fontWeight: 500, fontSize: 13, color: C.onDarkText, flex: 1 }}>Kern Bot</span>
             <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
               <div style={{ width: 5, height: 5, borderRadius: "50%", background: C.success }} />
               <span style={{ fontSize: 10, color: C.success }}>live</span>
             </div>
           </div>
 
-          <button onClick={newChat} style={{ width: "100%", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 7, padding: "6px 9px", color: C.text, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, fontFamily: "inherit", marginBottom: 6 }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke={C.muted} strokeWidth="2" strokeLinecap="round" /></svg>
+          <button onClick={newChat} style={{ width: "100%", background: C.onDarkSurface, border: `1px solid ${C.onDarkBorder}`, borderRadius: 7, padding: "6px 9px", color: C.onDarkText, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, fontFamily: "inherit", marginBottom: 6 }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke={C.onDarkMuted} strokeWidth="2" strokeLinecap="round" /></svg>
             New conversation
           </button>
 
           <div style={{ position: "relative" }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ position: "absolute", left: 7, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.4 }}>
-              <circle cx="11" cy="11" r="8" stroke={C.hint} strokeWidth="1.5" /><path d="M21 21l-4.35-4.35" stroke={C.hint} strokeWidth="1.5" strokeLinecap="round" />
+              <circle cx="11" cy="11" r="8" stroke={C.onDarkHint} strokeWidth="1.5" /><path d="M21 21l-4.35-4.35" stroke={C.onDarkHint} strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             <input
               value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Search"
-              style={{ width: "100%", paddingLeft: 24, paddingRight: 7, paddingTop: 5, paddingBottom: 5, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 12, fontFamily: "inherit", boxSizing: "border-box", outline: "none" }}
+              style={{ width: "100%", paddingLeft: 24, paddingRight: 7, paddingTop: 5, paddingBottom: 5, background: C.onDarkSurface2, border: `1px solid ${C.onDarkBorder}`, borderRadius: 6, color: C.onDarkText, fontSize: 12, fontFamily: "inherit", boxSizing: "border-box", outline: "none" }}
             />
           </div>
         </div>
@@ -220,7 +220,7 @@ export function KernBotApp({ preloadUser }) {
           )}
           {resChats.length > 0 && (
             <div style={{ marginTop: (stdChats.length + escChats.length) ? 4 : 0 }}>
-              <div style={{ height: 1, background: C.border, margin: "6px 0 2px" }} />
+              <div style={{ height: 1, background: C.onDarkBorder, margin: "6px 0 2px" }} />
               <SecHdr label="Resolved" count={resChats.length} color={C.success} />
               {resChats.map(c => <ChatRow key={c.id} {...chatRowProps(c)} />)}
             </div>
@@ -228,7 +228,7 @@ export function KernBotApp({ preloadUser }) {
 
           {isAdmin && (
             <div style={{ marginTop: 6 }}>
-              <div style={{ height: 1, background: C.border, margin: "6px 0 2px" }} />
+              <div style={{ height: 1, background: C.onDarkBorder, margin: "6px 0 2px" }} />
               {qUnresolved.length > 0 && (
                 <><SecHdr label="Queue · Open" count={qUnresolved.length} color={C.danger} />
                   {qUnresolved.map(q => <QueueRow key={q.id} q={q} active={q.id === selQ && adminView === "queue"} onSelect={id => { setSelQ(id); setAdminView("queue"); }} onRename={id => setRenameQId(id)} onResolve={handleQResolve} onUnresolve={handleQUnresolve} onRemove={removeQueue} />)}
@@ -242,23 +242,23 @@ export function KernBotApp({ preloadUser }) {
             </div>
           )}
           <div style={{ marginTop: isAdmin ? 0 : 6 }}>
-            {!isAdmin && <div style={{ height: 1, background: C.border, margin: "6px 0 2px" }} />}
+            {!isAdmin && <div style={{ height: 1, background: C.onDarkBorder, margin: "6px 0 2px" }} />}
             <button onClick={() => setAdminView("standards")} style={{ width: "100%", marginTop: 4, background: adminView === "standards" ? "rgba(91,141,184,0.1)" : "none", border: `1px solid ${adminView === "standards" ? "rgba(91,141,184,0.28)" : "transparent"}`, borderRadius: 6, padding: "5px 7px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit" }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={adminView === "standards" ? C.accentText : C.hint} strokeWidth="1.5" strokeLinecap="round" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={adminView === "standards" ? C.accentText : C.hint} strokeWidth="1.5" /></svg>
-              <span style={{ fontSize: 11, color: adminView === "standards" ? C.accentText : C.hint }}>Standards library</span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 016.5 17H20" stroke={adminView === "standards" ? C.accentText : C.onDarkHint} strokeWidth="1.5" strokeLinecap="round" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" stroke={adminView === "standards" ? C.accentText : C.onDarkHint} strokeWidth="1.5" /></svg>
+              <span style={{ fontSize: 11, color: adminView === "standards" ? C.accentText : C.onDarkHint }}>Standards library</span>
             </button>
           </div>
         </div>
 
         {/* User profile footer */}
-        <div style={{ padding: "8px 9px", borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
+        <div style={{ padding: "8px 9px", borderTop: `1px solid ${C.onDarkBorder}`, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <div style={{ width: 24, height: 24, borderRadius: "50%", background: user.color + "30", border: `1px solid ${user.color}40`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <span style={{ fontSize: 8, fontWeight: 600, color: user.color }}>{user.initials}</span>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: 12, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</p>
-              <p style={{ margin: 0, fontSize: 11, color: C.hint }}>{user.position}</p>
+              <p style={{ margin: 0, fontSize: 12, color: C.onDarkText, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</p>
+              <p style={{ margin: 0, fontSize: 11, color: C.onDarkHint }}>{user.position}</p>
             </div>
             {/* logout handled by shell sidebar */}
           </div>

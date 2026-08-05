@@ -23,20 +23,20 @@ export function ChatRow({ c, active, isAdmin, onSelect, onRename, onEscalate, on
     <div style={{ position: "relative", marginBottom: 1 }}>
       <div onClick={() => onSelect(c.id)}
         style={{ display: "flex", alignItems: "center", borderRadius: 6, cursor: "pointer", background: active ? "rgba(91,141,184,0.11)" : "none", border: `1px solid ${active ? "rgba(91,141,184,0.28)" : "transparent"}`, padding: "4px 4px 4px 6px", transition: "background 0.1s" }}
-        onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+        onMouseEnter={e => { if (!active) e.currentTarget.style.background = C.onDarkHover; }}
         onMouseLeave={e => { if (!active) e.currentTarget.style.background = "none"; }}
       >
         <div style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0, marginRight: 5, background: dotColor || "transparent", border: dotColor && !showUnread ? `1.5px solid ${dotColor}` : "none" }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 14, color: active ? C.text : c.resolved ? C.hint : C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block", lineHeight: 1.35, opacity: c.resolved ? 0.65 : 1 }}>
+          <span style={{ fontSize: 14, color: active ? C.onDarkText : c.resolved ? C.onDarkHint : C.onDarkMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block", lineHeight: 1.35, opacity: c.resolved ? 0.65 : 1 }}>
             {c.title}
           </span>
           {!c.resolved && (
-            <span style={{ fontSize: 12, color: C.hint, display: "block", marginTop: 1 }}>{fmtRel(c.lastActivity || c.createdAt)}</span>
+            <span style={{ fontSize: 12, color: C.onDarkHint, display: "block", marginTop: 1 }}>{fmtRel(c.lastActivity || c.createdAt)}</span>
           )}
         </div>
         <button onClick={e => { e.stopPropagation(); setMenuOpen(o => !o); }}
-          style={{ background: "none", border: "none", cursor: "pointer", color: C.hint, padding: "2px 4px", borderRadius: 4, display: "flex", alignItems: "center", flexShrink: 0, opacity: menuOpen ? 1 : 0.4, transition: "opacity 0.1s" }}
+          style={{ background: "none", border: "none", cursor: "pointer", color: C.onDarkHint, padding: "2px 4px", borderRadius: 4, display: "flex", alignItems: "center", flexShrink: 0, opacity: menuOpen ? 1 : 0.4, transition: "opacity 0.1s" }}
           onMouseEnter={e => e.currentTarget.style.opacity = "1"}
           onMouseLeave={e => e.currentTarget.style.opacity = menuOpen ? "1" : "0.4"}
         >
@@ -66,20 +66,20 @@ export function QueueRow({ q, active, onSelect, onRename, onResolve, onUnresolve
     <div style={{ position: "relative", marginBottom: 1 }}>
       <div onClick={() => onSelect(q.id)}
         style={{ display: "flex", alignItems: "center", borderRadius: 6, cursor: "pointer", background: active ? "rgba(167,139,250,0.1)" : "none", border: `1px solid ${active ? "rgba(167,139,250,0.28)" : "transparent"}`, padding: "4px 4px 4px 6px", transition: "background 0.1s" }}
-        onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+        onMouseEnter={e => { if (!active) e.currentTarget.style.background = C.onDarkHover; }}
         onMouseLeave={e => { if (!active) e.currentTarget.style.background = "none"; }}
       >
         <div style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0, marginRight: 5, background: dotColor }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 14, color: active ? C.text : q.resolved ? C.hint : C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block", lineHeight: 1.35, opacity: q.resolved ? 0.65 : 1 }}>
+          <span style={{ fontSize: 14, color: active ? C.onDarkText : q.resolved ? C.onDarkHint : C.onDarkMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block", lineHeight: 1.35, opacity: q.resolved ? 0.65 : 1 }}>
             {q.title}
           </span>
-          <span style={{ fontSize: 12, color: C.hint, display: "block", marginTop: 1, fontFamily: "monospace" }}>
+          <span style={{ fontSize: 12, color: C.onDarkHint, display: "block", marginTop: 1, fontFamily: "monospace" }}>
             {q.pmqId}{!q.resolved && ` · ${fmtRel(q.createdAt)}`}
           </span>
         </div>
         <button onClick={e => { e.stopPropagation(); setMenuOpen(o => !o); }}
-          style={{ background: "none", border: "none", cursor: "pointer", color: C.hint, padding: "2px 4px", borderRadius: 4, display: "flex", alignItems: "center", flexShrink: 0, opacity: menuOpen ? 1 : 0.4, transition: "opacity 0.1s" }}
+          style={{ background: "none", border: "none", cursor: "pointer", color: C.onDarkHint, padding: "2px 4px", borderRadius: 4, display: "flex", alignItems: "center", flexShrink: 0, opacity: menuOpen ? 1 : 0.4, transition: "opacity 0.1s" }}
           onMouseEnter={e => e.currentTarget.style.opacity = "1"}
           onMouseLeave={e => e.currentTarget.style.opacity = menuOpen ? "1" : "0.4"}
         >

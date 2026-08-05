@@ -613,9 +613,9 @@ export default function IssueTriageApp({ user }) {
   const selStyle = active => ({
     fontSize: 11, padding: "4px 10px", borderRadius: 6,
     fontFamily: "inherit", cursor: "pointer",
-    background: active ? "rgba(91,141,184,0.14)" : C.surface,
+    background: active ? C.accentDim : C.surface,
     border: `1px solid ${active ? C.accent + "66" : C.border}`,
-    color: active ? "#ffffff" : C.muted,
+    color: active ? C.accentText : C.muted,
     appearance: "none",
   });
 
@@ -633,7 +633,7 @@ export default function IssueTriageApp({ user }) {
       <div key={id}
         onClick={() => setSelectedId(isSel ? null : id)}
         style={{ padding: "10px 12px", cursor: "pointer",
-          background: isSel ? "rgba(91,141,184,0.14)" : "transparent",
+          background: isSel ? C.accentDim : "transparent",
           borderLeft: `2px solid ${isSel ? C.accent : "transparent"}`,
           borderBottom: `1px solid ${C.border}`, transition: "background 0.1s" }}
         onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = C.surface2; }}
@@ -755,9 +755,9 @@ export default function IssueTriageApp({ user }) {
                 disabled={isProcessing}
                 onClick={() => handleReanalyze(selectedIssue, attachedFiles)}
                 style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, fontFamily: "inherit",
-                  background: isProcessing ? C.surface2 : "rgba(91,141,184,0.14)",
+                  background: isProcessing ? C.surface2 : C.accentDim,
                   border: `1px solid ${isProcessing ? C.border : C.accent + "55"}`,
-                  color: isProcessing ? C.hint : "#ffffff",
+                  color: isProcessing ? C.hint : C.accentText,
                   cursor: isProcessing ? "not-allowed" : "pointer" }}>
                 {isProcessing ? "Analyzing…" : "Re-analyze"}
               </button>
@@ -769,8 +769,8 @@ export default function IssueTriageApp({ user }) {
             <a href={psIssuesUrl} target="_blank" rel="noopener noreferrer"
               style={{ display: "inline-block", fontSize: 12, fontWeight: 600,
                 padding: "7px 16px", borderRadius: 7,
-                background: "rgba(91,141,184,0.14)", border: `1px solid ${C.accent}44`,
-                color: "#ffffff", textDecoration: "none", whiteSpace: "nowrap" }}>
+                background: C.accentDim, border: `1px solid ${C.accent}44`,
+                color: C.accentText, textDecoration: "none", whiteSpace: "nowrap" }}>
               Open ProjectSight ↗
             </a>
             <IssueNumberChip number={issueNumber} />
@@ -923,7 +923,7 @@ export default function IssueTriageApp({ user }) {
                   <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
                     {attachedFiles.map((f, i) => (
                       <span key={i} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10,
-                        background: "rgba(91,141,184,0.12)", color: C.accent,
+                        background: C.accentDim, color: C.accent,
                         border: `1px solid ${C.accent}33` }}>
                         {f.name}
                       </span>
@@ -935,8 +935,8 @@ export default function IssueTriageApp({ user }) {
                     onClick={() => handleReanalyze(selectedIssue, attachedFiles)}
                     style={{ marginTop: 8, display: "block", fontSize: 11, padding: "5px 14px",
                       borderRadius: 6, fontFamily: "inherit",
-                      background: "rgba(91,141,184,0.14)", border: `1px solid ${C.accent}55`,
-                      color: "#ffffff", cursor: "pointer" }}>
+                      background: C.accentDim, border: `1px solid ${C.accent}55`,
+                      color: C.accentText, cursor: "pointer" }}>
                     Re-analyze with attachments
                   </button>
                 )}

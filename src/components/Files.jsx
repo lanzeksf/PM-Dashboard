@@ -60,7 +60,7 @@ export function AttachTray({ attachments, onRemove }) {
             </div>
           )}
           <button onClick={() => onRemove(i)}
-            style={{ position: "absolute", top: -6, right: -6, width: 16, height: 16, borderRadius: "50%", background: "#e74c3c", border: "1.5px solid #0d0f16", color: "#fff", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0, zIndex: 1 }}>
+            style={{ position: "absolute", top: -6, right: -6, width: 16, height: 16, borderRadius: "50%", background: "#e74c3c", border: `1.5px solid ${C.surface}`, color: "#fff", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0, zIndex: 1 }}>
             ×
           </button>
         </div>
@@ -173,13 +173,13 @@ function PDFViewer({ dataUrl }) {
   if (loading) return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: 40 }}>
       <div style={{ width: 32, height: 32, borderRadius: "50%", border: `3px solid ${C.accent}`, borderTopColor: "transparent", animation: "kbspin 0.8s linear infinite" }} />
-      <span style={{ color: C.muted, fontSize: 13 }}>Rendering PDF…</span>
+      <span style={{ color: C.onDarkMuted, fontSize: 13 }}>Rendering PDF…</span>
       <style>{`@keyframes kbspin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
   if (error) return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: 40 }}>
-      <span style={{ color: C.muted, fontSize: 13 }}>Could not render PDF in this environment.</span>
+      <span style={{ color: C.onDarkMuted, fontSize: 13 }}>Could not render PDF in this environment.</span>
     </div>
   );
   return (
@@ -207,8 +207,8 @@ export function Viewer({ file, onClose }) {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", flexShrink: 0, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{file.name}</span>
-          <span style={{ fontSize: 11, color: C.hint }}>{fmtBytes(file.size)}</span>
+          <span style={{ fontSize: 13, color: C.onDarkText, fontWeight: 500 }}>{file.name}</span>
+          <span style={{ fontSize: 11, color: C.onDarkHint }}>{fmtBytes(file.size)}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button onClick={download} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 7, color: C.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>

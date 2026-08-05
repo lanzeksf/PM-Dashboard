@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// id is a plain slug ("lanze", "loren", ...), NOT @default(cuid()) — the rest
+// of the app (RFIApp.jsx, DashboardApp.jsx, KernBotApp.jsx) already does
+// user.id === "lanze" / "loren" checks throughout for "sees all projects"
+// visibility. A generated cuid would silently break every one of those checks.
+model User {
+  id                 String      @id
+  email              String      @unique
+  passwordHash       String
+  name               String
+  initials           String
+  color              String?
+  position           String
+  role               Role
+  department         Department?
+  canRespond         Boolean     @default(false)
+  stdWrite           Boolean     @default(false)
+  mustChangePassword Boolean     @default(true)
+  lastLoginAt        DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  sessions           Session[]
+}
+
+enum Role {
+  admin
+  sr_pm
+  apm
+  coordinator
+  superintendent
+  mfg_eng
+  field
+}
+
+// Structural/Solar/Aero match CLAUDE.md exactly. `All` added — jr's real
+// department tag in the current USERS_LIST is "All" (superintendent, sees
+// every job), which the doc's original Structural/Solar/Aero-only enum
+// couldn't represent.
+enum Department {
+  Structural
+  Solar
+  Aero
+  All
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}

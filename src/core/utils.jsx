@@ -2,15 +2,15 @@ import React from "react";
 
 // ── Color palette ─────────────────────────────────────────────────────────────
 export const C = {
-  bg:         "#0d0e0f",
-  sidebar:    "#15171a",
-  surface:    "#1c1f23",
-  surface2:   "#252a30",
-  border:     "rgba(240,237,229,0.08)",
-  borderHi:   "rgba(240,237,229,0.16)",
-  text:       "#f0ede5",
-  muted:      "#a8a59a",
-  hint:       "#6b6964",
+  bg:         "#f2f3f5",
+  sidebar:    "#0d0e0f",
+  surface:    "#ffffff",
+  surface2:   "#eceef1",
+  border:     "rgba(13,14,15,0.08)",
+  borderHi:   "rgba(13,14,15,0.16)",
+  text:       "#14161a",
+  muted:      "#5a5d63",
+  hint:       "#8a8d93",
   accent:     "#d4af3c",
   accentDim:  "rgba(212,175,60,0.14)",
   accentText: "#0d0e0f",
@@ -22,6 +22,17 @@ export const C = {
   dangerDim:  "rgba(200,120,120,0.14)",
   pm:         "#a78bfa",   // role-badge exception only — never nav/buttons/data
   pmDim:      "rgba(167,139,250,0.16)",
+
+  // Permanently-dark surfaces (nav rail, fullscreen file viewer) — text/borders
+  // drawn on these must NOT use the (light-theme) tokens above.
+  onDarkSurface:  "#1c1f23",
+  onDarkSurface2: "#252a30",
+  onDarkText:     "#f0ede5",
+  onDarkMuted:    "#a8a59a",
+  onDarkHint:     "#6b6964",
+  onDarkBorder:      "rgba(240,237,229,0.08)",
+  onDarkBorderHi:    "rgba(240,237,229,0.16)",
+  onDarkHover:       "rgba(240,237,229,0.06)",
 };
 
 // ── Font stack ─────────────────────────────────────────────────────────────
@@ -30,6 +41,7 @@ export const F = {
   head:    '"Inter Tight", "Inter", sans-serif', // card / section titles
   body:    '"Inter", sans-serif',                // running text
   mono:    '"JetBrains Mono", ui-monospace, monospace', // IDs, dates, money, RFI numbers
+  stat:    '"Outfit", "Inter Tight", sans-serif', // large stat numbers — RFI counts, day counts
 };
 
 // ── Option lists ──────────────────────────────────────────────────────────────

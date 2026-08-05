@@ -115,7 +115,7 @@ function vertBadgeStyle(vertical) {
     Solar:      { color: C.warning,    bg: C.warningDim },
     Aerospace:  { color: C.pm,         bg: C.pmDim },
   };
-  const t = map[vertical] || { color: C.muted, bg: "rgba(255,255,255,0.06)" };
+  const t = map[vertical] || { color: C.muted, bg: C.surface2 };
   return {
     fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
     background: t.bg, color: t.color, border: `1px solid ${t.color}33`,
@@ -263,9 +263,9 @@ function FeedPill({ icon, count, active }) {
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
       fontSize: 10, padding: "2px 7px", borderRadius: 20,
-      background: active ? C.successDim : "rgba(255,255,255,0.04)",
+      background: active ? C.successDim : C.surface2,
       color: active ? C.success : C.hint,
-      border: `1px solid ${active ? C.success + "44" : "rgba(255,255,255,0.08)"}`,
+      border: `1px solid ${active ? C.success + "44" : C.border}`,
     }}>
       {icon} {count}
     </span>
@@ -570,7 +570,7 @@ function JobBrain({ job, user, onBack, extraDocs, setExtraDocs }) {
       }}>
         <button onClick={onBack} style={{
           display: "flex", alignItems: "center", gap: 5, padding: "5px 10px",
-          fontSize: 12, color: C.muted, background: "rgba(255,255,255,0.05)",
+          fontSize: 12, color: C.muted, background: C.surface2,
           border: `1px solid ${C.border}`, borderRadius: 7, cursor: "pointer",
           fontFamily: "inherit", flexShrink: 0,
         }}
@@ -590,7 +590,7 @@ function JobBrain({ job, user, onBack, extraDocs, setExtraDocs }) {
           ].map(({ label, color }) => (
             <span key={label} style={{
               fontSize: 11, padding: "2px 9px", borderRadius: 20,
-              background: "rgba(255,255,255,0.05)", border: `1px solid ${C.border}`,
+              background: C.surface2, border: `1px solid ${C.border}`,
               color: color || C.muted,
             }}>{label}</span>
           ))}
@@ -808,8 +808,8 @@ function JobBrain({ job, user, onBack, extraDocs, setExtraDocs }) {
               <button onClick={() => send()} disabled={!input.trim() || loading}
                 style={{
                   width: 38, height: 38, borderRadius: 9, flexShrink: 0,
-                  background: input.trim() && !loading ? C.accent : "rgba(255,255,255,0.06)",
-                  border: "none", color: "#fff", display: "flex", alignItems: "center",
+                  background: input.trim() && !loading ? C.accent : C.surface2,
+                  border: "none", color: C.accentText, display: "flex", alignItems: "center",
                   justifyContent: "center", cursor: input.trim() && !loading ? "pointer" : "default",
                   transition: "background 0.15s",
                 }}>

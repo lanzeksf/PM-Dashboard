@@ -197,7 +197,7 @@ export function ChatPane({ chat, user, isAdmin, onEscalate, onResolve, onUnresol
                 <button
                   onClick={isEscalated ? reply : send}
                   disabled={loading || (!input.trim() && !attachments.length)}
-                  style={{ width: 27, height: 27, borderRadius: 7, background: (!loading && (input.trim() || attachments.length)) ? (isEscalated ? "rgba(167,139,250,0.55)" : C.accent) : "rgba(255,255,255,0.05)", border: "none", cursor: (!loading && (input.trim() || attachments.length)) ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  style={{ width: 27, height: 27, borderRadius: 7, background: (!loading && (input.trim() || attachments.length)) ? (isEscalated ? "rgba(167,139,250,0.55)" : C.accent) : C.surface2, border: "none", cursor: (!loading && (input.trim() || attachments.length)) ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </button>
