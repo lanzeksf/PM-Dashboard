@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { C, MI } from "../core/utils.jsx";
+import { C, MI, viewingAsTooltip } from "../core/utils.jsx";
 import { Bubble } from "../components/Chat.jsx";
 import { AttachTray, useAttachments } from "../components/Files.jsx";
 import { Viewer } from "../components/Files.jsx";
@@ -12,7 +12,8 @@ const QUICK_PROMPTS = [
   "CJP weld inspection requirements — AWS D1.1",
 ];
 
-export function ChatPane({ chat, user, isAdmin, onEscalate, onResolve, onUnresolve, onSend, onSendReply, onMarkRead }) {
+export function ChatPane({ chat, user, isAdmin, isViewingAs = false, onEscalate, onResolve, onUnresolve, onSend, onSendReply, onMarkRead }) {
+  const viewingAsTitle = isViewingAs ? viewingAsTooltip(user.name) : undefined;
   const msgs        = chat?.msgs || [];
   const hasBot      = msgs.some(m => m.role === "bot" && !m.escalationNotice);
   const isResolved  = chat?.resolved;
@@ -129,7 +130,7 @@ export function ChatPane({ chat, user, isAdmin, onEscalate, onResolve, onUnresol
                 {!isAdmin && m.role === "bot" && m.confidence != null && !m.escalationNotice && isLast && !isEscalated && !isResolved && (
                   <div style={{ paddingLeft: 40, marginTop: 7, display: "flex", gap: 9, alignItems: "center" }}>
                     {m.confidence < 80 && <span style={{ fontSize: 11, color: C.warning }}>⚠ Confidence below 80%</span>}
-                    <button onClick={onEscalate} style={{ fontSize: 11, padding: "3px 11px", borderRadius: 20, background: C.pmDim, border: `1px solid rgba(177,151,252,0.3)`, color: C.pm, cursor: "pointer", fontFamily: "inherit" }}>
+                    <button onClick={onEscalate} disabled={isViewingAs} title={viewingAsTitle} style={{ fontSize: 11, padding: "3px 11px", borderRadius: 20, background: C.pmDim, border: `1px solid rgba(177,151,252,0.3)`, color: C.pm, cursor: isViewingAs ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isViewingAs ? 0.5 : 1 }}>
                       Escalate →
                     </button>
                   </div>
@@ -196,8 +197,9 @@ export function ChatPane({ chat, user, isAdmin, onEscalate, onResolve, onUnresol
                 </div>
                 <button
                   onClick={isEscalated ? reply : send}
-                  disabled={loading || (!input.trim() && !attachments.length)}
-                  style={{ width: 27, height: 27, borderRadius: 7, background: (!loading && (input.trim() || attachments.length)) ? (isEscalated ? "rgba(167,139,250,0.55)" : C.accent) : C.surface2, border: "none", cursor: (!loading && (input.trim() || attachments.length)) ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  disabled={isViewingAs || loading || (!input.trim() && !attachments.length)}
+                  title={viewingAsTitle}
+                  style={{ width: 27, height: 27, borderRadius: 7, background: (!isViewingAs && !loading && (input.trim() || attachments.length)) ? (isEscalated ? "rgba(167,139,250,0.55)" : C.accent) : C.surface2, border: "none", cursor: (!isViewingAs && !loading && (input.trim() || attachments.length)) ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </button>
@@ -208,11 +210,11 @@ export function ChatPane({ chat, user, isAdmin, onEscalate, onResolve, onUnresol
               {!isAdmin && !isEscalated && hasBot
                 ? <p style={{ fontSize: 10, color: C.hint, margin: 0 }}>
                     Not satisfied?&nbsp;
-                    <button onClick={onEscalate} style={{ background: "none", border: "none", cursor: "pointer", color: C.pm, fontSize: 10, padding: 0, fontFamily: "inherit" }}>Escalate →</button>
+                    <button onClick={onEscalate} disabled={isViewingAs} title={viewingAsTitle} style={{ background: "none", border: "none", cursor: isViewingAs ? "not-allowed" : "pointer", color: C.pm, fontSize: 10, padding: 0, fontFamily: "inherit", opacity: isViewingAs ? 0.5 : 1 }}>Escalate →</button>
                   </p>
                 : <span />}
               {!isAdmin && isEscalated && (
-                <button onClick={onResolve} style={{ fontSize: 10, padding: "3px 10px", borderRadius: 20, background: C.successDim, border: `1px solid rgba(34,197,94,0.3)`, color: C.success, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 3 }}>
+                <button onClick={onResolve} disabled={isViewingAs} title={viewingAsTitle} style={{ fontSize: 10, padding: "3px 10px", borderRadius: 20, background: C.successDim, border: `1px solid rgba(34,197,94,0.3)`, color: C.success, cursor: isViewingAs ? "not-allowed" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 3, opacity: isViewingAs ? 0.5 : 1 }}>
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke={C.success} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                   Mark resolved
                 </button>
@@ -226,7 +228,7 @@ export function ChatPane({ chat, user, isAdmin, onEscalate, onResolve, onUnresol
         <div style={{ padding: "9px 14px", borderTop: `1px solid ${C.border}`, background: C.bg, flexShrink: 0, textAlign: "center" }}>
           <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>
             Resolved — logged to knowledge base.&nbsp;
-            <button onClick={onUnresolve} style={{ background: "none", border: "none", cursor: "pointer", color: C.hint, fontSize: 11, padding: 0, fontFamily: "inherit", textDecoration: "underline" }}>Unresolve</button>
+            <button onClick={onUnresolve} disabled={isViewingAs} title={viewingAsTitle} style={{ background: "none", border: "none", cursor: isViewingAs ? "not-allowed" : "pointer", color: C.hint, fontSize: 11, padding: 0, fontFamily: "inherit", textDecoration: "underline", opacity: isViewingAs ? 0.5 : 1 }}>Unresolve</button>
           </p>
         </div>
       )}

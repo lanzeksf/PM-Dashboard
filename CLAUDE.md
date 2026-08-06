@@ -21,25 +21,38 @@ push (to GitHub, Gitea, or both) when Lanze explicitly asks. Absent that
 explicit instruction, all work stays uncommitted or committed-but-unpushed
 locally.
 
-Visual target: restyled to match FabOS's design tokens (colors, fonts) for
-brand consistency — cosmetic only. OG's data model, backend, and API
-integrations are entirely independent of FabOS. Forward-compat note: future
-job-linked tables (Rfi, Issue, Submittal, ChangeOrder) should carry a `jobId`
-field even though OG doesn't use it for anything itself yet — it's the field
-Jim will need to map OG's records to FabOS's Job Anchor if/when he integrates.
-Cheap to include now, expensive to backfill later. OG's schema is not
-adopting FabOS's mirror-table pattern.
+**Permissions note:** Claude Code has been configured (per Lanze's request)
+to stop prompting for approval on individual bash commands. This does NOT
+relax the git rule below — commit/push still require explicit approval every
+time, confirmed separately from the bash-approval change. File edits still
+show a diff before being written. If a future session finds bash commands
+running without confirmation, that's expected; if git push/commit ever runs
+without asking first, that's a regression — stop and flag it.
 
-The app has a **shell** — real login (built, not yet migrated/seeded — see
-Auth section below), nav, routing — wrapping work modules. RFI Dashboard
-(RFIs + Issues tabs) and Kern Bot are fully built and live with real data.
-Submittals tab is in progress. Others are stubbed as Coming Soon.
+**FabOS deprioritized (Lanze's call):** FabOS integration is no longer an
+active concern shaping OG's design. Priority is simply making OG functional
+for the team. The `jobId` forward-compat field described just below is no
+longer a live requirement — cheap to still include on new tables if it's
+no extra effort, but don't spend design time accommodating a future FabOS
+handoff. Jim's Job Anchor mapping is not something to plan around right now.
+
+Visual target: restyled to match FabOS's design tokens (colors, fonts) for
+brand consistency — cosmetic only, unaffected by the above. OG's data model,
+backend, and API integrations are entirely independent of FabOS. OG's schema
+is not adopting FabOS's mirror-table pattern.
+
+The app has a **shell** — real login, password management, and user
+management all built and verified (see Auth section below), nav, routing —
+wrapping work modules. RFI Dashboard (RFIs + Issues tabs) and Kern Bot are
+fully built and live with real data. Submittals tab is in progress. Others
+are stubbed as Coming Soon.
 
 **Stack:** React 18, Vite 5, inline CSS-in-JS (no CSS files, no Tailwind),
 custom pub/sub state store (no Redux/Zustand). Backend: Postgres + Prisma,
-plus a small `server/` + `api/auth/*` layer for login (see Database and Auth
-sections below — schema and endpoints are written, migration/seed not yet
-run). Until migrated, app state is in-memory and resets on page reload.
+plus a `server/` + `api/auth/*` + `api/users.js` layer for login, password
+reset, and user management (see Database and Auth sections below — schema
+pushed and seeded, login/password-reset/user-management verified at the API
+layer; frontend click-through of the newest pieces pending).
 
 ## Commands
 
@@ -50,6 +63,42 @@ npm run preview   # Preview production build locally
 ```
 
 No lint or test commands — none are configured.
+
+### Emergency password reset (built and verified)
+
+```bash
+node scripts/reset-password.js <email>
+# e.g. node scripts/reset-password.js lanze@kernsteel.com
+```
+
+For when someone is locked out and the built `admin-reset-password` UI flow
+can't be used — either the person locked out is the only admin, or no admin
+has completed their first login yet, so nobody can log in to click the
+"Reset Password" button. Triggered by a real incident on 2026-08-06 where
+Lanze got locked out with no other admin yet through first login, and the
+fix had to be improvised on the spot as a one-off script — this is that
+script made permanent.
+
+Looks up the `User` by email, generates a new temp password, hashes it with
+Argon2, sets `mustChangePassword: true`, deletes that user's existing
+`Session` rows, and prints the plaintext temp password once to console —
+never persisted. Not a plain SQL UPDATE — passwords are Argon2-hashed in
+Node, so this script is the only way anyone can do a manual reset outside
+the running app, including Jose (server admin), who already has confirmed
+DB access to `pm_dashboard` but can't produce a valid hash via raw SQL.
+
+The reset logic (hash + update + delete sessions) lives once in
+`server/resetPassword.js`, shared by this script and
+`api/auth/admin-reset-password.js` — the temp-password generator itself
+(`server/tempPassword.js`) is shared a third way with `prisma/seed.js`, so
+there's exactly one implementation of each, not three. Verified end-to-end
+against the real DB: unknown email exits non-zero without creating a user,
+a real reset produces a temp password that logs in successfully, and the
+target's old password and existing sessions are dead immediately after.
+
+**Open decision, not urgent:** whether this needs a safeguard (confirm
+prompt, or restricting which `DATABASE_URL` it can target) before it
+becomes something Jose runs directly against the on-prem production DB.
 
 ## Environment
 
@@ -65,11 +114,13 @@ VITE_PROJECTSIGHT_USAGE_PLAN_KEY=...
 And a `.env` file (backend/Prisma — never prefix these with VITE_, they must
 never reach the browser bundle):
 ```
-DATABASE_URL=postgresql://...
+DATABASE_URL=postgresql://pm_dashboard:PASSWORD@192.168.0.9:5432/pm_dashboard
 ```
 
-Set frontend vars in **Vercel → Project Settings → Environment Variables**
-for production. Backend `.env` vars are local-only / server-only, never in Vercel.
+**Important:** use the network address `192.168.0.9`, not `localhost` — see
+Database section below for why. Set frontend vars in **Vercel → Project
+Settings → Environment Variables** for production. Backend `.env` vars are
+local-only / server-only, never in Vercel.
 
 **Note:** `VITE_PROJECTSIGHT_ACCESS_TOKEN` is no longer used. The app
 auto-fetches a fresh OAuth token at runtime. Do not re-add the static token.
@@ -84,40 +135,73 @@ path today.
 
 ## Known local dev gotchas
 
-- `argon2`'s native-binary postinstall shells out through `cmd.exe` on
-  Windows. If the repo's parent folder path contains an unescaped `&` (e.g.
-  a folder literally named `Gitea&Github`), `cmd.exe` treats it as a command
-  separator and `npm install` fails installing `argon2` specifically.
-  Workaround used: run `node-pre-gyp` directly instead of through npm's
-  script wrapper. Wouldn't happen on Vercel (different container/path) — this
-  is Lanze's local Windows path only. Long-term fix: rename the local folder
-  to remove the `&`, since other native-module installs could hit the same
-  wall later.
+- **`&` in the repo's parent folder path breaks native/binary tooling on
+  Windows — hit 3 separate times now, treat as a known recurring cost, not a
+  one-off.** `cmd.exe` treats an unescaped `&` (e.g. a folder literally named
+  `Gitea&Github`) as a command separator. Confirmed to break: `npm install`
+  installing `argon2` (native postinstall via `node-pre-gyp`), `npx prisma
+  migrate dev`, and `npm run dev` (vite). Workarounds used each time: invoking
+  `node node_modules/prisma/build/index.js` / `node node_modules/vite/bin/vite.js`
+  directly instead of through `npx`/npm scripts. Wouldn't happen on Vercel
+  (different container/path) — Lanze's local Windows path only. **Worth
+  actually renaming the folder** (e.g. to `Gitea-Github`) rather than
+  continuing to work around this per-tool; ask if a walkthrough is wanted.
+- Stray zombie Vite processes can hold a file lock and block Prisma client
+  regeneration — if `prisma generate` hangs or errors oddly, check for and
+  kill leftover `node`/vite processes from earlier dev-server runs first.
+- `DATABASE_URL` must point to `192.168.0.9`, not `localhost`/`127.0.0.1`/
+  `::1` — see Database section immediately below for why.
 
-## Database (schema + login layer written, not yet migrated)
+## Database (schema pushed and seeded)
 
-Local Postgres 18 is installed on Lanze's machine (Windows). Production
-database will be provisioned by IT (Jose) as a dedicated instance on
-ksf-metric — its own schema, not a copy of FabOS's mirror tables.
+**Correction to an earlier assumption:** Postgres is not running locally on
+Lanze's machine. Confirmed via `psql`'s own server banner
+(`server 18.3 (Debian 18.3-1.pgdg13+1)`) — the real database server is a
+Debian box elsewhere on the local network, reachable at `192.168.0.9`,
+managed by IT (Jose). `localhost` connections were failing simply because no
+server was listening there; `192.168.0.9` is the actual address.
 
-`prisma/schema.prisma` is written: `User` and `Session` models, `Role` and
-`Department` enums. **Not yet migrated or seeded** — as of this writing,
-blocked on getting a working local Postgres password (the `pm_dashboard`
-role's password isn't authenticating; a direct `psql` connection with the
-same credentials also fails, so it's not a client-side/encoding issue —
-being re-confirmed with Jose). `prisma/seed.js` is written — one row per
-person in `USERS_LIST`, guarded to refuse running until real email
-addresses replace the placeholders currently in the file.
+**Ownership, confirmed with Jose:** Jose manages the server itself, but the
+`pm_dashboard` database on it is dedicated to this app only — not shared.
+Other consumers get their own separate databases on the same server. This
+matches the original design intent (own dedicated database/schema, no
+shared tables) rather than contradicting it. Still open, not blocking:
+whether this same box is the eventual `ksf-metric` production server or a
+separate one.
+
+`prisma/schema.prisma`: `User` and `Session` models, `Role` and `Department`
+enums, plus `User.passwordResetRequestedAt DateTime?` (added for the
+forgot-password flow, see Auth section). **Schema is live on the real
+database and seeded.** The `pm_dashboard` role doesn't have `CREATEDB`, so
+it can't create the shadow database `prisma migrate dev` needs — used
+`prisma db push` instead. Trade-off: **no `prisma/migrations/` history file
+exists** — the live schema is in sync with `schema.prisma`, but there's no
+tracked diff of how it got there. Fine for this initial setup; if/when this
+needs proper tracked migrations (e.g. before persisting RFI/Issue/Submittal
+data, or before a production deploy), ask Jose for `CREATEDB` or a separate
+shadow database at that point, then switch back to `migrate dev` going
+forward. `prisma/seed.js` ran clean — all 9 rows created (see Roles section
+for emails), each with a random temp password, `mustChangePassword: true`.
+Temp passwords were relayed to Lanze directly when the seed ran; not stored
+anywhere in code or docs.
+
+**Next planned schema work (not yet started):** persisting RFI/Issue/
+Submittal/ChangeOrder data into Postgres instead of always live-fetching
+from ProjectSight — targeted for "next week." No FabOS-linkage requirement
+on this (see FabOS note above); design purely for OG's own needs.
 
 Deviations from the original design, worth remembering when touching this
 area again:
 
 - `User.id` is a plain slug (`"lanze"`, `"loren"`, ...), **not** a generated
-  `cuid()`. Several components (`RFIApp.jsx`, `DashboardApp.jsx`) do
-  `user.id === "lanze"`-style checks for "sees all projects" visibility — a
-  generated ID would silently break those. Keep IDs as stable slugs matching
-  `USERS_LIST`; don't "clean this up" to a generated ID later without
-  updating every one of those checks first.
+  `cuid()`. Confirmed necessary by reading `RFIApp.jsx:1106-1119` directly:
+  the "sees all projects" check is `user.id === "lanze" || user.id ===
+  "loren"` for the explicit branch, with everyone else falling through to
+  `KSF_LEAD_MAP[user.id]` — `null` for Lisbet and `undefined` for JR, both of
+  which hit the "see everything" fallback. A generated ID would have
+  silently broken this for all four of those accounts. Keep IDs as stable
+  slugs matching `USERS_LIST`; don't "clean this up" to a generated ID later
+  without updating every one of those checks first.
 - `Department` enum is `Structural | Solar | Aero | All` — JR (superintendent)
   needed `All` to represent seeing every job; the original three-value
   Structural/Solar/Aero-only enum couldn't express that.
@@ -128,7 +212,8 @@ area again:
   already expects.
 - No `SESSION_SECRET` / JWTs. Sessions are opaque random tokens stored in the
   `Session` table and looked up on each request — nothing to sign, so
-  revocation is just deleting a row.
+  revocation is just deleting a row. (About to change from short-lived to a
+  long-lived sliding window — see Auth section, "stay logged in" work.)
 - Local dev needs the Vite middleware added in `vite.config.js` to actually
   execute `api/*.js` — plain `npm run dev` wouldn't otherwise run Vercel-style
   serverless handlers at all. Same handler files run in both dev and
@@ -136,23 +221,26 @@ area again:
 
 ```bash
 npx prisma generate       # Regenerate client after schema changes
-npx prisma migrate dev    # Create and apply a migration (local)
-npx prisma migrate deploy # Apply pending migrations (production)
+npx prisma db push        # Push schema directly — what's used here (no CREATEDB on pm_dashboard role)
+npx prisma migrate deploy # Apply pending migrations (production) — N/A until migrations/ exists
 ```
-
-No shared dev database. Local Postgres only during development.
 
 ## Data Sourcing
 
 - **ProjectSight** — OG calls the API directly (see `projectsight/projectsightApi.js`).
-  Not routed through any FabOS mirror table. `getProjects()`, `getRFIs()`,
-  `getIssues()`, `getSubmittals()` all exist; RFIs and Issues are live in the UI,
-  Submittals API call exists but UI wiring is in progress.
+  `getProjects()`, `getRFIs()`, `getIssues()`, `getSubmittals()` all exist;
+  RFIs and Issues are live in the UI, Submittals API call exists but UI
+  wiring is in progress. **No database persistence today** — every load
+  hits ProjectSight fresh. **In progress:** a short in-memory cache (3-5 min
+  TTL) is being added to reduce redundant calls, plus checking whether the
+  OAuth token is being refetched per-call instead of reused (suspected part
+  of the "slow API calls" issue below). Full persistence into Postgres is
+  separate, planned for later (see Database section).
 - **Spectrum** — piggybacks off `ksf-metric`'s existing Spectrum calls. Exact
   mechanism (shared table vs. direct endpoint reuse) unconfirmed — pending
   response from the team.
-- **FabOS integration** — explicitly out of scope for this repo. If/when OG's
-  data needs to reach FabOS, that's Jim's responsibility on his end.
+- **FabOS integration** — deprioritized, not currently a design constraint
+  (see FabOS note near the top of this file).
 
 ### Cross-record linking (RFI ↔ Issue)
 
@@ -207,25 +295,31 @@ specific record — do not use this for single-record links.
 │                                    # + dev middleware that runs api/*.js handlers under
 │                                    # `npm run dev` (no `vercel dev` needed locally)
 ├── vercel.json                    # Rewrite rules for ProjectSight proxy in production
+├── scripts/
+│   └── reset-password.js          # Planned — emergency password reset CLI, not yet built.
+│                                    # See Commands section above and
+│                                    # claude/Emergency-Password-Reset-Script-Spec.md
 ├── prisma/
-│   ├── schema.prisma               # User/Session models, Role/Department enums — written, not yet migrated
-│   └── seed.js                     # Seeds one row per PM from USERS_LIST — refuses to run until
-│                                    # real emails replace placeholders
+│   ├── schema.prisma               # User/Session models, Role/Department enums, passwordResetRequestedAt — pushed and seeded
+│   └── seed.js                     # Seeded one row per PM from USERS_LIST with real emails — done
 ├── server/
 │   ├── prisma.js                   # Shared Prisma Client singleton
 │   ├── auth.js                     # Cookie parsing/issuing, opaque session token lookup
 │   └── userShape.js                # Reshapes a DB User row into the shape the rest of the app
 │                                    # expects (derives tier/badge/department tag)
 ├── api/
+│   ├── users.js                    # GET, admin-gated — lists all users for User Management
 │   └── auth/
 │       ├── login.js
 │       ├── logout.js
 │       ├── session.js
-│       └── change-password.js
+│       ├── change-password.js
+│       ├── forgot-password.js      # Notify-only — flags passwordResetRequestedAt, same response whether email exists or not
+│       └── admin-reset-password.js # Admin-gated — generates new temp password, clears the flag, kills existing sessions
 └── src/
     ├── main.jsx
     ├── core/
-    │   ├── utils.jsx               # C, F, MI, USERS_LIST, ROLE_MODULES, helpers
+    │   ├── utils.jsx               # C, F, MI (now incl. eye/eyeOff icons), USERS_LIST, ROLE_MODULES, helpers
     │   └── store.js
     ├── components/
     │   ├── UI.jsx
@@ -233,8 +327,12 @@ specific record — do not use this for single-record links.
     │   ├── Chat.jsx
     │   └── Panels.jsx
     ├── shell/
-    │   └── Shell.jsx                # LoginForm + ChangePasswordForm (replaced UserPicker),
+    │   └── Shell.jsx                # LoginForm + ChangePasswordForm (replaced UserPicker) + shared
+    │                                 # PasswordInput (show/hide toggle) + "Forgot password?" link,
     │                                 # session restored on load via GET /api/auth/session
+    ├── users/
+    │   └── UserManagementApp.jsx    # Admin-only (Lanze/Loren) — list all users, Reset Password button
+    │                                 # per row, wired into the existing user_mgmt nav slot
     ├── projectsight/
     │   └── projectsightApi.js
     ├── rfi/
@@ -263,11 +361,13 @@ add a tab entry to `ALL_NAV_ITEMS`, add the render case, register the module
 ID in `ROLE_MODULES`.
 
 **Heads up for parallel work:** adding a module touches `Shell.jsx`, and the
-login work above also just rewrote large parts of `Shell.jsx`, `package.json`,
-and `vite.config.js`. If running more than one Claude Code session against
-this repo at once, avoid having two sessions edit those same files
-uncommitted at the same time — commit one body of work first, then start the
-next, to avoid one session silently overwriting the other's changes on disk.
+login/user-management work above also just rewrote large parts of
+`Shell.jsx`, `package.json`, and `vite.config.js`. If running more than one
+Claude Code session against this repo at once, avoid having two sessions
+edit those same files uncommitted at the same time — commit one body of
+work first, then start the next, to avoid one session silently overwriting
+the other's changes on disk. (Lanze is running a separate chat scoped to
+"other modules" alongside this one, which stays scoped to login/database.)
 
 ### RFI Dashboard module (RFIs / Issues / Submittals tabs)
 
@@ -317,7 +417,7 @@ vertical (Structural: x, Solar: y, Aero: z), sourced from the same field
 already driving the Structural/Solar/Aero tags on project cards (set at job
 setup in ProjectSight) — no new classification field needed.
 
-### Auth / User State (built, not yet live)
+### Auth / User State (login, password management, user management — built)
 
 Real login is built: `Shell.jsx`'s `UserPicker` has been replaced with a
 `LoginForm` + `ChangePasswordForm`, backed by the `User`/`Session` tables
@@ -327,11 +427,68 @@ forces a password reset from an admin-issued temp password
 (`mustChangePassword`). No self-service signup. No SSO, no shared auth with
 FabOS/Azure AD — standalone by design.
 
-**Not yet live:** no migration has been run, no seed data exists yet.
-Blocked on (1) a working local Postgres password (in progress with Jose) and
-(2) real email addresses for all 9 PMs, which unblock `prisma/seed.js`. See
-Database section above for the schema deviations from the original design
-(plain-slug `User.id`, `Department.All`, no `SESSION_SECRET`).
+**Status — login core:** schema pushed, seed run clean, all 9 accounts
+exist. `POST /api/auth/login` verified directly for lanze/loren/lisbet/jr —
+all authenticate and return the correct shape. Lanze has already been
+through the real `ChangePasswordForm` in the browser (confirmed via
+`mustChangePassword: false` with a changed hash on her account) — the
+frontend `mustChangePassword` handoff works.
+
+**Status — password management (built, API-verified, frontend click-through
+pending):**
+- Show/hide toggle: shared `PasswordInput` component (new `MI.eye`/`MI.eyeOff`
+  inline SVGs, none existed before) used on `LoginForm`'s password field and
+  both fields on `ChangePasswordForm`. Defaults hidden.
+- Forgot password (notify-only, by design — no self-service token/email
+  reset flow): `POST /api/auth/forgot-password` sets
+  `User.passwordResetRequestedAt`, returns an identical response whether or
+  not the email matches (verified with a real and a fake email — same
+  response both times, so this can't be used to enumerate valid emails).
+  `LoginForm` shows: "If that email is registered, an admin has been
+  notified. For anything urgent, reach out to Lanze or Loren directly."
+  **Known gap (found via a real incident, 2026-08-06):** "an admin has been
+  notified" is not currently true — nothing actually pings Lanze or Loren
+  when this fires; it only sets a DB flag. If the person locked out is the
+  only admin, or no admin has completed first login yet, this flow is a
+  dead end — see the emergency password reset script above/in Open Items
+  for the recovery path, and consider surfacing `passwordResetRequestedAt`
+  somewhere in User Management as a real fix for the underlying gap.
+- User Management module (`src/users/UserManagementApp.jsx`, wired into the
+  existing `user_mgmt` nav slot — already admin/sr_pm-gated in
+  `ROLE_MODULES`, so this is Lanze and Loren only): lists all 9 users via
+  `GET /api/users`, with a "Reset Password" button per row hitting
+  `POST /api/auth/admin-reset-password`. Both endpoints check the caller's
+  real session server-side (`role === "admin" || "sr_pm"`), not just
+  client-side hiding — verified: `loren` gets a 200 with all 9 users, `josh`
+  (coordinator) gets 403 on both endpoints. Reset flow verified end-to-end
+  against the real DB: resetting `jr` returned a one-time temp password,
+  cleared his `passwordResetRequestedAt` flag, invalidated his old temp
+  password, and the new one logs in correctly.
+
+**Done — persistent "stay logged in" sessions (Gmail-style):** requested so
+users don't have to re-log-in constantly on their own devices.
+`SESSION_TTL_SECONDS` raised from 14 to 60 days in `server/auth.js` —
+verified via a real login: cookie `Max-Age=5184000`, DB row's `expiresAt`
+exactly 60 days out. Cookie was already persistent (explicit `Max-Age`,
+`HttpOnly`, `SameSite=Lax`, conditional `Secure` for production). Sliding
+window implemented in `getSessionUser()` (now takes `(req, res, prisma)`
+instead of `(req, prisma)`) — every successful lookup extends the DB row's
+`expiresAt` and reissues the cookie with a fresh Max-Age; all 4 call sites
+(`session.js`, `change-password.js`, `users.js`, `admin-reset-password.js`)
+updated. Verified live: a `GET /api/auth/session` call visibly pushed both
+the cookie and the DB row's expiry forward. `admin-reset-password`'s
+existing session wipe reconfirmed correct after this change (`josh`: 1
+active session before reset, 0 after) — so it still doubles as a "log this
+person out of their device right now" tool.
+
+**Not yet verified (manual click-through, next):** the frontend
+`mustChangePassword` handoff is confirmed for one account (Lanze); still
+worth a second confirmation on a fresh temp-password account. Also not yet
+clicked through: the password show/hide toggle, the forgot-password link,
+and the User Management page's UI (verified at the API layer only so far).
+No headless-browser tooling (Playwright etc.) set up for this — deliberately
+skipped given the same `&`-in-path install risk; revisit only if frequent
+regression testing on these flows becomes necessary.
 
 ### State
 
@@ -357,16 +514,25 @@ messages from conversation history are sent as context.
 runtime using `VITE_PROJECTSIGHT_CONSUMER_KEY` and
 `VITE_PROJECTSIGHT_CONSUMER_SECRET` with `scope=ProjectSight`. Cached in
 memory, refreshed automatically on 401/403. Do NOT use a static access token.
+`getToken()` already checks `_tokenCache` and only refetches on real expiry
+or a 401/403 — confirmed correct by reading the code, no change needed.
 
 **Proxy:** All calls go through `/projectsight-api/...`, rewritten to
 `https://api-usw2.trimblepaas.com/...` by Vercel in production and by
 `vite.config.js` in local dev.
 
-**Known issue, under investigation:** API calls feel slow on local dev.
-Not yet root-caused — check whether calls run sequentially vs. in parallel,
-whether the OAuth token is being refetched per-call instead of cached, and
-whether this is dev-server-specific or would also affect production, before
-applying any fix.
+**Done — cache + prefetch fix:** root cause of the "slow API calls on local
+dev" complaint found — a stray, unconditional `getIssues(...)` call sitting
+at module scope in `projectsightApi.js` (leftover debug line) was firing a
+real Trimble API call on every page load, competing with the real prefetch.
+Removed. New `makeCache()` helper (4-min TTL + in-flight de-dup) added,
+reused for `getProjects()`, `getRFIs()`, and `getIssues()` — two callers
+requesting the same project within the TTL window now get the same promise
+instead of firing duplicate requests. `Shell.jsx`'s `prefetchProjectsight()`
+now also warms Issues (previously RFIs only), so both RFI Dashboard tabs
+open warm after login/session-restore. Manual refresh still bypasses the
+cache — new exported `clearProjectsightApiCache()`, wired into
+`RFIApp.jsx`'s `handleRefresh`.
 
 ### Escalation Flow
 
@@ -394,15 +560,20 @@ applying any fix.
 | lisbet | Lisbet L. | Intern | apm | false | false | — (sees all) |
 | jacob | Jacob T. | Field Coordinator | field | false | false | — |
 
-Login emails for these 9 (for `prisma/seed.js`): lanze@kernsteel.com,
-loren@kernsteel.com, demetrio@kernsteel.com (JR), jlopez@kernsteel.com (Josh),
-antonio@kernsteel.com (Tony), larrezola@kernsteel.com (Luis),
-adam@kernsteel.com, lisbet@kernsteel.com, jtiffany@kernsteel.com (Jacob).
+Login emails for these 9 (seeded into `prisma/seed.js`, accounts created):
+lanze@kernsteel.com, loren@kernsteel.com, demetrio@kernsteel.com (JR),
+jlopez@kernsteel.com (Josh), antonio@kernsteel.com (Tony),
+larrezola@kernsteel.com (Luis), adam@kernsteel.com, lisbet@kernsteel.com,
+jtiffany@kernsteel.com (Jacob). Each has a temp password (relayed to Lanze
+directly, or via `admin-reset-password` if reset later) and
+`mustChangePassword: true` until they set a real one.
 
 Note: `tier` was dropped as a separate field — admin-level access is derived
 from `role === "admin" || role === "sr_pm"` directly, avoiding drift between
 `tier` and `role`. If any component still checks `user.tier`, update it to
-check `user.role` instead.
+check `user.role` instead. This same `isAdmin` check is what gates the new
+User Management module — Lanze and Loren today, automatically extends to
+anyone else given `admin`/`sr_pm` in the future.
 
 ### ROLE_MODULES (`src/core/utils.jsx`)
 
@@ -426,9 +597,10 @@ check `user.role` instead.
 | system_config | yes | no | no | no | no | no | no |
 
 Within KernBotApp: `isAdmin` = `role === "admin" || role === "sr_pm"` — gates
-queue access and reply rights. `user.stdWrite` gates standards editing.
-"See all projects" visibility (drives Team Member breakdown rendering) is
-existing per-role/per-user logic — Lisbet sees all despite being `apm` role.
+queue access and reply rights, and now also the User Management module.
+`user.stdWrite` gates standards editing. "See all projects" visibility
+(drives Team Member breakdown rendering) is existing per-role/per-user
+logic — Lisbet sees all despite being `apm` role.
 
 ## Key Exports
 
@@ -452,7 +624,9 @@ existing per-role/per-user logic — Lisbet sees all despite being `apm` role.
   Tight — card/section titles), `body` (Inter), `mono` (JetBrains Mono —
   IDs, dates, money, RFI numbers), `stat` (Outfit — RFI/day-count numbers
   specifically: stat cards, per-project numbers, breakdown table numbers)
-- **MI**, **USERS_LIST**, **ROLE_MODULES**, **PROJECT_TYPES**, **URGENCY_OPTS**,
+- **MI** — icon set, now includes `eye`/`eyeOff` (inline SVGs, added for the
+  password show/hide toggle) alongside the existing icons
+- **USERS_LIST**, **ROLE_MODULES**, **PROJECT_TYPES**, **URGENCY_OPTS**,
   **VERTICALS**, formatting/ID helpers — unchanged in shape from prior version
 
 ### `core/store.js`
@@ -466,6 +640,7 @@ existing per-role/per-user logic — Lisbet sees all despite being `apm` role.
 - **getSubmittals(portfolioId, projectId)** — submittals for a project
 - **getIssues(portfolioId, projectId)** — Issues, includes `RecordToRecordLinks`; tries 3 endpoint patterns, falls back to mock data with `_isMock: true`
 - Auth: auto-fetches OAuth token via `client_credentials` with `scope=ProjectSight`, caches in memory, refreshes on 401/403
+- **Done:** short in-memory cache (4-min TTL) per project's RFIs/Issues, see ProjectSight Integration section above
 
 ## Data Models
 
@@ -512,6 +687,10 @@ automatically (inherent to the Vercel-GitHub integration, cannot be pushed
 without deploying) — treat "push to GitHub" and "deploy to Vercel" as the
 same action requiring the same explicit go-ahead.
 
+**This rule stays in force even with bash-command approval prompts turned
+off elsewhere (see the Permissions note near the top of this file) — git
+commit/push always require explicit approval, no exceptions.**
+
 Never run any git commands (commit, push, add, or any git operation) without
 completing all of the following steps first:
 
@@ -534,10 +713,37 @@ Gitea, or both — before running it.
 
 ## Open Items / Paused Work
 
-- **PM login migration/seed** — schema and code written (see Auth/Database
-  sections above). Blocked on a working local Postgres password from Jose,
-  then real emails feed `prisma/seed.js`, then migrate + seed + test locally
-  before any push.
+- **Emergency password reset script — planned, spec written, not yet
+  built.** Triggered by a real lockout incident on 2026-08-06: Lanze
+  couldn't log in, no other admin had completed first login yet, so the
+  built `admin-reset-password` UI flow (requires being logged in as admin)
+  couldn't be used, and the fix had to be improvised on the spot as a
+  one-off script directly against the DB. Fix: `scripts/reset-password.js
+  <email>` — full spec at `claude/Emergency-Password-Reset-Script-Spec.md`,
+  command documented in the Commands section above. Reuses the existing
+  temp-password generator and Argon2 logic from `seed.js`/
+  `admin-reset-password.js` rather than duplicating it. Also exposed a
+  secondary gap worth fixing: the forgot-password flow's "an admin has
+  been notified" message isn't backed by any real notification today (see
+  Auth section) — same underlying dead-end for any non-admin PM without a
+  Claude Code session to fall back on.
+- **PM login + password management — final manual check, then push.**
+  Schema pushed, seeded, login/forgot-password/user-management all verified
+  at the API layer (see Auth section). Remaining: Lanze click-tests the
+  password show/hide toggle, the forgot-password link, and the User
+  Management page in the browser. Once confirmed, normal diff-review/
+  approval flow before any commit or push.
+- **Persistent "stay logged in" sessions** — done, see Auth section (60-day
+  sliding-window sessions, persistent cookie, verified live against the
+  real DB). Folded into the same pending commit as the rest of the login
+  work above.
+- **Lightweight ProjectSight cache** — done, see ProjectSight Integration
+  section (4-min in-memory TTL cache + in-flight de-dup, stray debug API
+  call removed, prefetch now warms Issues too, manual refresh bypasses
+  cache). Folded into the same pending commit.
+- **Full RFI/Issue/Submittal persistence into Postgres** — planned for
+  "next week," separate from the lightweight cache above. No FabOS-linkage
+  design constraint anymore (see FabOS note).
 - **Submittals tab** — paused mid-planning. Open questions: filter set (Detailer
   vs. "ball in court"), deep-link format (not yet confirmed with a real URL),
   whether Team Member breakdown applies given submittals may sit with parties
@@ -547,5 +753,7 @@ Gitea, or both — before running it.
   card grid, one per PM. Open questions: card click-through behavior, sort
   order, whether overseers also see their own personal cards separately.
 - **Header job-count-by-vertical** — not yet built (see above).
-- **Slow local API calls** — under investigation, not yet root-caused.
 - **Spectrum piggyback mechanism** — still awaiting team response.
+- **Rename the local repo folder** to remove the `&` (e.g. `Gitea-Github`) —
+  has now broken 3 separate installs/commands; no longer worth treating as
+  low-priority.

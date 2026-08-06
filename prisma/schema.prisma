@@ -25,6 +25,10 @@ model User {
   stdWrite           Boolean     @default(false)
   mustChangePassword Boolean     @default(true)
   lastLoginAt        DateTime?
+  // Set when the user clicks "Forgot password?" — notify-only, no
+  // self-service reset. An admin sees this flagged in User Management and
+  // resets manually via admin-reset-password.
+  passwordResetRequestedAt DateTime?
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
   sessions           Session[]
@@ -58,4 +62,60 @@ model Session {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+// ── ProjectSight cache (Project/RFI/Issue), synced periodically from
+// ProjectSight into Postgres instead of live-fetching on every page load.
+// Populated by server/projectsightSync.js, triggered on a schedule (see
+// .github/workflows/sync-projectsight.yml) or manually via the RFI
+// Dashboard's Refresh button. See CLAUDE.md's "ProjectSight cache & sync"
+// section for the full picture.
+
+model CachedProject {
+  id             String   @id // `${portfolioId}-${ProjectID}`
+  portfolioId    String
+  projectId      String
+  name           String
+  vertical       String
+  typeOfBuilding String?
+  status         String?
+  raw            Json     // exact object shape getProjects() used to return directly from ProjectSight (portfolioId/vertical already merged in)
+  updatedAt      DateTime @updatedAt
+
+  rfis   CachedRfi[]
+  issues CachedIssue[]
+
+  @@index([portfolioId, projectId])
+}
+
+model CachedRfi {
+  id         String        @id // `${projectKey}-rfi-${rfiId}`
+  projectKey String
+  project    CachedProject @relation(fields: [projectKey], references: [id], onDelete: Cascade)
+  raw        Json          // exact RFI object as returned by ProjectSight
+  updatedAt  DateTime      @updatedAt
+
+  @@index([projectKey])
+}
+
+model CachedIssue {
+  id         String        @id // `${projectKey}-issue-${issueId}`
+  projectKey String
+  project    CachedProject @relation(fields: [projectKey], references: [id], onDelete: Cascade)
+  raw        Json          // exact Issue object as returned by ProjectSight
+  updatedAt  DateTime      @updatedAt
+
+  @@index([projectKey])
+}
+
+// Singleton row (id always "projectsight") tracking the last background sync
+// run, so "Last synced" in the UI reflects the shared backend sync instead of
+// a per-browser client-side fetch timestamp.
+model SyncState {
+  id           String    @id
+  lastSyncedAt DateTime?
+  lastSyncOk   Boolean   @default(true)
+  lastError    String?
+  recordCount  Int       @default(0)
+  updatedAt    DateTime  @updatedAt
 }

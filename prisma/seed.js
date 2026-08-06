@@ -7,7 +7,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import argon2 from "argon2";
-import crypto from "crypto";
+import { randomTempPassword } from "../server/tempPassword.js";
 
 const prisma = new PrismaClient();
 
@@ -22,13 +22,6 @@ const USERS = [
   { id: "lisbet", email: "lisbet@kernsteel.com",    name: "Lisbet L.",  initials: "LL", color: "#2dd4bf", position: "Intern",                  role: "apm",            department: null,         canRespond: false, stdWrite: false },
   { id: "jacob",  email: "jtiffany@kernsteel.com",  name: "Jacob T.",   initials: "JT", color: "#4ade80", position: "Field Coordinator",       role: "field",          department: null,         canRespond: false, stdWrite: false },
 ];
-
-function randomTempPassword(len = 12) {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
-  return Array.from(crypto.randomFillSync(new Uint8Array(len)))
-    .map(b => chars[b % chars.length])
-    .join("");
-}
 
 async function main() {
   if (USERS.some(u => u.email.startsWith("REPLACE_EMAIL_"))) {

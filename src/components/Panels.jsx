@@ -141,7 +141,7 @@ function StdEditor({ std, onSave, onCancel, isNew }) {
 }
 
 // ── Standards list ────────────────────────────────────────────────────────────
-export function StdList({ user, canWrite = false }) {
+export function StdList({ user, canWrite = false, isViewingAs = false }) {
   useStore();
   const standards = store.standards;
   const [editing, setEditing] = useState(null);
@@ -172,7 +172,9 @@ export function StdList({ user, canWrite = false }) {
       <div style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
         <div>
           <p style={{ margin: 0, fontWeight: 500, fontSize: 13, color: C.text }}>Standards library</p>
-          <p style={{ margin: 0, fontSize: 10, color: C.hint }}>Tier 0 — highest priority in bot responses</p>
+          <p style={{ margin: 0, fontSize: 10, color: C.hint }}>
+            {isViewingAs ? "Editing disabled while viewing as someone else" : "Tier 0 — highest priority in bot responses"}
+          </p>
         </div>
         {canWrite && (
           <button onClick={() => setIsNew(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: C.accentDim, border: `1px solid rgba(91,141,184,0.3)`, borderRadius: 7, color: C.accentText, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>

@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
-import { C, MI, fmtDate } from "../core/utils.jsx";
+import { C, MI, fmtDate, viewingAsTooltip } from "../core/utils.jsx";
 import { UrgBadge } from "../components/UI.jsx";
 import { Bubble } from "../components/Chat.jsx";
 import { AttachTray, useAttachments } from "../components/Files.jsx";
 import { Viewer } from "../components/Files.jsx";
 import { store } from "../core/store.js";
 
-export function QueueDetail({ item, user, onSend, onResolve, onUnresolve }) {
+export function QueueDetail({ item, user, isViewingAs = false, onSend, onResolve, onUnresolve }) {
+  const viewingAsTitle = isViewingAs ? viewingAsTooltip(user.name) : undefined;
   const [input,    setInput]    = useState("");
   const [viewerFile, setViewerFile] = useState(null);
   const [dragOver, setDragOver] = useState(false);
@@ -76,8 +77,8 @@ export function QueueDetail({ item, user, onSend, onResolve, onUnresolve }) {
           </span>
           <span style={{ fontSize: 10, color: C.hint, marginLeft: "auto" }}>{fmtDate(item.createdAt)}</span>
           {!editing ? (
-            <button onClick={startEdit}
-              style={{ width: 26, height: 26, borderRadius: 6, background: "none", border: `1px solid ${C.border}`, cursor: "pointer", color: C.hint, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}
+            <button onClick={startEdit} disabled={isViewingAs} title={viewingAsTitle}
+              style={{ width: 26, height: 26, borderRadius: 6, background: "none", border: `1px solid ${C.border}`, cursor: isViewingAs ? "not-allowed" : "pointer", color: C.hint, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s", opacity: isViewingAs ? 0.5 : 1 }}
               onMouseEnter={e => { e.currentTarget.style.background = C.accentDim; e.currentTarget.style.borderColor = "rgba(91,141,184,0.35)"; e.currentTarget.style.color = C.accentText; }}
               onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.hint; }}
             >
@@ -179,14 +180,14 @@ export function QueueDetail({ item, user, onSend, onResolve, onUnresolve }) {
                 >
                   <span style={{ display: "flex", alignItems: "center" }}>{MI.paperclip}</span>
                 </button>
-                <button onClick={doSend} disabled={!input.trim() && !attachments.length}
-                  style={{ width: 27, height: 27, borderRadius: 7, background: (input.trim() || attachments.length) ? C.accent : C.surface2, border: "none", cursor: (input.trim() || attachments.length) ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <button onClick={doSend} disabled={isViewingAs || (!input.trim() && !attachments.length)} title={viewingAsTitle}
+                  style={{ width: 27, height: 27, borderRadius: 7, background: (!isViewingAs && (input.trim() || attachments.length)) ? C.accent : C.surface2, border: "none", cursor: (!isViewingAs && (input.trim() || attachments.length)) ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </button>
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button onClick={() => onResolve(item.id)} style={{ fontSize: 11, padding: "5px 14px", borderRadius: 20, background: C.successDim, border: `1px solid rgba(34,197,94,0.3)`, color: C.success, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
+              <button onClick={() => onResolve(item.id)} disabled={isViewingAs} title={viewingAsTitle} style={{ fontSize: 11, padding: "5px 14px", borderRadius: 20, background: C.successDim, border: `1px solid rgba(34,197,94,0.3)`, color: C.success, cursor: isViewingAs ? "not-allowed" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, opacity: isViewingAs ? 0.5 : 1 }}>
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke={C.success} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 Mark resolved
               </button>
@@ -198,7 +199,7 @@ export function QueueDetail({ item, user, onSend, onResolve, onUnresolve }) {
       {item.resolved && (
         <div style={{ padding: "10px 16px", borderTop: `1px solid ${C.border}`, background: C.bg, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
           <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>Resolved · logged to knowledge base.</p>
-          <button onClick={() => onUnresolve(item.id)} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: C.warningDim, border: `1px solid rgba(245,158,11,0.3)`, color: C.warning, cursor: "pointer", fontFamily: "inherit" }}>Unresolve</button>
+          <button onClick={() => onUnresolve(item.id)} disabled={isViewingAs} title={viewingAsTitle} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: C.warningDim, border: `1px solid rgba(245,158,11,0.3)`, color: C.warning, cursor: isViewingAs ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isViewingAs ? 0.5 : 1 }}>Unresolve</button>
         </div>
       )}
 

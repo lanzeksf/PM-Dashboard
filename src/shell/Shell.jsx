@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { ROLE_MODULES, C, F } from "../core/utils.jsx";
+import React, { useState, useEffect, useMemo } from "react";
+import { ROLE_MODULES, C, F, MI } from "../core/utils.jsx";
 import DashboardApp from "../dashboard/DashboardApp.jsx";
 import RFIApp from "../rfi/RFIApp.jsx";
 import IssueTriageApp from "../issuetriage/IssueTriageApp.jsx";
 import ContractsApp from "../contracts/ContractsApp.jsx";
 import ChangeOrdersApp from "../changeorders/ChangeOrdersApp.jsx";
 import FabricationApp from "../fab/FabricationApp.jsx";
-import { store } from "../core/store.js";
-import { getProjects, getRFIs } from "../projectsight/projectsightApi.js";
+import UserManagementApp from "../users/UserManagementApp.jsx";
+import { store, useStore } from "../core/store.js";
+import { getProjects, getAllRFIs, getAllIssues } from "../projectsight/projectsightApi.js";
 
 export const SHELL_COLORS = { bg: C.bg };
 const SHELL_ONLY_TABS = new Set(["queue", "standards"]);
@@ -71,11 +72,38 @@ const LOGIN_BG_STYLE = { minHeight: "100vh", background: "#05080b", display: "fl
 const LOGIN_INPUT_STYLE = { padding: "10px 12px", borderRadius: 8, background: "#111111", border: "1px solid rgba(255,255,255,0.1)", color: "#ededed", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box", width: "100%" };
 const LOGIN_BUTTON_STYLE = loading => ({ padding: "10px 12px", borderRadius: 8, background: C.accent, border: "none", color: C.accentText, fontSize: 13, fontWeight: 600, fontFamily: "inherit", cursor: loading ? "default" : "pointer", opacity: loading ? 0.6 : 1 });
 
+// Shared by LoginForm and ChangePasswordForm — defaults to hidden.
+function PasswordInput({ value, onChange, placeholder, autoComplete, autoFocus }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div style={{ position: "relative" }}>
+      <input
+        type={show ? "text" : "password"}
+        autoFocus={autoFocus}
+        autoComplete={autoComplete}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        style={{ ...LOGIN_INPUT_STYLE, paddingRight: 34 }}
+      />
+      <button
+        type="button"
+        onClick={() => setShow(s => !s)}
+        aria-label={show ? "Hide password" : "Show password"}
+        style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 6, display: "flex", alignItems: "center", cursor: "pointer", color: "rgba(255,255,255,0.4)" }}
+      >
+        {show ? MI.eyeOff : MI.eye}
+      </button>
+    </div>
+  );
+}
+
 function LoginForm({ onLoggedIn }) {
-  const [email,    setEmail]    = useState("");
-  const [password, setPassword] = useState("");
-  const [error,    setError]    = useState("");
-  const [loading,  setLoading]  = useState(false);
+  const [email,       setEmail]       = useState("");
+  const [password,    setPassword]    = useState("");
+  const [error,       setError]       = useState("");
+  const [loading,     setLoading]     = useState(false);
+  const [forgotState, setForgotState] = useState("idle"); // idle | sending | sent
 
   const submit = async e => {
     e.preventDefault();
@@ -97,6 +125,19 @@ function LoginForm({ onLoggedIn }) {
     }
   };
 
+  const submitForgotPassword = async () => {
+    if (!email.trim()) { setError("Enter your email above first"); return; }
+    setError(""); setForgotState("sending");
+    try {
+      await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+    } catch {}
+    setForgotState("sent");
+  };
+
   return (
     <div style={LOGIN_BG_STYLE}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
@@ -110,7 +151,16 @@ function LoginForm({ onLoggedIn }) {
       </div>
       <form onSubmit={submit} style={{ width: "100%", maxWidth: 340, display: "flex", flexDirection: "column", gap: 10 }}>
         <input type="email" autoFocus autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" style={LOGIN_INPUT_STYLE} />
-        <input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" style={LOGIN_INPUT_STYLE} />
+        <PasswordInput autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" />
+        {forgotState === "sent" ? (
+          <p style={{ margin: 0, fontSize: 11.5, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>
+            If that email is registered, an admin has been notified. For anything urgent, reach out to Lanze or Loren directly.
+          </p>
+        ) : (
+          <button type="button" onClick={submitForgotPassword} disabled={forgotState === "sending"} style={{ alignSelf: "flex-start", background: "none", border: "none", padding: 0, color: "rgba(255,255,255,0.45)", fontSize: 11.5, cursor: forgotState === "sending" ? "default" : "pointer", textDecoration: "underline" }}>
+            Forgot password?
+          </button>
+        )}
         {error && <p style={{ margin: 0, fontSize: 12, color: "#f87171" }}>{error}</p>}
         <button type="submit" disabled={loading} style={LOGIN_BUTTON_STYLE(loading)}>
           {loading ? "Signing in…" : "Sign in"}
@@ -157,8 +207,8 @@ function ChangePasswordForm({ user, onChanged }) {
         </p>
       </div>
       <form onSubmit={submit} style={{ width: "100%", maxWidth: 340, display: "flex", flexDirection: "column", gap: 10 }}>
-        <input type="password" autoFocus autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="New password" style={LOGIN_INPUT_STYLE} />
-        <input type="password" autoComplete="new-password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Confirm new password" style={LOGIN_INPUT_STYLE} />
+        <PasswordInput autoFocus autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="New password" />
+        <PasswordInput autoComplete="new-password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Confirm new password" />
         {error && <p style={{ margin: 0, fontSize: 12, color: "#f87171" }}>{error}</p>}
         <button type="submit" disabled={loading} style={LOGIN_BUTTON_STYLE(loading)}>
           {loading ? "Saving…" : "Save password"}
@@ -168,7 +218,25 @@ function ChangePasswordForm({ user, onChanged }) {
   );
 }
 
-function ShellSidebar({ user, tab, setTab, onSignOut, mobile, onClose }) {
+// "View As" picker — visible only to the real Lanze session, regardless of
+// who's currently being viewed as. Plain <select> to match the app's
+// existing no-custom-dropdown-library convention.
+function ViewAsPicker({ usersList, viewAsUserId, onSetViewAs }) {
+  if (!usersList) return null;
+  const options = usersList.filter(u => u.id !== "lanze");
+  return (
+    <select
+      value={viewAsUserId || ""}
+      onChange={e => onSetViewAs(e.target.value || null)}
+      style={{ width: "100%", fontSize: 11, padding: "5px 7px", borderRadius: 6, background: C.onDarkSurface, border: `1px solid ${C.onDarkBorderHi}`, color: C.onDarkMuted, fontFamily: "inherit", cursor: "pointer" }}
+    >
+      <option value="">View as… (myself)</option>
+      {options.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+    </select>
+  );
+}
+
+function ShellSidebar({ user, realUser, isViewingAs, usersList, viewAsUserId, onSetViewAs, tab, setTab, onSignOut, mobile, onClose }) {
   const allowedModules = ROLE_MODULES[user.role] || [];
   const visibleNav = ALL_NAV_ITEMS.filter(item => allowedModules.includes(item.id) && !SHELL_ONLY_TABS.has(item.id));
 
@@ -196,6 +264,11 @@ function ShellSidebar({ user, tab, setTab, onSignOut, mobile, onClose }) {
         })}
       </nav>
       <div style={{ height: 1, background: C.onDarkBorder, margin: "6px 12px 0" }}/>
+      {realUser.id === "lanze" && (
+        <div style={{ padding: "10px 12px 0" }}>
+          <ViewAsPicker usersList={usersList} viewAsUserId={viewAsUserId} onSetViewAs={onSetViewAs}/>
+        </div>
+      )}
       <div style={{ padding: "10px 12px 14px", display: "flex", alignItems: "center", gap: 8 }}>
         <div style={{ width: 28, height: 28, borderRadius: "50%", background: user.color + "22", border: `1px solid ${user.color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 10, color: user.color, flexShrink: 0 }}>{user.initials}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -210,25 +283,67 @@ function ShellSidebar({ user, tab, setTab, onSignOut, mobile, onClose }) {
   );
 }
 
+// Persistent while active — impossible to miss which identity is currently
+// rendering. "Return to my view" is the fast way out; the sidebar picker
+// (always visible to Lanze) can also switch directly to someone else.
+function ViewingAsBanner({ effectiveUser, onReturn }) {
+  return (
+    <div style={{ flexShrink: 0, padding: "8px 16px", background: C.warningDim, borderBottom: `1px solid ${C.warning}44`, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <span style={{ fontSize: 12, color: C.text }}>
+        Viewing as <strong>{effectiveUser.name}</strong> ({effectiveUser.badge?.label || effectiveUser.role}) — you are logged in as Lanze A.
+      </span>
+      <button onClick={onReturn} style={{ marginLeft: "auto", fontSize: 11, fontWeight: 600, padding: "3px 11px", borderRadius: 6, border: `1px solid ${C.warning}`, background: "none", color: C.warning, cursor: "pointer", fontFamily: "inherit" }}>
+        Return to my view
+      </button>
+    </div>
+  );
+}
+
 export default function KSFCommandCenter({ KernBotApp }) {
+  useStore(); // re-render on store.setViewAsUserId(), same as any other store field
+
   const [user,            setUser]            = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [tab,             setTab]             = useState("dashboard"); // Dashboard is now the default landing tab
   const [sidebarOpen,     setSidebarOpen]     = useState(false);
+  const [usersList,       setUsersList]       = useState(null); // "View As" picker source — Lanze only
 
+  // Fetch the picker list once Lanze is fully logged in (not during
+  // login/change-password screens). Reuses the admin GET /api/users list —
+  // each entry is already shaped via toClientUser server-side, so "viewing
+  // as" produces the exact tier/badge/department a real login would.
+  useEffect(() => {
+    if (user?.id === "lanze" && !user.mustChangePassword) {
+      fetch("/api/users", { credentials: "include" })
+        .then(res => (res.ok ? res.json() : null))
+        .then(data => { if (data?.users) setUsersList(data.users); })
+        .catch(() => {});
+    }
+  }, [user?.id, user?.mustChangePassword]);
+
+  const viewAsUserId = store.viewAsUserId;
+  const effectiveUser = useMemo(() => {
+    if (!viewAsUserId || user?.id !== "lanze") return user;
+    return usersList?.find(u => u.id === viewAsUserId) || user;
+  }, [user, viewAsUserId, usersList]);
+  const isViewingAs = user?.id === "lanze" && !!viewAsUserId && effectiveUser !== user;
+
+  // Switching identity can land on a tab the new effectiveUser can't see
+  // (e.g. leaving User Management while viewing as a non-admin) — reset to
+  // the one tab every role has, same as login/logout already do.
+  function setViewAsUserId(id) {
+    store.setViewAsUserId(id);
+    setTab("dashboard");
+  }
+
+  // Fired right after login and right after session restore (below) — never
+  // awaited by the caller, so it can't block the shell or dashboard render.
+  // Warms the store cache RFIApp reads directly on mount. Projects/RFIs/
+  // Issues now come from Postgres (see projectsightApi.js) in one bulk call
+  // each, instead of one getRFIs()/getIssues() call per project.
   function prefetchProjectsight() {
-    getProjects()
-      .then(projects => {
-        const rfiMap = {};
-        return Promise.all(
-          projects.map(p => {
-            const pid = `${p.portfolioId}-${p.ProjectID}`;
-            return getRFIs(p.portfolioId, p.ProjectID)
-              .then(rfis => { rfiMap[pid] = rfis; })
-              .catch(() => { rfiMap[pid] = []; });
-          })
-        ).then(() => store.setProjectsightCache(projects, rfiMap, Date.now()));
-      })
+    Promise.all([getProjects(), getAllRFIs(), getAllIssues()])
+      .then(([projects, rfiMap, issueMap]) => store.setProjectsightCache(projects, rfiMap, issueMap, Date.now()))
       .catch(() => {});
   }
 
@@ -260,7 +375,8 @@ export default function KSFCommandCenter({ KernBotApp }) {
 
   async function handleSignOut() {
     try { await fetch("/api/auth/logout", { method: "POST", credentials: "include" }); } catch {}
-    setUser(null); setTab("dashboard"); setSidebarOpen(false);
+    store.setViewAsUserId(null);
+    setUser(null); setTab("dashboard"); setSidebarOpen(false); setUsersList(null);
   }
 
   if (checkingSession) return <div style={{ minHeight: "100vh", background: "#05080b" }} />;
@@ -270,15 +386,16 @@ export default function KSFCommandCenter({ KernBotApp }) {
   return (
     <div style={{ display: "flex", height: "100vh", background: SHELL_COLORS.bg, fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif", overflow: "hidden", position: "relative" }}>
       <div className="ksf-sidebar-desktop" style={{ display: "flex" }}>
-        <ShellSidebar user={user} tab={tab} setTab={setTab} onSignOut={handleSignOut}/>
+        <ShellSidebar user={effectiveUser} realUser={user} isViewingAs={isViewingAs} usersList={usersList} viewAsUserId={viewAsUserId} onSetViewAs={setViewAsUserId} tab={tab} setTab={setTab} onSignOut={handleSignOut}/>
       </div>
       {sidebarOpen && (
         <>
           <div onClick={() => setSidebarOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 190 }}/>
-          <ShellSidebar mobile user={user} tab={tab} setTab={setTab} onSignOut={handleSignOut} onClose={() => setSidebarOpen(false)}/>
+          <ShellSidebar mobile user={effectiveUser} realUser={user} isViewingAs={isViewingAs} usersList={usersList} viewAsUserId={viewAsUserId} onSetViewAs={setViewAsUserId} tab={tab} setTab={setTab} onSignOut={handleSignOut} onClose={() => setSidebarOpen(false)}/>
         </>
       )}
       <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", minWidth: 0 }}>
+        {isViewingAs && <ViewingAsBanner effectiveUser={effectiveUser} onReturn={() => setViewAsUserId(null)}/>}
         <div className="ksf-mobile-bar" style={{ display: "none", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${C.onDarkBorder}`, flexShrink: 0, background: C.sidebar }}>
           <button onClick={() => setSidebarOpen(true)} style={{ background: "none", border: "none", color: C.onDarkHint, cursor: "pointer", padding: 4, display: "flex", alignItems: "center" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -286,18 +403,18 @@ export default function KSFCommandCenter({ KernBotApp }) {
           <span style={{ fontSize: 12, fontWeight: 600, color: C.onDarkText }}>KSF Command Center</span>
           <span style={{ fontSize: 11, color: C.onDarkHint, marginLeft: "auto" }}>{ALL_NAV_ITEMS.find(i => i.id === tab)?.label}</span>
         </div>
-        {tab === "dashboard"     && <DashboardApp user={user} setTab={setTab}/>}
-        {tab === "kernbot"       && <KernBotApp preloadUser={user}/>}
+        {tab === "dashboard"     && <DashboardApp key={effectiveUser.id} user={effectiveUser} setTab={setTab}/>}
+        {tab === "kernbot"       && <KernBotApp key={effectiveUser.id} preloadUser={effectiveUser} isViewingAs={isViewingAs}/>}
         {tab === "owner"         && <ComingSoon label="Owner Pending"/>}
         {tab === "scope"         && <ComingSoon label="Scope Tracker"/>}
-        {tab === "contracts"     && <ContractsApp user={user}/>}
-        {tab === "changes"       && <ChangeOrdersApp user={user}/>}
+        {tab === "contracts"     && <ContractsApp key={effectiveUser.id} user={effectiveUser}/>}
+        {tab === "changes"       && <ChangeOrdersApp key={effectiveUser.id} user={effectiveUser}/>}
         {tab === "detailing"     && <ComingSoon label="Detailing"/>}
-        {tab === "rfi"           && <RFIApp user={user}/>}
-        {tab === "issuetriage"   && <IssueTriageApp user={user}/>}
-        {tab === "fab"           && <FabricationApp user={user}/>}
+        {tab === "rfi"           && <RFIApp key={effectiveUser.id} user={effectiveUser}/>}
+        {tab === "issuetriage"   && <IssueTriageApp key={effectiveUser.id} user={effectiveUser}/>}
+        {tab === "fab"           && <FabricationApp key={effectiveUser.id} user={effectiveUser}/>}
         {tab === "field"         && <ComingSoon label="Field Needs"/>}
-        {tab === "user_mgmt"     && <ComingSoon label="User Management"/>}
+        {tab === "user_mgmt"     && <UserManagementApp key={effectiveUser.id} user={effectiveUser} isViewingAs={isViewingAs}/>}
         {tab === "system_config" && <ComingSoon label="System Config"/>}
       </main>
       <style>{`@media(max-width:640px){.ksf-sidebar-desktop{display:none!important;}.ksf-mobile-bar{display:flex!important;}}`}</style>

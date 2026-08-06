@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
-import { C, F, nowStamp, nextId, nextPMQ, USERS_LIST } from "../core/utils.jsx";
+import { C, F, nowStamp, nextId, nextPMQ, USERS_LIST, viewingAsTooltip } from "../core/utils.jsx";
 import { store } from "../core/store.js";
 import { useStore } from "../core/store.js";
 import { callKernBot } from "./kernBot.js";
@@ -12,7 +12,7 @@ import { RenameModal, EscalateModal } from "../components/Chat.jsx";
 
 
 // ── Root App ──────────────────────────────────────────────────────────────────
-export function KernBotApp({ preloadUser }) {
+export function KernBotApp({ preloadUser, isViewingAs = false }) {
   useStore();
 
   const [user,       setUser]       = useState(preloadUser || null);
@@ -34,8 +34,14 @@ export function KernBotApp({ preloadUser }) {
   const [chatId, setChatId] = useState(initChatId);
 
   const isAdmin  = user?.tier === "admin" || user?.tier === "sr_pm";
-  const canWrite = user?.stdWrite === true;
+  const canWrite = user?.stdWrite === true && !isViewingAs;
   const myChats = user ? store.chats.filter(c => c.owner === user.id) : [];
+
+  // Belt-and-suspenders on top of role/module gating (see Shell.jsx's
+  // effectiveUser swap) — blocks every mutating action while Lanze is
+  // driving as someone else, including things that person's own role would
+  // normally be allowed to do.
+  const guardWrite = fn => (...args) => { if (isViewingAs) return; return fn(...args); };
 
   // ── Chat actions ──────────────────────────────────────────────────────────
   const newChat = () => {
@@ -164,12 +170,12 @@ export function KernBotApp({ preloadUser }) {
 
   const chatRowProps = c => ({
     c, active: c.id === chatId && adminView === "chat", isAdmin,
-    onSelect:   id => { setChatId(id); setAdminView("chat"); markRead(id); },
-    onRename:   id => setRenameId(id),
-    onEscalate: id => openEsc(id),
-    onResolve:  id => { const ch = store.chats.find(x => x.id === id); if (ch?.pmqId) store.resolveByPMQ(ch.pmqId); else if (ch) store.updateChat(id, { resolved: true,  lastActivity: nowStamp() }); },
-    onUnresolve:id => { const ch = store.chats.find(x => x.id === id); if (ch?.pmqId) store.unresolveByPMQ(ch.pmqId); else if (ch) store.updateChat(id, { resolved: false, lastActivity: nowStamp() }); },
-    onDelete:   id => deleteChat(id),
+    onSelect:   id => { setChatId(id); setAdminView("chat"); markRead(id); }, // read-only, not guarded
+    onRename:   guardWrite(id => setRenameId(id)),
+    onEscalate: guardWrite(id => openEsc(id)),
+    onResolve:  guardWrite(id => { const ch = store.chats.find(x => x.id === id); if (ch?.pmqId) store.resolveByPMQ(ch.pmqId); else if (ch) store.updateChat(id, { resolved: true,  lastActivity: nowStamp() }); }),
+    onUnresolve:guardWrite(id => { const ch = store.chats.find(x => x.id === id); if (ch?.pmqId) store.unresolveByPMQ(ch.pmqId); else if (ch) store.updateChat(id, { resolved: false, lastActivity: nowStamp() }); }),
+    onDelete:   guardWrite(id => deleteChat(id)),
   });
 
   return (
@@ -191,7 +197,7 @@ export function KernBotApp({ preloadUser }) {
             </div>
           </div>
 
-          <button onClick={newChat} style={{ width: "100%", background: C.onDarkSurface, border: `1px solid ${C.onDarkBorder}`, borderRadius: 7, padding: "6px 9px", color: C.onDarkText, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, fontFamily: "inherit", marginBottom: 6 }}>
+          <button onClick={newChat} disabled={isViewingAs} title={isViewingAs ? viewingAsTooltip(user.name) : undefined} style={{ width: "100%", background: C.onDarkSurface, border: `1px solid ${C.onDarkBorder}`, borderRadius: 7, padding: "6px 9px", color: isViewingAs ? C.onDarkHint : C.onDarkText, fontSize: 12, cursor: isViewingAs ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 5, fontFamily: "inherit", marginBottom: 6, opacity: isViewingAs ? 0.5 : 1 }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke={C.onDarkMuted} strokeWidth="2" strokeLinecap="round" /></svg>
             New conversation
           </button>
@@ -266,9 +272,9 @@ export function KernBotApp({ preloadUser }) {
       </div>
 
       {/* ── Main panel ──────────────────────────────────────────────────── */}
-      {adminView === "chat"      && <ChatPane chat={activeChat} user={user} isAdmin={isAdmin} onEscalate={() => openEsc(chatId)} onResolve={handleResolve} onUnresolve={handleUnresolve} onSend={ensureChatAndSend} onSendReply={handleSendReply} onMarkRead={markRead} />}
-      {adminView === "queue"     && isAdmin && <QueueDetail item={qItem} user={user} onSend={handleQSend} onResolve={handleQResolve} onUnresolve={handleQUnresolve} />}
-      {adminView === "standards" && <StdList user={user} canWrite={canWrite} />}
+      {adminView === "chat"      && <ChatPane chat={activeChat} user={user} isAdmin={isAdmin} isViewingAs={isViewingAs} onEscalate={guardWrite(() => openEsc(chatId))} onResolve={guardWrite(handleResolve)} onUnresolve={guardWrite(handleUnresolve)} onSend={guardWrite(ensureChatAndSend)} onSendReply={guardWrite(handleSendReply)} onMarkRead={markRead} />}
+      {adminView === "queue"     && isAdmin && <QueueDetail item={qItem} user={user} isViewingAs={isViewingAs} onSend={guardWrite(handleQSend)} onResolve={guardWrite(handleQResolve)} onUnresolve={guardWrite(handleQUnresolve)} />}
+      {adminView === "standards" && <StdList user={user} canWrite={canWrite} isViewingAs={isViewingAs} />}
 
       {/* ── Modals ──────────────────────────────────────────────────────── */}
       {escOpen    && <EscalateModal msgs={store.chats.find(c => c.id === (escTargetRef.current || chatId))?.msgs || []} onSubmit={submitEscalation} onClose={() => { escTargetRef.current = null; setEscOpen(false); setEscTarget(null); }} />}

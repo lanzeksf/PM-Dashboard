@@ -23,8 +23,13 @@ const STORE = {
   projectsightCache: {
     projects:   [],
     rfis:       {},
+    issues:     {},
     lastSynced: null,
   },
+
+  // "View As" testing mode — Lanze-only, client-side only, never persisted.
+  // See Shell.jsx's effectiveUser/isViewingAs computation.
+  viewAsUserId: null,
 };
 
 // ── Reactive store ────────────────────────────────────────────────────────────
@@ -35,6 +40,7 @@ export const store = {
   get queue()             { return STORE.queue; },
   get standards()         { return STORE.standards; },
   get projectsightCache() { return STORE.projectsightCache; },
+  get viewAsUserId()      { return STORE.viewAsUserId; },
 
   subscribe(fn) { _listeners.add(fn); return () => _listeners.delete(fn); },
   notify()      { _listeners.forEach(fn => fn()); },
@@ -76,12 +82,17 @@ export const store = {
     store.notify();
   },
 
-  setProjectsightCache(projects, rfis, ts) {
-    STORE.projectsightCache = { projects, rfis, lastSynced: ts };
+  setProjectsightCache(projects, rfis, issues, ts) {
+    STORE.projectsightCache = { projects, rfis, issues, lastSynced: ts };
     store.notify();
   },
   clearProjectsightCache() {
-    STORE.projectsightCache = { projects: [], rfis: {}, lastSynced: null };
+    STORE.projectsightCache = { projects: [], rfis: {}, issues: {}, lastSynced: null };
+    store.notify();
+  },
+
+  setViewAsUserId(id) {
+    STORE.viewAsUserId = id;
     store.notify();
   },
 };

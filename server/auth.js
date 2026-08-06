@@ -6,7 +6,7 @@
 import crypto from "crypto";
 
 export const SESSION_COOKIE = "ksf_session";
-export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14; // 14 days
+export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 60; // 60 days — persistent, Gmail-style login
 
 export function generateToken() {
   return crypto.randomBytes(32).toString("hex");
@@ -42,7 +42,11 @@ export function clearSessionCookie() {
 // Looks up the session for the request's cookie. Returns null if there's no
 // cookie, no matching session, or the session has expired (and deletes the
 // expired row as a side effect, so it doesn't just pile up).
-export async function getSessionUser(req, prisma) {
+//
+// Slides expiresAt forward on every successful lookup and reissues the
+// cookie with a fresh Max-Age, so an active user's session effectively never
+// hits the limit — only SESSION_TTL_SECONDS of inactivity ends it.
+export async function getSessionUser(req, res, prisma) {
   const token = parseCookies(req)[SESSION_COOKIE];
   if (!token) return null;
 
@@ -53,6 +57,10 @@ export async function getSessionUser(req, prisma) {
     await prisma.session.delete({ where: { token } }).catch(() => {});
     return null;
   }
+
+  const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
+  await prisma.session.update({ where: { token }, data: { expiresAt } }).catch(() => {});
+  res.setHeader("Set-Cookie", sessionCookie(token));
 
   return session.user;
 }

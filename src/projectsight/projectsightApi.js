@@ -1,5 +1,3 @@
-const BASE = "/projectsight-api/projectsight-v1.0";
-
 const MOCK_PROJECTS = [
   { ProjectID: "proj-001", Name: "Dignity Health — Parking Structure B",          portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
   { ProjectID: "proj-002", Name: "Tejon Ranch Commerce Center — Building 4",      portfolioId: "5ce1bcb1-c811-49ac-9039-ec36f3e75f78", vertical: "Structural", _isMock: true },
@@ -51,9 +49,24 @@ const MOCK_RFIS = {
   ],
 };
 
+// ── DB-backed reads (Projects / RFIs / Issues) ───────────────────────────────
+// getProjects()/getRFIs()/getIssues() used to call ProjectSight directly from
+// the browser on every page load — slow, and hammered Trimble's API for data
+// that barely changes minute to minute. They now read from our own Postgres
+// cache via api/data/*.js, kept fresh by a background sync (see
+// server/projectsightSync.js + .github/workflows/sync-projectsight.yml).
+// Manual "Refresh" now means "re-sync from ProjectSight into Postgres, then
+// re-read" — see triggerProjectsightSync() below.
+//
+// getSubmittals()/postIssueComment()/postRFIFromIssue()/testFileDownload()
+// are unchanged — they still call ProjectSight directly (not in scope for the
+// Postgres cache yet; Submittals persistence is a separate, later effort).
 
-// ── OAuth token cache ─────────────────────────────────────────────────────────
+const BASE = "/projectsight-api/projectsight-v1.0";
 
+// ── OAuth token cache — still needed for the ProjectSight calls that remain
+// direct from the browser (getSubmittals, postIssueComment, postRFIFromIssue,
+// testFileDownload). ─────────────────────────────────────────────────────────
 let _tokenCache  = null; // { accessToken, expiresAt }
 let _accountId   = null;
 
@@ -82,6 +95,48 @@ async function getToken() {
   return fetchToken();
 }
 
+// ── Per-project RFI/Issue cache ─────────────────────────────────────────────
+// Short in-browser TTL on top of the DB-backed reads above — mostly guards
+// against firing the same request twice in quick succession (e.g. a prefetch
+// racing the user opening the tab); the DB itself is already fast.
+const CACHE_TTL_MS = 4 * 60 * 1000; // 4 minutes
+
+function makeCache() {
+  const data     = new Map(); // key -> { value, expiresAt }
+  const inFlight = new Map(); // key -> Promise
+
+  async function withCache(key, fetcher) {
+    const cached = data.get(key);
+    if (cached && Date.now() < cached.expiresAt) return cached.value;
+
+    const pending = inFlight.get(key);
+    if (pending) return pending;
+
+    const promise = fetcher()
+      .then(value => { data.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS }); inFlight.delete(key); return value; })
+      .catch(err => { inFlight.delete(key); throw err; });
+
+    inFlight.set(key, promise);
+    return promise;
+  }
+
+  return { withCache, clear: () => { data.clear(); inFlight.clear(); } };
+}
+
+const projectsCache = makeCache();
+const rfiCache      = makeCache();
+const issueCache    = makeCache();
+const bulkCache     = makeCache();
+
+// Bypasses the TTL/in-flight cache above — call this from a manual "Refresh"
+// action so it actually hits the network instead of serving a stale cache.
+export function clearProjectsightApiCache() {
+  projectsCache.clear();
+  rfiCache.clear();
+  issueCache.clear();
+  bulkCache.clear();
+}
+
 function buildHeaders(token) {
   return {
     "Authorization": `Bearer ${token}`,
@@ -99,7 +154,8 @@ async function getAccountId() {
   return _accountId;
 }
 
-// ── HTTP helper ───────────────────────────────────────────────────────────────
+// ── HTTP helper (Trimble, direct — still used by getSubmittals and the
+// write-side test calls below) ──────────────────────────────────────────────
 
 async function get(path) {
   let token = await getToken();
@@ -116,56 +172,99 @@ async function get(path) {
   return res.json();
 }
 
-// Returns all projects across all portfolios, each with a `vertical` field.
+// Returns all projects across all portfolios, each with a `vertical` field —
+// now a read from our own Postgres cache instead of a live Trimble call.
 export async function getProjects() {
-  try {
-    const accountId = await getAccountId();
-    const portData = await get(`/accounts/${accountId}/portfolios`);
-    const portfolios = Array.isArray(portData) ? portData : portData?.portfolios ?? [];
-
-    const results = await Promise.all(
-      portfolios.map(async (portfolio) => {
-        const pId = portfolio.PortfolioID ?? portfolio.portfolioGuid ?? portfolio.id ?? portfolio.guid;
-        const name = portfolio.Name ?? portfolio.name ?? "";
-        if (name.trim().toUpperCase() === "TEST") return [];
-        const vertical = name.toLowerCase().includes("solar") ? "Solar"
-                       : name.toLowerCase().includes("aero")  ? "Aero"
-                       : "Structural";
-        try {
-          const url = `/${pId}/projects`;
-          const rawResponse = await get(url);
-          const rawArray = Array.isArray(rawResponse) ? rawResponse : rawResponse?.projects ?? [];
-          console.log('[KSF RAW]', name, 'raw count:', rawArray.length, 'fetch URL:', url);
-          console.log('[KSF META]', name, 'response keys:', Array.isArray(rawResponse) ? '[array]' : Object.keys(rawResponse ?? {}));
-          return rawArray.map(p => ({ ...p, portfolioId: pId, vertical }));
-        } catch (e) {
-          console.warn(`[ProjectSight] Could not load projects for portfolio ${pId} (${name}):`, e.message);
-          return [];
-        }
-      })
-    );
-    const rawArray = results.flat();
-    console.log('[KSF RAW] Kern Steel raw count:', rawArray.length);
-    console.log('[KSF RAW] All Kern Steel projects:', JSON.stringify(rawArray.map(p => ({id: p.ProjectID, num: p.Number, name: p.Name}))));
-    return rawArray.length > 0 ? rawArray : MOCK_PROJECTS;
-  } catch (e) {
-    console.error("[ProjectSight] getProjects() FAILED:", e.message, e.stack);
-    return MOCK_PROJECTS;
-  }
+  return projectsCache.withCache("all", async () => {
+    try {
+      const res = await fetch("/api/data/projects");
+      if (!res.ok) throw new Error(`data/projects ${res.status}`);
+      const data = await res.json();
+      // Empty is a legitimate state (nothing synced yet) — NOT the same as a
+      // failed request. Only the catch block below falls back to mock data.
+      return data.projects ?? [];
+    } catch (e) {
+      console.warn("[ProjectSight] getProjects() (DB-backed) failed, using mock:", e.message);
+      return MOCK_PROJECTS;
+    }
+  });
 }
 
-// Returns RFIs for a specific project.
+// Returns RFIs for a specific project — DB-backed (see getProjects() above).
 export async function getRFIs(portfolioId, projectId) {
-  try {
-    const data = await get(`/${portfolioId}/${projectId}/rfis`);
-    return Array.isArray(data) ? data : data?.rfis ?? [];
-  } catch (e) {
-    console.warn("[ProjectSight] getRFIs() failed, using mock:", e.message);
-    return MOCK_RFIS[projectId] ?? [];
-  }
+  return rfiCache.withCache(`${portfolioId}:${projectId}`, async () => {
+    try {
+      const res = await fetch(`/api/data/rfis?portfolioId=${encodeURIComponent(portfolioId)}&projectId=${encodeURIComponent(projectId)}`);
+      if (!res.ok) throw new Error(`data/rfis ${res.status}`);
+      const data = await res.json();
+      return data.rfis ?? [];
+    } catch (e) {
+      console.warn("[ProjectSight] getRFIs() (DB-backed) failed, using mock:", e.message);
+      return MOCK_RFIS[projectId] ?? [];
+    }
+  });
 }
 
-// Returns submittals for a specific project.
+// Returns issues for a specific project — DB-backed (see getProjects() above).
+export async function getIssues(portfolioId, projectId) {
+  return issueCache.withCache(`${portfolioId}:${projectId}`, async () => {
+    try {
+      const res = await fetch(`/api/data/issues?portfolioId=${encodeURIComponent(portfolioId)}&projectId=${encodeURIComponent(projectId)}`);
+      if (!res.ok) throw new Error(`data/issues ${res.status}`);
+      const data = await res.json();
+      return data.issues ?? [];
+    } catch (e) {
+      console.warn("[ProjectSight] getIssues() (DB-backed) failed:", e.message);
+      return [];
+    }
+  });
+}
+
+// Bulk reads — every project's RFIs/Issues in ONE call instead of one call
+// per project. RFIApp.jsx's main load effect uses these; per-project
+// getRFIs()/getIssues() above stay in place for callers (IssueTriageApp,
+// Shell's old prefetch shape) that want a single project's records.
+export async function getAllRFIs() {
+  return bulkCache.withCache("rfis:all", async () => {
+    const res = await fetch("/api/data/rfis");
+    if (!res.ok) throw new Error(`data/rfis ${res.status}`);
+    const data = await res.json();
+    return data.rfisByProject ?? {};
+  });
+}
+
+export async function getAllIssues() {
+  return bulkCache.withCache("issues:all", async () => {
+    const res = await fetch("/api/data/issues");
+    if (!res.ok) throw new Error(`data/issues ${res.status}`);
+    const data = await res.json();
+    return data.issuesByProject ?? {};
+  });
+}
+
+// Global "last synced" state — shared across every user/browser (see
+// api/data/sync-status.js), not a per-browser "when did I last load this".
+export async function getSyncStatus() {
+  const res = await fetch("/api/data/sync-status");
+  if (!res.ok) throw new Error(`sync-status ${res.status}`);
+  return res.json();
+}
+
+// Manual "Refresh" — re-syncs Postgres from ProjectSight, then the caller is
+// expected to clear the caches above and re-fetch. Session-authenticated
+// (same cookie as every other logged-in call); the GitHub Actions cron hits
+// the same endpoint with a separate secret-header path instead.
+export async function triggerProjectsightSync() {
+  const res = await fetch("/api/sync-projectsight", { method: "POST", credentials: "include" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `sync ${res.status}`);
+  }
+  return res.json();
+}
+
+// Returns submittals for a specific project. Still a direct ProjectSight
+// call — Submittals aren't in the Postgres cache yet (separate, later effort).
 export async function getSubmittals(portfolioId, projectId) {
   try {
     const data = await get(`/${portfolioId}/${projectId}/submittals`);
@@ -175,44 +274,6 @@ export async function getSubmittals(portfolioId, projectId) {
     return [];
   }
 }
-
-// Returns issues for a specific project.
-export async function getIssues(portfolioId, projectId) {
-  try {
-    let token = await getToken();
-    let response = await fetch(`${BASE}/${portfolioId}/${projectId}/issues`, {
-      method: "GET",
-      headers: buildHeaders(token),
-    });
-    if (response.status === 401 || response.status === 403) {
-      _tokenCache = null;
-      token = await getToken();
-      response = await fetch(`${BASE}/${portfolioId}/${projectId}/issues`, {
-        method: "GET",
-        headers: buildHeaders(token),
-      });
-    }
-    console.log('[Issues] HTTP status:', response.status);
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`ProjectSight ${response.status}: ${body}`);
-    }
-    const data = await response.json();
-    const issues = Array.isArray(data) ? data : data?.issues ?? [];
-    console.log('[Issues] Count:', issues.length);
-    if (issues.length > 0) {
-      console.log('[KSF ISSUES FIELDS]', Object.keys(issues[0]));
-      console.log('[KSF ISSUES SAMPLE]', issues[0]);
-    }
-    return issues;
-  } catch (e) {
-    console.warn("[ProjectSight] getIssues() failed:", e.message);
-    return [];
-  }
-}
-
-// Discovery — LACCD Theater (portfolioId: 5ce1bcb1-…, projectId: 36)
-getIssues("5ce1bcb1-c811-49ac-9039-ec36f3e75f78", "36");
 
 // POST a comment to an existing issue (test only)
 export async function postIssueComment(portfolioId, projectId, issueId, commentText) {

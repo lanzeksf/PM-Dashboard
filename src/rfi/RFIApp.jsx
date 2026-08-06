@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { C, F, MI } from "../core/utils.jsx";
 import { store } from "../core/store.js";
-import { getProjects, getRFIs, getIssues, postIssueComment, postRFIFromIssue } from "../projectsight/projectsightApi.js";
+import { getProjects, getIssues, getAllRFIs, getAllIssues, getSyncStatus, triggerProjectsightSync, postIssueComment, postRFIFromIssue, clearProjectsightApiCache } from "../projectsight/projectsightApi.js";
 
 // Set true to run API discovery calls once — flip back to false after
 const RUN_ISSUE_DISCOVERY = false;
@@ -18,7 +18,22 @@ const KSF_LEAD_MAP = {
   adam:    'Adam K.',
 };
 
+// ── Team-member roster for the admin "Team Member" dropdown/breakdown ────────
+// Excludes lanze/loren (the two overseer roles) — they're the viewers, not a
+// team member to drill into. Real current names from USERS_LIST (core/utils.jsx),
+// replacing a stale legacy roster (Antonio S./Jake/Frank/Ali) that no longer
+// matched anyone and silently hid Tony, JR, Josh, Lisbet, and Jacob from this
+// view. Tony/Luis/Adam own jobs (matched via ProjectSight's TypeOfBuilding
+// field, same as KSF_LEAD_MAP above) so "their jobs" breaks down correctly;
+// JR/Josh/Lisbet/Jacob don't own jobs this way, so their rows will show 0
+// until CC'd-based visibility is built (pending — see Lanze).
+const TEAM_MEMBER_OPTS = ["All", "Tony S.", "Luis A.", "Adam K.", "JR", "Josh", "Lisbet L.", "Jacob T."];
+
 // ── Constants ─────────────────────────────────────────────────────────────────
+
+// Stable empty object passed as RecordCards' loading/errors props now that
+// projects+RFIs+Issues load in one bulk request instead of per-project.
+const EMPTY_MAP = {};
 
 const BAND_C = {
   overdue: "#c84040",
@@ -307,7 +322,11 @@ function StatCard({ label, value, color }) {
 // ── Team member breakdown ─────────────────────────────────────────────────────
 
 function TeamBreakdownTable({ projects, records, kind }) {
-  const leads = ["Antonio S.", "Adam K.", "Loren", "Jake", "Luis A.", "Frank", "Ali"];
+  // NOTE: this only counts projects tagged with a matching `TypeOfBuilding`
+  // value — i.e. team members who directly own jobs (Tony/Luis/Adam today).
+  // JR, Josh, Lisbet, and Jacob don't own jobs this way, so they'll always
+  // show 0 here until CC'd-based visibility is built (pending — see Lanze).
+  const leads = TEAM_MEMBER_OPTS.filter(o => o !== "All");
   const rows = leads.map(lead => {
     const projIds = new Set(
       projects.filter(p => (p.TypeOfBuilding ?? "").trim() === lead)
@@ -344,11 +363,28 @@ function TeamBreakdownTable({ projects, records, kind }) {
 // ── Project health cards ──────────────────────────────────────────────────────
 
 function RecordCards({ projects, records, loading, errors, kind, expandedProject, setExpandedProject }) {
-  const [showAll,   setShowAll]   = useState(false);
-  const [search,    setSearch]    = useState("");
-  const [detailTab, setDetailTab] = useState("open");
+  const [showAll,    setShowAll]    = useState(false);
+  const [search,     setSearch]     = useState("");
+  const [detailTab,  setDetailTab]  = useState("open");
+  const [detailSort, setDetailSort] = useState({ col: "due", dir: "asc" });
 
-  useEffect(() => { setDetailTab("open"); }, [expandedProject]);
+  useEffect(() => { setDetailTab("open"); setDetailSort({ col: "due", dir: "asc" }); }, [expandedProject]);
+
+  const toggleDetailSort = key => setDetailSort(s =>
+    s.col === key ? { ...s, dir: s.dir === "asc" ? "desc" : "asc" } : { col: key, dir: "asc" }
+  );
+
+  // Columns for the expanded-project detail table below — click a header to
+  // sort ascending/descending, same interaction as the flat RecordTable further down.
+  const DETAIL_COLS = [
+    { key: "colorbar",  label: "",           sortable: false },
+    { key: "num",       label: kind.numColLabel, sortable: true  },
+    { key: "subject",   label: "Subject",   sortable: true  },
+    { key: "submitted", label: "Submitted", sortable: true  },
+    { key: "due",       label: "Due",       sortable: true  },
+    { key: "age",       label: "Days Open", sortable: true  },
+    { key: "status",    label: "Status",    sortable: true  },
+  ];
 
   if (!projects.length) {
     return (
@@ -501,6 +537,23 @@ function RecordCards({ projects, records, loading, errors, kind, expandedProject
         const openCount   = allRecs.filter(kind.isOpen).length;
         const closedCount = allRecs.filter(r => !kind.isOpen(r)).length;
 
+        const detailDir = detailSort.dir === "asc" ? 1 : -1;
+        const sortedTabRecs = [...tabRecs].sort((a, b) => {
+          switch (detailSort.col) {
+            case "num":       return detailDir * String(kind.num(a)).localeCompare(String(kind.num(b)), undefined, { numeric: true });
+            case "subject":   return detailDir * kind.subject(a).localeCompare(kind.subject(b));
+            case "submitted": return detailDir * (new Date(kind.submitted(a) || 0) - new Date(kind.submitted(b) || 0));
+            case "due": {
+              const ad = kind.due(a), bd = kind.due(b);
+              if (!ad && !bd) return 0; if (!ad) return 1; if (!bd) return -1;
+              return detailDir * (new Date(ad) - new Date(bd));
+            }
+            case "age":       return detailDir * (daysOpenCalc(kind.submitted(a)) - daysOpenCalc(kind.submitted(b)));
+            case "status":    return detailDir * (a.WorkflowStateName || "").localeCompare(b.WorkflowStateName || "");
+            default: return 0;
+          }
+        });
+
         return (
           <div style={{ background: C.surface, border: `1px solid ${C.accent}44`, borderRadius: 10,
             padding: "16px 20px", marginBottom: 16 }}>
@@ -538,15 +591,23 @@ function RecordCards({ projects, records, loading, errors, kind, expandedProject
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                      {["", kind.numColLabel, "Subject", "Submitted", "Due", "Days Open", "Status"].map((h, i) => (
-                        <th key={i} style={{ padding: "6px 10px", textAlign: "left", fontSize: 10,
-                          fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
-                          color: C.hint, whiteSpace: "nowrap" }}>{h}</th>
+                      {DETAIL_COLS.map(col => (
+                        <th key={col.key} onClick={() => col.sortable && toggleDetailSort(col.key)}
+                          style={{ padding: "6px 10px", textAlign: "left", fontSize: 10,
+                            fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
+                            color: detailSort.col === col.key ? C.accentText : C.hint,
+                            whiteSpace: "nowrap", cursor: col.sortable ? "pointer" : "default",
+                            userSelect: "none" }}>
+                          {col.label}
+                          {col.sortable && detailSort.col === col.key && (
+                            <span style={{ marginLeft: 3 }}>{detailSort.dir === "asc" ? "↑" : "↓"}</span>
+                          )}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {tabRecs.map(r => {
+                    {sortedTabRecs.map(r => {
                       const isVoid = r.WorkflowStateName === "Void";
                       const open   = kind.isOpen(r);
                       const band   = open ? ageBand(kind.due(r)) : "nodate";
@@ -948,14 +1009,14 @@ export default function RFIApp({ user }) {
   const [psProjects,      setPsProjects]      = useState([]);
   const [psRFIs,          setPsRFIs]          = useState({});
   const [psIssues,        setPsIssues]        = useState({});
-  const [rfiLoading,      setRfiLoading]      = useState({});
-  const [rfiErrors,       setRfiErrors]       = useState({});
-  const [issuesLoading,   setIssuesLoading]   = useState({});
-  const [issuesErrors,    setIssuesErrors]    = useState({});
   const [projectsLoading, setProjectsLoading] = useState(() => store.projectsightCache.projects.length === 0);
   const [projectsError,   setProjectsError]   = useState(null);
   const [refreshKey,      setRefreshKey]      = useState(0);
   const [lastSynced,      setLastSynced]      = useState(store.projectsightCache.lastSynced);
+  // True only while a manual "Refresh" click is re-syncing Postgres from
+  // ProjectSight (server/projectsightSync.js) — separate from projectsLoading,
+  // which just means "reading from our own DB," a much faster phase.
+  const [syncing,         setSyncing]         = useState(false);
   const [,                setTimeTick]        = useState(0);
   const [expandedProject, setExpandedProject] = useState(null);
   const [rfiTab,          setRfiTab]          = useState("dashboard");
@@ -1013,93 +1074,82 @@ export default function RFIApp({ user }) {
     return () => clearInterval(id);
   }, []);
 
-  const handleRefresh = () => {
+  // Manual "Refresh" now re-syncs Postgres from ProjectSight first (via
+  // /api/sync-projectsight, session-authenticated), THEN re-reads — instead
+  // of the old behavior of the browser re-fetching ProjectSight directly,
+  // once per project. Same background sync also runs automatically every
+  // ~10 min via .github/workflows/sync-projectsight.yml.
+  const handleRefresh = async () => {
     store.clearProjectsightCache();
+    clearProjectsightApiCache();
     setPsProjects([]);
     setPsRFIs({});
     setPsIssues({});
-    setRfiLoading({});
-    setRfiErrors({});
-    setIssuesLoading({});
-    setIssuesErrors({});
     setProjectsError(null);
     setLastSynced(null);
-    setRefreshKey(k => k + 1);
+    setSyncing(true);
+    try {
+      await triggerProjectsightSync();
+    } catch (err) {
+      setProjectsError(`Sync failed: ${err.message}`);
+    } finally {
+      setSyncing(false);
+      setRefreshKey(k => k + 1);
+    }
   };
 
-  // Load projects + RFIs — uses cache when available, otherwise fetches and populates cache
+  // Load projects + RFIs + Issues — uses cache when available, otherwise
+  // fetches once in bulk (getAllRFIs()/getAllIssues() each return every
+  // project's records in a single call) and populates the cache. This
+  // replaced a per-project fetch loop — one HTTP round trip per record type
+  // total, not one per project.
   useEffect(() => {
     const cache = store.projectsightCache;
     if (cache.projects.length > 0) {
       setPsProjects(cache.projects);
       setPsRFIs(cache.rfis);
+      setPsIssues(cache.issues || {});
       setLastSynced(cache.lastSynced);
       setProjectsLoading(false);
       return;
     }
     setProjectsLoading(true);
-    getProjects()
-      .then(projects => {
+    Promise.all([getProjects(), getAllRFIs(), getAllIssues(), getSyncStatus().catch(() => null)])
+      .then(([projects, rfiMap, rawIssueMap, syncStatus]) => {
         setPsProjects(projects);
-        setProjectsLoading(false);
-        const rfiMap = {};
-        Promise.all(
-          projects.map(p => {
-            const pid = `${p.portfolioId}-${p.ProjectID}`;
-            setRfiLoading(prev => ({ ...prev, [pid]: true }));
-            return getRFIs(p.portfolioId, p.ProjectID)
-              .then(rfis => {
-                rfiMap[pid] = rfis;
-                setPsRFIs(prev => ({ ...prev, [pid]: rfis }));
-                setRfiLoading(prev => ({ ...prev, [pid]: false }));
-              })
-              .catch(err => {
-                rfiMap[pid] = [];
-                setRfiErrors(prev => ({ ...prev, [pid]: err.message }));
-                setRfiLoading(prev => ({ ...prev, [pid]: false }));
-              });
-          })
-        ).then(() => {
-          const ts = Date.now();
-          store.setProjectsightCache(projects, rfiMap, ts);
-          setLastSynced(ts);
+        setPsRFIs(rfiMap);
+
+        // Same pre-filter the old per-project Issues effect applied before
+        // handing records to RecordCards/RecordTable (which apply their own
+        // isOpen check on top of this).
+        const issueMap = {};
+        Object.entries(rawIssueMap).forEach(([pid, rawIssues]) => {
+          issueMap[pid] = (Array.isArray(rawIssues) ? rawIssues : [])
+            .filter(i => i.WorkflowStateName !== "Closed" && i.IsDraft === false);
         });
+        setPsIssues(issueMap);
+        setProjectsLoading(false);
+
+        // "Last synced" reflects the shared backend sync time (from
+        // Postgres), not just "when this browser happened to load the page".
+        const ts = syncStatus?.lastSyncedAt ? new Date(syncStatus.lastSyncedAt).getTime() : Date.now();
+        store.setProjectsightCache(projects, rfiMap, issueMap, ts);
+        setLastSynced(ts);
       })
       .catch(err => { setProjectsError(err.message); setProjectsLoading(false); });
   }, [refreshKey]);
 
-  // Load Issues per project as projects arrive — mirrors the RFI loading
-  // effect's per-project loading/error bookkeeping so RecordCards can show a
-  // spinner/error for Issues exactly like it does for RFIs.
+  // ── API Discovery test harness — unrelated to the load effect above, kept
+  // as its own effect since it only needs psProjects, not the fetched data.
   useEffect(() => {
-    if (!psProjects.length) return;
-    psProjects.forEach(p => {
-      const pid = `${p.portfolioId}-${p.ProjectID}`;
-      setIssuesLoading(prev => ({ ...prev, [pid]: true }));
-      getIssues(p.portfolioId, p.ProjectID)
-        .then(rawIssues => {
-          const open = (Array.isArray(rawIssues) ? rawIssues : [])
-            .filter(i => i.WorkflowStateName !== "Closed" && i.IsDraft === false);
-          setPsIssues(prev => ({ ...prev, [pid]: open }));
-          setIssuesLoading(prev => ({ ...prev, [pid]: false }));
-        })
-        .catch(err => {
-          setIssuesErrors(prev => ({ ...prev, [pid]: err.message }));
-          setIssuesLoading(prev => ({ ...prev, [pid]: false }));
-        });
-    });
-
-    // ── API Discovery test harness ─────────────────────────────────────────
-    if (RUN_ISSUE_DISCOVERY) {
-      const ksfPid  = "5ce1bcb1-c811-49ac-9039-ec36f3e75f78";
-      const ksfProj = psProjects.find(p => p.portfolioId === ksfPid);
-      if (ksfProj) {
-        getIssues(ksfProj.portfolioId, ksfProj.ProjectID);
-        postIssueComment(ksfProj.portfolioId, ksfProj.ProjectID, "PLACEHOLDER_ISSUE_ID", "KSF API test — ignore");
-        postRFIFromIssue(ksfProj.portfolioId, ksfProj.ProjectID, "API Test RFI — ignore", "This is an automated test. Please discard.");
-      }
+    if (!RUN_ISSUE_DISCOVERY || !psProjects.length) return;
+    const ksfPid  = "5ce1bcb1-c811-49ac-9039-ec36f3e75f78";
+    const ksfProj = psProjects.find(p => p.portfolioId === ksfPid);
+    if (ksfProj) {
+      getIssues(ksfProj.portfolioId, ksfProj.ProjectID);
+      postIssueComment(ksfProj.portfolioId, ksfProj.ProjectID, "PLACEHOLDER_ISSUE_ID", "KSF API test — ignore");
+      postRFIFromIssue(ksfProj.portfolioId, ksfProj.ProjectID, "API Test RFI — ignore", "This is an automated test. Please discard.");
     }
-    // ── end discovery ──────────────────────────────────────────────────────
   }, [psProjects]);
 
   // Derived: visible projects for this user
@@ -1203,18 +1253,20 @@ export default function RFIApp({ user }) {
             </p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            {projectsLoading ? (
+            {syncing ? (
+              <Spinner label="Syncing from ProjectSight…" />
+            ) : projectsLoading ? (
               <Spinner />
             ) : (
               <>
                 {lastSynced && (
-                  <span style={{ fontSize: 11, color: C.hint }}>
+                  <span style={{ fontSize: 11, color: C.hint }} title="Shared across everyone — reflects the background sync, not just this browser">
                     Last synced: {relTime(lastSynced)}
                   </span>
                 )}
                 <button
                   onClick={handleRefresh}
-                  title="Refresh data"
+                  title="Re-sync from ProjectSight now"
                   style={{ width: 26, height: 26, borderRadius: 6, background: "none",
                     border: `1px solid ${C.border}`, color: C.hint, fontSize: 16, lineHeight: 1,
                     cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
@@ -1267,8 +1319,12 @@ export default function RFIApp({ user }) {
         {(() => {
           const kind      = rfiTab === "dashboard" ? RECORD_KINDS.rfi : RECORD_KINDS.issue;
           const records   = rfiTab === "dashboard" ? psRFIs      : psIssues;
-          const loading   = rfiTab === "dashboard" ? rfiLoading  : issuesLoading;
-          const errors    = rfiTab === "dashboard" ? rfiErrors   : issuesErrors;
+          // No more per-project loading/error map — projects+RFIs+Issues now
+          // load in one bulk request (see the load effect above), so there's
+          // nothing per-card left to track; RecordCards still accepts these
+          // props for its spinner/error-badge logic, just always empty now.
+          const loading   = EMPTY_MAP;
+          const errors    = EMPTY_MAP;
           const flatStats = rfiTab === "dashboard" ? rfiStats    : issueStats;
           const flatList  = rfiTab === "dashboard" ? openRFIs    : openIssuesList;
           const enabledFilters = rfiTab === "dashboard"
@@ -1300,7 +1356,7 @@ export default function RFIApp({ user }) {
                         style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit",
                           background: C.surface, border: `1px solid ${leadFilter !== "All" ? C.accent + "66" : C.border}`,
                           color: leadFilter !== "All" ? C.accentText : C.muted, cursor: "pointer", outline: "none" }}>
-                        {["All", "Antonio S.", "Adam K.", "Loren", "Jake", "Luis A.", "Frank", "Ali"].map(o => (
+                        {TEAM_MEMBER_OPTS.map(o => (
                           <option key={o} value={o}>{o}</option>
                         ))}
                       </select>
