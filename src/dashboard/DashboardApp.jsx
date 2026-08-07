@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { C, fmtRel, daysAgo, hoursAgo } from "../core/utils.jsx";
+import { C, F, MI, fmtRel, daysAgo, hoursAgo, viewingAsTooltip } from "../core/utils.jsx";
 
 const PROJECTS = [
   { id: "p1", name: "Stockdale Tower",        client: "Bolthouse Properties",  vertical: "Structural", contractValue: 1420000, pm: "tony",    status: "active" },
@@ -344,6 +344,209 @@ function AlertBar({data,setTab}){
   );
 }
 
+// ── Feedback triage (admin-only) + Updates (everyone) ──────────────────────
+// Real, DB-backed, permanent features — kept separate from the mock-data
+// widget grid above (WIDGET_META/ROLE_LAYOUTS/renderWidget), which is stub
+// data slated for full replacement whenever the real Dashboard build
+// happens. Not draggable/hideable like the mock widgets — just two fixed
+// cards above the grid.
+
+const FEEDBACK_STATUS_LABELS = { new: "New", in_progress: "In Progress", resolved: "Resolved" };
+const FEEDBACK_STATUS_COLOR  = { new: C.danger, in_progress: C.warning, resolved: C.success };
+
+function FeedbackTriageCard({ isViewingAs, viewingAsName }) {
+  const [items,      setItems]      = useState(null);
+  const [error,      setError]      = useState("");
+  const [expandedId, setExpandedId] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/feedback", { credentials: "include" })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Failed to load feedback");
+        return data.feedback;
+      })
+      .then(setItems)
+      .catch(e => setError(e.message));
+  }, []);
+
+  async function setStatus(id, status) {
+    setItems(list => list.map(f => (f.id === id ? { ...f, status } : f)));
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ id, status }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setError("Could not update status");
+    }
+  }
+
+  if (error) return (
+    <div style={{ background: C.dangerDim, border: `1px solid ${C.danger}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14 }}>
+      <span style={{ fontSize: 12, color: C.danger }}>{error}</span>
+    </div>
+  );
+  if (!items) return null;
+
+  const openCount = items.filter(f => f.status !== "resolved").length;
+
+  return (
+    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 14 }}>
+      <div style={{ padding: "11px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8, background: C.surface2 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: C.muted, flex: 1 }}>Feedback Triage</span>
+        {openCount > 0 && <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: C.dangerDim, color: C.danger }}>{openCount} open</span>}
+      </div>
+      <div style={{ padding: items.length ? "2px 14px 8px" : "12px 14px" }}>
+        {items.length === 0 && <p style={{ margin: 0, fontSize: 12, color: C.hint, textAlign: "center", padding: "10px 0" }}>No feedback yet.</p>}
+        {items.map(f => {
+          const isOpen = expandedId === f.id;
+          return (
+            <div key={f.id} style={{ borderTop: `1px solid ${C.border}`, padding: "9px 0" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }} onClick={() => setExpandedId(isOpen ? null : f.id)}>
+                <span style={{ color: C.muted, flexShrink: 0, marginTop: 1, display: "flex" }}>{MI[f.type]}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.4, overflow: isOpen ? "visible" : "hidden", textOverflow: "ellipsis", whiteSpace: isOpen ? "normal" : "nowrap" }}>{f.message}</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 10, color: C.muted }}>{f.submittedByName}</span>
+                    {f.pageContext && <span style={{ fontSize: 10, color: C.hint }}>· {f.pageContext}</span>}
+                    <span style={{ fontSize: 10, color: C.hint }}>· {fmtRel(f.createdAt)}</span>
+                    <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 3, background: FEEDBACK_STATUS_COLOR[f.status] + "20", color: FEEDBACK_STATUS_COLOR[f.status] }}>{FEEDBACK_STATUS_LABELS[f.status]}</span>
+                  </div>
+                </div>
+              </div>
+              {isOpen && (
+                <div style={{ marginTop: 8, marginLeft: 21 }}>
+                  {f.attachments.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                      {f.attachments.map(a => (
+                        <a key={a.id} href={`/api/feedback/attachment?attachmentId=${a.id}`} target="_blank" rel="noreferrer"
+                          style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 8px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 10.5, color: C.muted, textDecoration: "none" }}>
+                          <span style={{ display: "flex" }}>{a.mimeType === "application/pdf" ? MI.pdf : MI.file}</span>{a.fileName}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {["new", "in_progress", "resolved"].map(s => (
+                      <button key={s} onClick={e => { e.stopPropagation(); setStatus(f.id, s); }}
+                        disabled={isViewingAs}
+                        title={isViewingAs ? viewingAsTooltip(viewingAsName) : undefined}
+                        style={{ fontSize: 10.5, fontWeight: 600, padding: "3px 9px", borderRadius: 5, border: `1px solid ${f.status === s ? FEEDBACK_STATUS_COLOR[s] : C.border}`, background: f.status === s ? FEEDBACK_STATUS_COLOR[s] + "20" : C.surface, color: f.status === s ? FEEDBACK_STATUS_COLOR[s] : C.muted, cursor: isViewingAs ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isViewingAs ? 0.5 : 1 }}>
+                        {FEEDBACK_STATUS_LABELS[s]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function UpdatesCard({ isAdmin, isViewingAs, viewingAsName }) {
+  const [posts,     setPosts]     = useState(null);
+  const [dismissed,  setDismissed] = useState(false);
+  const [composing, setComposing] = useState(false);
+  const [title,     setTitle]     = useState("");
+  const [body,      setBody]      = useState("");
+  const [posting,   setPosting]   = useState(false);
+  const [error,     setError]     = useState("");
+
+  const load = () => {
+    fetch("/api/updates", { credentials: "include" })
+      .then(res => (res.ok ? res.json() : { posts: [] }))
+      .then(data => { setPosts(data.posts || []); setDismissed(false); })
+      .catch(() => setPosts([]));
+  };
+
+  useEffect(load, []);
+
+  async function dismiss() {
+    setDismissed(true);
+    try { await fetch("/api/updates/seen", { method: "PATCH", credentials: "include" }); } catch {}
+  }
+
+  async function post() {
+    if (!title.trim() || !body.trim() || posting || isViewingAs) return;
+    setPosting(true); setError("");
+    try {
+      const res = await fetch("/api/updates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ title: title.trim(), body: body.trim() }),
+      });
+      if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || "Failed to post"); }
+      setTitle(""); setBody(""); setComposing(false);
+      load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  const showCard = posts !== null && posts.length > 0 && !dismissed;
+  const postDisabled = !title.trim() || !body.trim() || posting || isViewingAs;
+
+  return (
+    <>
+      {showCard && (
+        <div style={{ background: C.accentDim, border: `1px solid ${C.accent}44`, borderRadius: 12, padding: 14, marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: C.accentText }}>What's new</span>
+            <button onClick={dismiss} style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 5, border: `1px solid ${C.accent}`, background: "none", color: C.accentText, cursor: "pointer", fontFamily: "inherit" }}>Dismiss</button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {posts.map(p => (
+              <div key={p.id}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: C.text }}>{p.title}</p>
+                <p style={{ margin: "3px 0 0", fontSize: 12, color: C.muted, lineHeight: 1.5, whiteSpace: "pre-line" }}>{p.body}</p>
+                <p style={{ margin: "3px 0 0", fontSize: 10, color: C.hint }}>{p.authorName} · {fmtRel(p.createdAt)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div style={{ marginBottom: 14 }}>
+          {!composing ? (
+            <button onClick={() => setComposing(true)} style={{ fontSize: 12, fontWeight: 600, color: C.accentText, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
+              + Post an update
+            </button>
+          ) : (
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+              <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title"
+                style={{ padding: "6px 9px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 12.5, fontFamily: "inherit", outline: "none" }}/>
+              <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="What changed?" rows={3}
+                style={{ padding: "6px 9px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 12.5, fontFamily: "inherit", outline: "none", resize: "vertical" }}/>
+              {error && <p style={{ margin: 0, fontSize: 11, color: C.danger }}>{error}</p>}
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={post} disabled={postDisabled} title={isViewingAs ? viewingAsTooltip(viewingAsName) : undefined}
+                  style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 6, border: "none", background: C.accent, color: C.accentText, cursor: postDisabled ? "not-allowed" : "pointer", opacity: postDisabled ? 0.5 : 1, fontFamily: "inherit" }}>
+                  {posting ? "Posting…" : "Post"}
+                </button>
+                <button onClick={() => { setComposing(false); setTitle(""); setBody(""); setError(""); }}
+                  style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.muted, cursor: "pointer", fontFamily: "inherit" }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 function HiddenTray({hidden,onRestore}){
   if(hidden.length===0) return null;
   return (
@@ -356,9 +559,10 @@ function HiddenTray({hidden,onRestore}){
   );
 }
 
-export default function DashboardApp({user,setTab}){
+export default function DashboardApp({user,setTab,isViewingAs=false}){
   const data=filterByUser(user);
   const isField=user.role==="field";
+  const isAdmin=user.tier==="admin"||user.tier==="sr_pm";
   const lk=`ksf-dash-${user.id}`,hk=`ksf-dash-hidden-${user.id}`;
 
   const [widgetOrder,setWidgetOrder]=useState(()=>{
@@ -428,6 +632,8 @@ export default function DashboardApp({user,setTab}){
           </div>
         </div>
         {editMode&&<div style={{marginBottom:14,padding:"8px 14px",background:C.accentDim,border:`1px solid ${C.accent}33`,borderRadius:8}}><span style={{fontSize:12,color:C.accentText}}>Drag widgets to reorder · Click × to hide · Scroll down to restore hidden widgets</span></div>}
+        {isAdmin && <FeedbackTriageCard isViewingAs={isViewingAs} viewingAsName={user.name}/>}
+        <UpdatesCard isAdmin={isAdmin} isViewingAs={isViewingAs} viewingAsName={user.name}/>
         <AlertBar data={data} setTab={setTab}/>
         <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:14}} className="ksf-widget-grid">
           {widgetOrder.map(id=>renderWidget(id))}

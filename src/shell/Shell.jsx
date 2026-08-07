@@ -7,6 +7,7 @@ import ContractsApp from "../contracts/ContractsApp.jsx";
 import ChangeOrdersApp from "../changeorders/ChangeOrdersApp.jsx";
 import FabricationApp from "../fab/FabricationApp.jsx";
 import UserManagementApp from "../users/UserManagementApp.jsx";
+import FeedbackWidget from "../feedback/FeedbackWidget.jsx";
 import { store, useStore } from "../core/store.js";
 import { getProjects, getAllRFIs, getAllIssues } from "../projectsight/projectsightApi.js";
 
@@ -403,7 +404,7 @@ export default function KSFCommandCenter({ KernBotApp }) {
           <span style={{ fontSize: 12, fontWeight: 600, color: C.onDarkText }}>KSF Command Center</span>
           <span style={{ fontSize: 11, color: C.onDarkHint, marginLeft: "auto" }}>{ALL_NAV_ITEMS.find(i => i.id === tab)?.label}</span>
         </div>
-        {tab === "dashboard"     && <DashboardApp key={effectiveUser.id} user={effectiveUser} setTab={setTab}/>}
+        {tab === "dashboard"     && <DashboardApp key={effectiveUser.id} user={effectiveUser} setTab={setTab} isViewingAs={isViewingAs}/>}
         {tab === "kernbot"       && <KernBotApp key={effectiveUser.id} preloadUser={effectiveUser} isViewingAs={isViewingAs}/>}
         {tab === "owner"         && <ComingSoon label="Owner Pending"/>}
         {tab === "scope"         && <ComingSoon label="Scope Tracker"/>}
@@ -417,6 +418,7 @@ export default function KSFCommandCenter({ KernBotApp }) {
         {tab === "user_mgmt"     && <UserManagementApp key={effectiveUser.id} user={effectiveUser} isViewingAs={isViewingAs}/>}
         {tab === "system_config" && <ComingSoon label="System Config"/>}
       </main>
+      <FeedbackWidget user={effectiveUser} isViewingAs={isViewingAs} pageContext={ALL_NAV_ITEMS.find(i => i.id === tab)?.label}/>
       <style>{`@media(max-width:640px){.ksf-sidebar-desktop{display:none!important;}.ksf-mobile-bar{display:flex!important;}}`}</style>
     </div>
   );

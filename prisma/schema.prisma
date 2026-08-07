@@ -29,9 +29,15 @@ model User {
   // self-service reset. An admin sees this flagged in User Management and
   // resets manually via admin-reset-password.
   passwordResetRequestedAt DateTime?
+  // Backfilled to now() on rollout (not left null) so nobody's first load of
+  // the Updates card floods them with every historical post — see the
+  // migration note in CLAUDE.md's Feedback & Updates section.
+  lastSeenUpdatesAt  DateTime?
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
   sessions           Session[]
+  feedback           Feedback[]
+  updatePosts        UpdatePost[]
 }
 
 enum Role {
@@ -118,4 +124,60 @@ model SyncState {
   lastError    String?
   recordCount  Int       @default(0)
   updatedAt    DateTime  @updatedAt
+}
+
+// ── Feedback & Updates ───────────────────────────────────────────────────────
+// Feedback: floating widget available everywhere (see FeedbackWidget.jsx),
+// persisted to Postgres (not in-memory — a bug report disappearing on
+// refresh defeats the point). Attachments store as real bytea in their own
+// table, on the same on-prem Postgres box as everything else — no external
+// blob storage. Triage lives on the Dashboard (admin-gated card), not a
+// separate nav tab.
+enum FeedbackType {
+  bug
+  wishlist
+  thought
+}
+
+enum FeedbackStatus {
+  new
+  in_progress
+  resolved
+}
+
+model Feedback {
+  id            String               @id @default(cuid())
+  type          FeedbackType
+  message       String
+  status        FeedbackStatus       @default(new)
+  pageContext   String?              // module/tab the user was on when submitting
+  submittedById String
+  submittedBy   User                 @relation(fields: [submittedById], references: [id])
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  attachments   FeedbackAttachment[]
+}
+
+model FeedbackAttachment {
+  id         String   @id @default(cuid())
+  feedbackId String
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  fileName   String
+  mimeType   String
+  fileSize   Int
+  data       Bytes
+  createdAt  DateTime @default(now())
+}
+
+// Lightweight "what's new" — plain text only for v1, authored by Lanze/Loren
+// (same admin gate as User Management). Shows as a dismissible Dashboard
+// card, not a blocking modal. No per-post read receipts — just a single
+// lastSeenUpdatesAt timestamp per user (see User model above).
+model UpdatePost {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
 }

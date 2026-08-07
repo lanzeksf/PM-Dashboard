@@ -147,14 +147,14 @@ export const USERS_LIST = [
     department: null,
   },
   {
-    id: "jr",      name: "JR",         initials: "JR", color: "#f472b6",
+    id: "jr",      name: "JR C.",      initials: "JC", color: "#f472b6",
     position: "Superintendent", role: "superintendent",
     tier: "standard", canRespond: false, stdWrite: false,
     badge: null,
     department: { label: "All", color: "#888", bg: "#2a2a2a" },
   },
   {
-    id: "josh",    name: "Josh",       initials: "JO", color: "#60a5fa",
+    id: "josh",    name: "Josh L.",    initials: "JL", color: "#60a5fa",
     position: "Project Manager", role: "coordinator",
     tier: "standard", canRespond: false, stdWrite: false,
     badge: null,
@@ -214,4 +214,7 @@ export const MI = {
   file:      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
   eye:       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6"/></svg>,
   eyeOff:    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M17.94 17.94A10.94 10.94 0 0112 20c-7 0-11-8-11-8a18.5 18.5 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19M14.12 14.12a3 3 0 11-4.24-4.24" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>,
+  bug:       <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="8" y="6" width="8" height="12" rx="4" stroke="currentColor" strokeWidth="1.6"/><path d="M12 6V3M9.5 4.5L11 6.5M14.5 4.5L13 6.5M3 10h3M18 10h3M3 16h3M18 16h3M8 9.5l-2.5-2M16 9.5l2.5-2M8 14.5l-2.5 2M16 14.5l2.5 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>,
+  wishlist:  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.3.2.5.6.5 1v.1h6v-.1c0-.4.2-.8.5-1A6 6 0 0012 3z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  thought:   <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 01-1.9 5.4A8.5 8.5 0 0112 20a8.5 8.5 0 01-4.3-1.2L3 20l1.3-3.9A8.5 8.5 0 013 11.5 8.5 8.5 0 0111.5 3h.5a8.5 8.5 0 019 8v.5z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
 };

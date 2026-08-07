@@ -5,11 +5,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What This Is
 
 **OG** — Kern Steel Fabrication (KSF)'s internal PM tool. Standalone application,
-NOT a module inside FabOS. Deployed via GitHub → Vercel
-(https://pm-dashboard-liard.vercel.app), mirrored to internal Gitea
-(Kern_Steel/PM-Dashboard) — the copy IT (Jose) uses to scope database work.
-Migrating on-prem with its own dedicated PostgreSQL database and schema
+NOT a module inside FabOS. Own dedicated PostgreSQL database and schema
 (independent of FabOS's schema — no shared tables, no mirror-table pattern).
+
+**Hosting correction (2026-08-07):** Vercel was only ever a testing target
+for OG, not the long-term host — the framing below of GitHub → Vercel as
+"the" deploy target is stale. Current and ongoing work is tested locally
+(`npm run dev`) directly against the on-prem Postgres at `192.168.0.9` — no
+network boundary between app and DB there, since local dev runs on the same
+network the DB lives on. The real deploy target going forward is on-prem
+hosting: push to the internal Gitea remote (`Kern_Steel/PM-Dashboard`) and
+Jose (IT) hosts it from there — not GitHub → Vercel. This also removes the
+earlier concern about Vercel's cloud servers reaching an internal-only
+Postgres address — once hosting is on-prem, app and DB are on the same
+local network either way. (Historical detail, now secondary: GitHub →
+Vercel at https://pm-dashboard-liard.vercel.app was the original deploy
+path and still exists as a testing target.)
 
 **Current workflow note:** during active iteration, work stays local only.
 Vercel auto-deploys on any push to GitHub (inherent to the Vercel-GitHub
@@ -28,6 +39,20 @@ time, confirmed separately from the bash-approval change. File edits still
 show a diff before being written. If a future session finds bash commands
 running without confirmation, that's expected; if git push/commit ever runs
 without asking first, that's a regression — stop and flag it.
+
+**Multiple Claude Code instances note:** Lanze frequently runs more than one
+Claude Code session against this repo at the same time (e.g. one scoped to
+login/database work, another scoped to other modules — see the parallel-work
+note under Shell + Module pattern below for a concrete past instance of this).
+Treat this as a standing possibility in every session, not a one-off: before
+editing a file, consider that another session may have uncommitted changes to
+it right now. Run `git status`/`git diff` before starting non-trivial edits to
+check for changes you didn't make. If you find uncommitted or unstaged work
+that doesn't match what you're doing, don't overwrite or revert it — flag it
+to Lanze and ask how to proceed, the same as any other unfamiliar local state
+(see the Executing actions with care guidance on investigating before
+overwriting). Prefer committing one session's body of work before starting
+heavy edits in another, when that's practical, to minimize overlap windows.
 
 **FabOS deprioritized (Lanze's call):** FabOS integration is no longer an
 active concern shaping OG's design. Priority is simply making OG functional
@@ -360,12 +385,14 @@ To add a module: create `src/<module>/ModuleApp.jsx`, import in `Shell.jsx`,
 add a tab entry to `ALL_NAV_ITEMS`, add the render case, register the module
 ID in `ROLE_MODULES`.
 
-**Heads up for parallel work:** adding a module touches `Shell.jsx`, and the
-login/user-management work above also just rewrote large parts of
-`Shell.jsx`, `package.json`, and `vite.config.js`. If running more than one
-Claude Code session against this repo at once, avoid having two sessions
-edit those same files uncommitted at the same time — commit one body of
-work first, then start the next, to avoid one session silently overwriting
+**Heads up for parallel work (see the "Multiple Claude Code instances note"
+near the top of this file for the general practice):** adding a module
+touches `Shell.jsx`, and the login/user-management work above also just
+rewrote large parts of `Shell.jsx`, `package.json`, and `vite.config.js`. If
+running more than one Claude Code session against this repo at once, avoid
+having two sessions edit those same files uncommitted at the same time —
+commit one body of work first, then start the next, to avoid one session
+silently overwriting
 the other's changes on disk. (Lanze is running a separate chat scoped to
 "other modules" alongside this one, which stays scoped to login/database.)
 
@@ -543,6 +570,68 @@ cache — new exported `clearProjectsightApiCache()`, wired into
 5. Lanze or Loren see it in their KB Queue panel with full thread and metadata
 6. They reply — `role: "pm"` bubble appears back in originating user's chat thread
 7. Either side marks resolved — `resolveByPMQ()` syncs both chats and queue
+
+### Feedback & Updates (built and verified)
+
+Two related but separable pieces, both DB-backed (not in-memory — a
+submitted bug report disappearing on refresh would defeat the point).
+
+**Feedback intake** — `src/feedback/FeedbackWidget.jsx`, a floating button
+mounted once in `Shell.jsx` outside the per-module content area (survives
+tab switches, same idea as the sidebar). Any logged-in user can submit a
+Bug/Wishlist/Thought with drag-and-drop or Ctrl+V-paste screenshot
+attachments — reuses the exact same `useAttachments()`/`AttachTray` hook
+Kern Bot's chat box already used, rather than reimplementing paste/drop
+handling a second time. `pageContext` auto-captures the current nav tab's
+label. Attachments store as real `Bytes`/Postgres `bytea` in their own
+`FeedbackAttachment` table on the same on-prem Postgres box as everything
+else — no Vercel Blob or external storage service. No separate "Feedback"
+nav tab.
+
+**Triage** — a `FeedbackTriageCard` on the Dashboard, admin-gated
+(`role === "admin" || "sr_pm"`, same check as User Management), showing an
+open count, an expandable list (type icon, message, submitter, age), synced
+attachment downloads, and an inline New/In Progress/Resolved control. No
+notification pipeline — status changes are for Lanze/Loren's own tracking
+only, the submitter is never told.
+
+**Updates ("what's new")** — a dismissible `UpdatesCard` on the Dashboard,
+visible to everyone, showing posts newer than the viewer's own
+`User.lastSeenUpdatesAt`. Plain text only for v1 (no attachments), authored
+by Lanze/Loren via an inline composer on the same card. Dismissing calls
+`PATCH /api/updates/seen`, which stamps `lastSeenUpdatesAt = now()` — not a
+blocking modal.
+
+Both new Dashboard cards are deliberately **not** wired into the existing
+`WIDGET_META`/`ROLE_LAYOUTS`/`renderWidget` mock-data widget grid in
+`DashboardApp.jsx` — that system is stub data (`PROJECTS`, `OWNER_PENDING`,
+etc.) explicitly slated for full replacement whenever the real Dashboard
+build happens (see Open Items below). Mixing a real, permanent,
+DB-backed feature into a throwaway mock system would need to survive
+whatever that rebuild does. They render as two fixed cards above the grid
+instead — cheap to lift out again later.
+
+New API endpoints (`api/feedback.js`, `api/feedback/attachment.js`,
+`api/updates.js`, `api/updates/seen.js`) all follow `api/users.js`'s exact
+pattern (`getSessionUser(req, res, prisma)`, same admin-role check, same
+response shapes) — no path params anywhere, since the local dev middleware
+(`vite.config.js`) maps `/api/x` literally to `api/x.js` with no `[id]`
+bracket routing. Target ids for PATCH travel in the request body instead
+(same as `admin-reset-password.js`), matching what was already the
+convention here rather than inventing bracket-route support.
+
+Verified end-to-end against the real DB: non-admin gets 403 on
+GET/PATCH `/api/feedback` and POST `/api/updates`; a submitted bug report
+with a real PNG attachment round-trips correctly (byte-for-byte, verified
+by re-downloading and checking it's still a valid PNG); status updates
+persist; an update post shows as unseen for another user and disappears
+after that user dismisses it.
+
+**Rolled out with a one-time backfill:** `User.lastSeenUpdatesAt` was
+backfilled to `now()` for all 9 existing users (not left `null`) so nobody
+got flooded with historical posts on first load — there weren't any yet,
+but the backfill runs regardless of that, as a permanent rollout step
+rather than something to remember to do only this once.
 
 ## Roles, Users & Permissions
 
