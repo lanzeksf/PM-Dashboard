@@ -3,10 +3,14 @@ import { C, F, MI, viewingAsTooltip } from "../core/utils.jsx";
 import { AttachTray, useAttachments } from "../components/Files.jsx";
 
 const TYPES = [
-  { id: "bug",      label: "Bug",      icon: "bug" },
-  { id: "wishlist", label: "Wishlist", icon: "wishlist" },
-  { id: "thought",  label: "Thought",  icon: "thought" },
+  { id: "bug",     label: "Bug",     icon: "bug" },
+  { id: "thought", label: "Thought", icon: "thought" },
 ];
+
+const TYPE_PLACEHOLDER = {
+  bug:     "What did you find! Drag & drop or paste (Ctrl+V) a screenshot.",
+  thought: "Open to suggestions! Drag & drop or paste (Ctrl+V) a screenshot.",
+};
 
 // Floating button, mounted once in Shell.jsx outside the per-module content
 // area so it survives tab switches. Reuses the same attach/paste/drag
@@ -115,7 +119,7 @@ export default function FeedbackWidget({ user, isViewingAs, pageContext }) {
               <textarea
                 autoFocus
                 value={message} onChange={e => setMessage(e.target.value)}
-                placeholder={dragOver ? "Drop files to attach…" : "What's up? Drag & drop or paste (Ctrl+V) a screenshot…"}
+                placeholder={dragOver ? "Drop files to attach…" : TYPE_PLACEHOLDER[type]}
                 rows={4}
                 style={{ width: "100%", padding: "8px 10px", background: C.surface2, border: `1px solid ${dragOver ? C.accent : C.border}`, borderRadius: 8, color: C.text, fontSize: 12.5, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
               />

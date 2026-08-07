@@ -5,6 +5,7 @@ const ROLE_LABELS = {
   admin: "Admin", sr_pm: "Senior PM", apm: "Assistant PM", coordinator: "Coordinator",
   superintendent: "Superintendent", mfg_eng: "Manufacturing Engineer", field: "Field",
 };
+const ROLE_OPTS = Object.keys(ROLE_LABELS);
 
 const firstName = name => name.split(" ")[0];
 
@@ -34,6 +35,9 @@ export default function UserManagementApp({ user, isViewingAs = false }) {
   const [confirmId, setConfirmId] = useState(null);
   const [resetting, setResetting] = useState(null);
   const [reveals, setReveals] = useState({}); // userId -> tempPassword
+  const [editId,  setEditId]  = useState(null);
+  const [editDraft, setEditDraft] = useState({ position: "", role: "" });
+  const [saving,  setSaving]  = useState(false);
 
   useEffect(() => {
     fetch("/api/users", { credentials: "include" })
@@ -64,6 +68,32 @@ export default function UserManagementApp({ user, isViewingAs = false }) {
     } finally {
       setResetting(null);
       setConfirmId(null);
+    }
+  }
+
+  function startEdit(u) {
+    setEditId(u.id);
+    setEditDraft({ position: u.position, role: u.role });
+    setError("");
+  }
+
+  async function saveEdit(userId) {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ userId, position: editDraft.position, role: editDraft.role }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Update failed");
+      setUsers(list => list.map(u => u.id === userId ? { ...u, ...data.user } : u));
+      setEditId(null);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -105,13 +135,34 @@ export default function UserManagementApp({ user, isViewingAs = false }) {
                         <p style={{ margin: 0, fontWeight: 600, color: C.text }}>{u.name}</p>
                         <p style={{ margin: "2px 0 0", fontSize: 11, color: C.hint }}>{u.email}</p>
                       </td>
-                      <td style={{ padding: "10px 14px", color: C.text, whiteSpace: "nowrap" }}>{u.position}</td>
-                      <td style={{ padding: "10px 14px", color: C.muted, whiteSpace: "nowrap" }}>{ROLE_LABELS[u.role] || u.role}</td>
+                      <td style={{ padding: "10px 14px", color: C.text, whiteSpace: "nowrap" }}>
+                        {editId === u.id ? (
+                          <input value={editDraft.position} onChange={e => setEditDraft(d => ({ ...d, position: e.target.value }))}
+                            style={{ width: "100%", fontSize: 12.5, padding: "4px 7px", borderRadius: 5, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontFamily: "inherit" }} />
+                        ) : u.position}
+                      </td>
+                      <td style={{ padding: "10px 14px", color: C.muted, whiteSpace: "nowrap" }}>
+                        {editId === u.id ? (
+                          <select value={editDraft.role} onChange={e => setEditDraft(d => ({ ...d, role: e.target.value }))}
+                            style={{ fontSize: 12.5, padding: "4px 7px", borderRadius: 5, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontFamily: "inherit" }}>
+                            {ROLE_OPTS.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                          </select>
+                        ) : (ROLE_LABELS[u.role] || u.role)}
+                      </td>
                       <td style={{ padding: "10px 14px", color: C.muted, whiteSpace: "nowrap" }}>{u.department?.label || "—"}</td>
                       <td style={{ padding: "10px 14px", color: C.muted, whiteSpace: "nowrap" }}>{u.lastLoginAt ? fmtRel(u.lastLoginAt) : "Never"}</td>
                       <td style={{ padding: "10px 14px" }}><StatusChips u={u} /></td>
                       <td style={{ padding: "10px 14px", minWidth: 220 }}>
-                        {reveals[u.id] ? (
+                        {editId === u.id ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                            <button onClick={() => saveEdit(u.id)} disabled={saving || !editDraft.position.trim()} style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 5, border: `1px solid ${C.accent}`, background: C.accent, color: C.accentText, cursor: saving ? "default" : "pointer", fontFamily: "inherit", opacity: !editDraft.position.trim() ? 0.5 : 1 }}>
+                              {saving ? "Saving…" : "Save"}
+                            </button>
+                            <button onClick={() => setEditId(null)} disabled={saving} style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 5, border: `1px solid ${C.border}`, background: C.surface, color: C.muted, cursor: "pointer", fontFamily: "inherit" }}>
+                              Cancel
+                            </button>
+                          </div>
+                        ) : reveals[u.id] ? (
                           <div style={{ background: C.successDim, border: `1px solid ${C.success}44`, borderRadius: 6, padding: "6px 10px" }}>
                             <p style={{ margin: 0, fontSize: 11, color: C.text, lineHeight: 1.5 }}>
                               New temp password for {firstName(u.name)}: <span style={{ fontFamily: F.mono, fontWeight: 700 }}>{reveals[u.id]}</span> — copy this and send it to them now, it won't be shown again.
@@ -128,9 +179,14 @@ export default function UserManagementApp({ user, isViewingAs = false }) {
                             </button>
                           </div>
                         ) : (
-                          <button onClick={() => setConfirmId(u.id)} disabled={isViewingAs} title={isViewingAs ? viewingAsTooltip(user.name) : undefined} style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.muted, cursor: isViewingAs ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isViewingAs ? 0.5 : 1 }}>
-                            Reset Password
-                          </button>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                            <button onClick={() => startEdit(u)} disabled={isViewingAs} title={isViewingAs ? viewingAsTooltip(user.name) : undefined} style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.muted, cursor: isViewingAs ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isViewingAs ? 0.5 : 1 }}>
+                              Edit
+                            </button>
+                            <button onClick={() => setConfirmId(u.id)} disabled={isViewingAs} title={isViewingAs ? viewingAsTooltip(user.name) : undefined} style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.muted, cursor: isViewingAs ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isViewingAs ? 0.5 : 1 }}>
+                              Reset Password
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

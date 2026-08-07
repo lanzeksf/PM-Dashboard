@@ -135,21 +135,19 @@ model SyncState {
 // separate nav tab.
 enum FeedbackType {
   bug
-  wishlist
   thought
 }
 
 enum FeedbackStatus {
-  new
-  in_progress
-  resolved
+  open
+  done
 }
 
 model Feedback {
   id            String               @id @default(cuid())
   type          FeedbackType
   message       String
-  status        FeedbackStatus       @default(new)
+  status        FeedbackStatus       @default(open)
   pageContext   String?              // module/tab the user was on when submitting
   submittedById String
   submittedBy   User                 @relation(fields: [submittedById], references: [id])

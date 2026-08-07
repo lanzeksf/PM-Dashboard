@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     const { type, message, pageContext, attachments } = req.body || {};
-    if (!["bug", "wishlist", "thought"].includes(type)) {
+    if (!["bug", "thought"].includes(type)) {
       return res.status(400).json({ error: "Invalid type" });
     }
     if (!message || !message.trim()) {
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
 
   if (req.method === "PATCH") {
     const { id, status } = req.body || {};
-    if (!["new", "in_progress", "resolved"].includes(status)) {
+    if (!["open", "done"].includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
     const updated = await prisma.feedback.update({ where: { id }, data: { status } }).catch(() => null);

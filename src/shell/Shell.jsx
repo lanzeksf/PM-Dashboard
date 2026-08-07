@@ -14,6 +14,21 @@ import { getProjects, getAllRFIs, getAllIssues } from "../projectsight/projectsi
 export const SHELL_COLORS = { bg: C.bg };
 const SHELL_ONLY_TABS = new Set(["queue", "standards"]);
 
+// Staged company-wide rollout (2026-08-07): the app is about to be pushed
+// to the real server for the whole team, but only Open Items (RFIs/Issues)
+// is actually finished. Everyone except Lanze specifically — not "except
+// admin/sr_pm," literally her user id, same precedent as the "View As"
+// picker below — is locked to just that module until the rest are ready.
+// Flip individual modules back on for real roles in ROLE_MODULES as each
+// one is finished; this override is meant to shrink to nothing over time,
+// not grow.
+const LOCKED_DOWN_MODULES = ["rfi"];
+const modulesFor = user => user?.id === "lanze" ? (ROLE_MODULES[user.role] || []) : LOCKED_DOWN_MODULES;
+const defaultTabFor = user => {
+  const mods = modulesFor(user);
+  return mods.includes("dashboard") ? "dashboard" : (mods[0] || "dashboard");
+};
+
 // Dashboard is now first — it is the landing page after login
 const ALL_NAV_ITEMS = [
   { id: "dashboard",     label: "Dashboard" },
@@ -23,7 +38,7 @@ const ALL_NAV_ITEMS = [
   { id: "contracts",     label: "Contracts" },
   { id: "changes",       label: "Change Orders" },
   { id: "detailing",     label: "Detailing" },
-  { id: "rfi",           label: "RFIs" },
+  { id: "rfi",           label: "Open Items" },
   { id: "issuetriage",   label: "Issue Triage" },
   { id: "fab",           label: "Fabrication & Shipping" },
   { id: "field",         label: "Field Needs" },
@@ -238,7 +253,7 @@ function ViewAsPicker({ usersList, viewAsUserId, onSetViewAs }) {
 }
 
 function ShellSidebar({ user, realUser, isViewingAs, usersList, viewAsUserId, onSetViewAs, tab, setTab, onSignOut, mobile, onClose }) {
-  const allowedModules = ROLE_MODULES[user.role] || [];
+  const allowedModules = modulesFor(user);
   const visibleNav = ALL_NAV_ITEMS.filter(item => allowedModules.includes(item.id) && !SHELL_ONLY_TABS.has(item.id));
 
   return (
@@ -330,11 +345,13 @@ export default function KSFCommandCenter({ KernBotApp }) {
   const isViewingAs = user?.id === "lanze" && !!viewAsUserId && effectiveUser !== user;
 
   // Switching identity can land on a tab the new effectiveUser can't see
-  // (e.g. leaving User Management while viewing as a non-admin) — reset to
-  // the one tab every role has, same as login/logout already do.
+  // (e.g. leaving User Management while viewing as a non-admin, or viewing
+  // as anyone at all while the staged-rollout lockdown above is active) —
+  // reset to a tab the new effective identity can actually see.
   function setViewAsUserId(id) {
     store.setViewAsUserId(id);
-    setTab("dashboard");
+    const nextUser = id ? (usersList?.find(u => u.id === id) || user) : user;
+    setTab(defaultTabFor(nextUser));
   }
 
   // Fired right after login and right after session restore (below) — never
@@ -356,6 +373,7 @@ export default function KSFCommandCenter({ KernBotApp }) {
       .then(data => {
         if (data?.user) {
           setUser(data.user);
+          setTab(defaultTabFor(data.user));
           if (!data.user.mustChangePassword) prefetchProjectsight();
         }
       })
@@ -365,7 +383,7 @@ export default function KSFCommandCenter({ KernBotApp }) {
 
   function handleLoggedIn(u) {
     setUser(u);
-    setTab("dashboard");
+    setTab(defaultTabFor(u));
     if (!u.mustChangePassword) prefetchProjectsight();
   }
 

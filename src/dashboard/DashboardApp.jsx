@@ -1,64 +1,32 @@
-import React, { useState, useEffect } from "react";
-import { C, F, MI, fmtRel, daysAgo, hoursAgo, viewingAsTooltip } from "../core/utils.jsx";
+import React, { useState, useEffect, useMemo } from "react";
+import { C, F, MI, fmtRel, viewingAsTooltip } from "../core/utils.jsx";
+import { getProjects, getAllRFIs } from "../projectsight/projectsightApi.js";
+import { KSF_LEAD_MAP, TEAM_MEMBER_OPTS, isOpenRFI, isActiveProject } from "../rfi/RFIApp.jsx";
 
-const PROJECTS = [
-  { id: "p1", name: "Stockdale Tower",        client: "Bolthouse Properties",  vertical: "Structural", contractValue: 1420000, pm: "tony",    status: "active" },
-  { id: "p2", name: "CSUB Science Building",  client: "Cal State Bakersfield", vertical: "Structural", contractValue: 2850000, pm: "loren",   status: "active" },
-  { id: "p3", name: "Ming Ave Retail Center", client: "Pacific Coast Dev.",    vertical: "Structural", contractValue: 680000,  pm: "tony",    status: "active" },
-  { id: "p4", name: "Kern High Carports",     client: "KHSD Facilities",       vertical: "Solar",      contractValue: 940000,  pm: "luis",    status: "active" },
-  { id: "p5", name: "Dignity Health Parking", client: "Dignity Health",        vertical: "Solar",      contractValue: 1150000, pm: "jillian", status: "active" },
-  { id: "p6", name: "F-35 Stand – Lot 4",     client: "Lockheed Martin",       vertical: "Aero",       contractValue: 3200000, pm: "adam",    status: "active" },
-  { id: "p7", name: "USAF Ground Support",    client: "US Air Force",          vertical: "Aero",       contractValue: 875000,  pm: "adam",    status: "active" },
-];
-const OWNER_PENDING = [
-  { id: "op1", projectId: "p1", project: "Stockdale Tower",        subject: "Approve grid line revision — Column D4 relocation",  createdAt: daysAgo(7),  source: "email" },
-  { id: "op2", projectId: "p2", project: "CSUB Science Building",  subject: "Confirm anchor bolt pattern — Grid B / Level 2",     createdAt: daysAgo(3),  source: "manual" },
-  { id: "op3", projectId: "p4", project: "Kern High Carports",     subject: "AHJ permit approval — Lot C expansion",              createdAt: daysAgo(9),  source: "email" },
-  { id: "op4", projectId: "p5", project: "Dignity Health Parking", subject: "Owner sign-off on revised bay spacing",              createdAt: daysAgo(2),  source: "manual" },
-  { id: "op5", projectId: "p6", project: "F-35 Stand – Lot 4",     subject: "EO approval pending — field weld mod at Sta. 14",    createdAt: daysAgo(6),  source: "projectsight" },
-];
-const FIELD_NEEDS = [
-  { id: "fn1", projectId: "p1", project: "Stockdale Tower",        issue: "Missing anchor bolts at grid C3 — erection halted",  urgency: "High",   submittedBy: "jacob", assignedTo: "tony",  createdAt: hoursAgo(4), status: "Open", source: "manual" },
-  { id: "fn2", projectId: "p2", project: "CSUB Science Building",  issue: "Beam camber on W18x97 exceeds tolerance — hold fab", urgency: "High",   submittedBy: "jacob", assignedTo: "loren", createdAt: daysAgo(1),  status: "Open", source: "email" },
-  { id: "fn3", projectId: "p3", project: "Ming Ave Retail Center", issue: "Column base plate elevation off 3/8in at grid A1",   urgency: "Medium", submittedBy: "jacob", assignedTo: "tony",  createdAt: daysAgo(2),  status: "Open", source: "manual" },
-  { id: "fn4", projectId: "p4", project: "Kern High Carports",     issue: "Purlin spacing inconsistency vs. approved drawings", urgency: "Medium", submittedBy: "jacob", assignedTo: "luis",  createdAt: daysAgo(3),  status: "Open", source: "manual" },
-];
-const SCOPE_ITEMS = [
-  { id: "sc1", projectId: "p1", project: "Stockdale Tower",        description: "Added beam reinforcement — grid D4 per RFI-014",       amount: 18400, noticeDeadlineDays: 14, createdAt: daysAgo(16), notified: false, source: "manual" },
-  { id: "sc2", projectId: "p2", project: "CSUB Science Building",  description: "Lateral brace addition — seismic upgrade Level 3",     amount: 34200, noticeDeadlineDays: 14, createdAt: daysAgo(5),  notified: false, source: "email" },
-  { id: "sc3", projectId: "p3", project: "Ming Ave Retail",        description: "Owner-directed connection change — Col. A1 base plate", amount: 6800,  noticeDeadlineDays: 7,  createdAt: daysAgo(8),  notified: false, source: "manual" },
-  { id: "sc4", projectId: "p5", project: "Dignity Health Parking", description: "Additional canopy bay added — south end",               amount: 52000, noticeDeadlineDays: 14, createdAt: daysAgo(3),  notified: true,  source: "email" },
-];
+// Widgets below (Project Health, Fab Snapshot, Field Needs, Owner Pending,
+// Unnotified Scope, Change Orders) have no real backend yet — each of these
+// source arrays is intentionally empty (not seed/demo data) so every user
+// sees an honest empty state instead of fabricated numbers. The filtering
+// logic in filterByUser/*Content below is left in place since it encodes
+// the real business rules to apply once each is wired to a live source
+// (Spectrum for change orders, a field-needs intake form, etc.) — swap the
+// empty array for a real fetch when that happens, nothing else should need
+// to change.
+const PROJECTS      = [];
+const OWNER_PENDING  = [];
+const FIELD_NEEDS    = [];
+const SCOPE_ITEMS    = [];
 // status: "Proposed" | "Approved" | "Executed"
 // Dashboard shows only Proposed + overdue. Approved = in progress. Executed = done (never shown).
 // TODO: Replace with Spectrum API — map Spectrum CO status values to Proposed/Approved/Executed here.
-const CHANGE_ORDERS = [
-  { id: "co1", projectId: "p1", project: "Stockdale Tower",        coNumber: "CO-007", description: "Grid D4 beam reinforcement + RFI-014 work",          amount: 18400, sentDate: daysAgo(12), dueDate: daysAgo(2),  status: "Proposed" },
-  { id: "co2", projectId: "p2", project: "CSUB Science Building",  coNumber: "CO-003", description: "Seismic lateral brace upgrade — Level 3",            amount: 34200, sentDate: daysAgo(4),  dueDate: daysAgo(-3), status: "Proposed" },
-  { id: "co3", projectId: "p3", project: "Ming Ave Retail",        coNumber: "CO-002", description: "Base plate connection change at Col. A1",             amount: 6800,  sentDate: daysAgo(9),  dueDate: daysAgo(-1), status: "Approved" },
-  { id: "co4", projectId: "p4", project: "Kern High Carports",     coNumber: "CO-005", description: "Lot C canopy extension — additional structural steel", amount: 41500, sentDate: daysAgo(6),  dueDate: daysAgo(-5), status: "Proposed" },
-  { id: "co5", projectId: "p6", project: "F-35 Stand – Lot 4",     coNumber: "CO-011", description: "Station 14 weld mod per EO-2026-044",                 amount: 28700, sentDate: daysAgo(3),  dueDate: daysAgo(-7), status: "Executed" },
-  { id: "co6", projectId: "p2", project: "CSUB Science Building",  coNumber: "CO-004", description: "Additional shear tabs — stair framing Level 2",       amount: 9100,  sentDate: daysAgo(14), dueDate: daysAgo(3),  status: "Proposed" },
-];
-const FAB_JOBS = [
-  { id: "fj1", projectId: "p1", project: "Stockdale Tower",        vertical: "Structural", totalPieces: 214, shipped: 48,  inFab: 80,  queued: 86,  phase: "Active Fab"    },
-  { id: "fj2", projectId: "p2", project: "CSUB Science Building",  vertical: "Structural", totalPieces: 388, shipped: 0,   inFab: 40,  queued: 348, phase: "Starting"      },
-  { id: "fj3", projectId: "p3", project: "Ming Ave Retail",        vertical: "Structural", totalPieces: 96,  shipped: 96,  inFab: 0,   queued: 0,   phase: "Complete"      },
-  { id: "fj4", projectId: "p4", project: "Kern High Carports",     vertical: "Solar",      totalPieces: 160, shipped: 120, inFab: 30,  queued: 10,  phase: "Near Complete" },
-  { id: "fj5", projectId: "p5", project: "Dignity Health Parking", vertical: "Solar",      totalPieces: 204, shipped: 0,   inFab: 0,   queued: 204, phase: "Not Started"   },
-  { id: "fj6", projectId: "p6", project: "F-35 Stand – Lot 4",     vertical: "Aero",       totalPieces: 72,  shipped: 22,  inFab: 35,  queued: 15,  phase: "Active Fab"    },
-  { id: "fj7", projectId: "p7", project: "USAF Ground Support",    vertical: "Aero",       totalPieces: 54,  shipped: 54,  inFab: 0,   queued: 0,   phase: "Complete"      },
-];
+const CHANGE_ORDERS = [];
+const FAB_JOBS       = [];
 // TODO: Replace with live store.queue once wired to this component
-const KB_QUEUE_SEED = [
-  { id: "q1", pmqId: "PMQ-2026-0001", title: "Seismic brace connection — CSUB Level 3", from: "Tony S.",  project: "CSUB Science Building", projectType: "Structural", urgency: "High",   createdAt: daysAgo(3),  resolved: false },
-  { id: "q2", pmqId: "PMQ-2026-0002", title: "AHJ comment response — Kern High solar",  from: "Luis A.",  project: "Kern High Carports",    projectType: "Solar",      urgency: "Medium", createdAt: daysAgo(1),  resolved: false },
-  { id: "q3", pmqId: "PMQ-2026-0003", title: "EO process for F-35 field weld mod",      from: "Adam K.",  project: "F-35 Stand – Lot 4",    projectType: "Aero",       urgency: "High",   createdAt: hoursAgo(5), resolved: false },
-  { id: "q4", pmqId: "PMQ-2026-0004", title: "Anchor rod jam nut spec — Stockdale",     from: "Tony S.",  project: "Stockdale Tower",       projectType: "Structural", urgency: "Low",    createdAt: daysAgo(5),  resolved: false },
-];
+const KB_QUEUE_SEED  = [];
 
 const WIDGET_META = {
   project_health: { label: "Project Health",       size: "wide" },
+  rfi_snapshot:   { label: "Open RFIs",             size: "wide" },
   fab_snapshot:   { label: "Fabrication Snapshot", size: "wide" },
   field_needs:    { label: "Field Needs",           size: "half" },
   owner_pending:  { label: "Owner Pending",         size: "half" },
@@ -66,14 +34,40 @@ const WIDGET_META = {
   change_orders:  { label: "Change Orders",         size: "half" },
   kb_inquiries:   { label: "KernBot Inquiries",     size: "half" },
 };
+// rfi_snapshot only appears for roles that actually have the RFI Dashboard
+// module (see ROLE_MODULES in core/utils.jsx) — mfg_eng/field don't, so it's
+// left out of their layouts below, same as owner_pending/change_orders/etc.
 const ROLE_LAYOUTS = {
-  admin:       ["project_health","fab_snapshot","kb_inquiries","field_needs","owner_pending","scope_items","change_orders"],
-  sr_pm:       ["project_health","fab_snapshot","kb_inquiries","field_needs","owner_pending","scope_items","change_orders"],
-  apm:         ["project_health","field_needs","owner_pending","change_orders","fab_snapshot","scope_items"],
-  coordinator: ["project_health","field_needs","owner_pending","change_orders","fab_snapshot","scope_items"],
+  admin:       ["project_health","rfi_snapshot","fab_snapshot","kb_inquiries","field_needs","owner_pending","scope_items","change_orders"],
+  sr_pm:       ["project_health","rfi_snapshot","fab_snapshot","kb_inquiries","field_needs","owner_pending","scope_items","change_orders"],
+  apm:         ["project_health","rfi_snapshot","field_needs","owner_pending","change_orders","fab_snapshot","scope_items"],
+  coordinator: ["project_health","rfi_snapshot","field_needs","owner_pending","change_orders","fab_snapshot","scope_items"],
   mfg_eng:     ["fab_snapshot","project_health","field_needs"],
   field:       ["field_needs","fab_snapshot"],
 };
+
+// Small rotating line under the greeting — add lines here whenever. Picked
+// deterministically from the local calendar date (not stored anywhere, not
+// randomized on refresh), so it's the same for everyone all day and changes
+// at local midnight. Guaranteed not to repeat yesterday's line as long as
+// there are 2+ lines — see pickDailyLine below.
+const DAILY_GREETINGS = [
+  // "Add lines here, one string each.",
+];
+
+// Days since a fixed epoch, counted off the *local* Y/M/D via Date.UTC (not
+// a real elapsed-time subtraction) so a DST transition can't shift the count
+// by an hour and land two different calendar days on the same integer —
+// which would break the "never twice in a row" guarantee below.
+const localDayNumber = d => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+function pickDailyLine(lines) {
+  if (!lines || lines.length === 0) return null;
+  // Straight rotation, one line per calendar day. Adjacent days always
+  // differ by exactly 1 in localDayNumber, so two consecutive days can only
+  // land on the same line if there's only one line to begin with.
+  const idx = localDayNumber(new Date()) % lines.length;
+  return lines[idx];
+}
 
 const firstName = name => name.split(" ")[0];
 const daysSince = iso  => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
@@ -89,6 +83,10 @@ const ddLabel   = iso => { const d=daysUntil(iso); if(d<0) return `${Math.abs(d)
 const scColor   = item => { const r=item.noticeDeadlineDays-daysSince(item.createdAt); return r<=0?C.danger:r<=3?C.warning:C.muted; };
 const scLabel   = item => { const r=item.noticeDeadlineDays-daysSince(item.createdAt); if(r<=0) return `${Math.abs(r)}d past window`; return r<=3?`${r}d left`:`${r}d remaining`; };
 const urgColor  = u => u==="High"?C.danger:u==="Medium"?C.warning:C.muted;
+// ProjectSight sends "0001-01-01..." as its sentinel for "no due date set"
+// (same quirk RFIApp.jsx's rfiDue/issDue accessors guard against) — treat it
+// as null rather than a real date 2000+ years overdue.
+const rfiDueDate = r => (r.DateDue && !String(r.DateDue).startsWith("0001")) ? r.DateDue : null;
 const coStColor = s => ({Proposed:C.warning,Approved:C.success,Executed:C.hint}[s]||C.muted);
 
 const filterByUser = user => {
@@ -210,6 +208,96 @@ function FabContent({jobs}){
       })}
     </div>
   );
+}
+
+// ── Open RFIs widget — the one real (non-mock) widget in this grid, backed
+// by the same ProjectSight-synced data as the RFI Dashboard. Overseers
+// (admin/sr_pm) get a per-PM open-count table; everyone else gets their own
+// open RFIs, soonest-due first. Mirrors RFIApp.jsx's TeamBreakdownTable/
+// visibleProjects logic exactly (same ownership rule: a project "belongs"
+// to whoever's name matches its TypeOfBuilding field) so the numbers here
+// always agree with the RFI Dashboard — see KSF_LEAD_MAP/TEAM_MEMBER_OPTS,
+// imported from there rather than redefined, to avoid the two drifting.
+function myVisibleProjects(user, projects) {
+  const lead = KSF_LEAD_MAP[user.id];
+  if (lead === null || lead === undefined) return projects;
+  const firstName = lead.split(" ")[0].toLowerCase();
+  return projects.filter(p => {
+    const tob = (p.TypeOfBuilding ?? "").trim();
+    return tob === lead || tob.toLowerCase().includes(firstName);
+  });
+}
+
+function teamRfiBreakdown(projects, rfisByProject) {
+  // Same caveat as RFIApp.jsx's TeamBreakdownTable: only Tony/Luis/Adam
+  // "own" jobs via TypeOfBuilding — JR/Josh/Lisbet/Jacob will show 0 here
+  // until CC'd-based visibility is built, same known gap, not new to this widget.
+  return TEAM_MEMBER_OPTS.filter(o => o !== "All").map(name => {
+    const projIds = new Set(projects.filter(p => (p.TypeOfBuilding ?? "").trim() === name)
+      .map(p => `${p.portfolioId}-${p.ProjectID}`));
+    const openCount = projects.filter(p => projIds.has(`${p.portfolioId}-${p.ProjectID}`))
+      .reduce((sum, p) => sum + (rfisByProject[`${p.portfolioId}-${p.ProjectID}`] || []).filter(isOpenRFI).length, 0);
+    return { name, openCount };
+  }).sort((a, b) => b.openCount - a.openCount);
+}
+
+function RfiSnapshotContent({ user, isAdmin, snapshot, setTab }) {
+  const breakdown = useMemo(
+    () => isAdmin ? teamRfiBreakdown(snapshot.projects, snapshot.rfisByProject) : null,
+    [isAdmin, snapshot]
+  );
+  const myOpenRfis = useMemo(() => {
+    if (isAdmin) return null;
+    const visible = myVisibleProjects(user, snapshot.projects);
+    return visible
+      .flatMap(p => (snapshot.rfisByProject[`${p.portfolioId}-${p.ProjectID}`] || []).map(r => ({ ...r, _project: p })))
+      .filter(isOpenRFI);
+  }, [isAdmin, user, snapshot]);
+
+  if (snapshot.loading) return <p style={{ margin: 0, fontSize: 12, color: C.hint, textAlign: "center", padding: "16px 0" }}>Loading…</p>;
+  if (snapshot.error)   return <p style={{ margin: 0, fontSize: 12, color: C.danger, textAlign: "center", padding: "16px 0" }}>{snapshot.error}</p>;
+
+  if (isAdmin) {
+    if (breakdown.every(r => r.openCount === 0)) return <EmptyState text="No open RFIs across the team"/>;
+    return (
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+        <thead>
+          <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+            <th style={{ textAlign: "left", padding: "4px 8px", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.hint }}>PM</th>
+            <th style={{ textAlign: "right", padding: "4px 8px", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: C.hint }}>Open RFIs</th>
+          </tr>
+        </thead>
+        <tbody>
+          {breakdown.map(row => (
+            <tr key={row.name} onClick={() => setTab("rfi")}
+              style={{ borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
+              <td style={{ padding: "6px 8px", color: C.text }}>{row.name}</td>
+              <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 700, color: row.openCount > 0 ? C.accentText : C.hint }}>{row.openCount}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+
+  if (myOpenRfis.length === 0) return <EmptyState text="No open RFIs on your projects"/>;
+  const top = [...myOpenRfis].sort((a, b) => {
+    const ad = rfiDueDate(a), bd = rfiDueDate(b);
+    if (!ad && !bd) return 0; if (!ad) return 1; if (!bd) return -1;
+    return new Date(ad) - new Date(bd);
+  }).slice(0, 5);
+  return top.map(r => {
+    const due = rfiDueDate(r);
+    return (
+      <ItemRow key={r.RFI_ID ?? r.Number} dotColor={due ? ddColor(due) : C.hint} onClick={() => setTab("rfi")}>
+        <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.Subject || "(No subject)"}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 10, color: C.muted }}>{r._project.Name}</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: due ? ddColor(due) : C.hint }}>{due ? ddLabel(due) : "No due date"}</span>
+        </div>
+      </ItemRow>
+    );
+  });
 }
 
 function FieldNeedsContent({items,setTab,isField}){
@@ -351,8 +439,67 @@ function AlertBar({data,setTab}){
 // happens. Not draggable/hideable like the mock widgets — just two fixed
 // cards above the grid.
 
-const FEEDBACK_STATUS_LABELS = { new: "New", in_progress: "In Progress", resolved: "Resolved" };
-const FEEDBACK_STATUS_COLOR  = { new: C.danger, in_progress: C.warning, resolved: C.success };
+const FEEDBACK_TYPE_LABELS = { bug: "Bugs", thought: "Thoughts" };
+
+function FeedbackRow({ f, isOpen, onToggle, onMarkDone, isViewingAs, viewingAsName }) {
+  const isDone = f.status === "done";
+  return (
+    <div style={{ borderTop: `1px solid ${C.border}`, padding: "9px 0", opacity: isDone ? 0.6 : 1 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+        <button onClick={e => { e.stopPropagation(); onMarkDone(f.id, isDone ? "open" : "done"); }}
+          disabled={isViewingAs} title={isViewingAs ? viewingAsTooltip(viewingAsName) : (isDone ? "Reopen" : "Mark done")}
+          style={{ flexShrink: 0, marginTop: 1, width: 16, height: 16, borderRadius: 4, padding: 0,
+            border: `1.5px solid ${isDone ? C.success : C.border}`, background: isDone ? C.success : "none",
+            cursor: isViewingAs ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {isDone && (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+          )}
+        </button>
+        <div style={{ flex: 1, minWidth: 0, cursor: "pointer" }} onClick={onToggle}>
+          <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.4, textDecoration: isDone ? "line-through" : "none",
+            overflow: isOpen ? "visible" : "hidden", textOverflow: "ellipsis", whiteSpace: isOpen ? "normal" : "nowrap" }}>{f.message}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 10, color: C.muted }}>{f.submittedByName}</span>
+            {f.pageContext && <span style={{ fontSize: 10, color: C.hint }}>· {f.pageContext}</span>}
+            <span style={{ fontSize: 10, color: C.hint }}>· {fmtRel(f.createdAt)}</span>
+          </div>
+        </div>
+      </div>
+      {isOpen && f.attachments.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8, marginLeft: 24 }}>
+          {f.attachments.map(a => (
+            <a key={a.id} href={`/api/feedback/attachment?attachmentId=${a.id}`} target="_blank" rel="noreferrer"
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 8px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 10.5, color: C.muted, textDecoration: "none" }}>
+              <span style={{ display: "flex" }}>{a.mimeType === "application/pdf" ? MI.pdf : MI.file}</span>{a.fileName}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FeedbackSection({ typeKey, items, expandedId, setExpandedId, onMarkDone, isViewingAs, viewingAsName }) {
+  const openCount = items.filter(f => f.status !== "done").length;
+  return (
+    <div style={{ flex: 1, minWidth: 220 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+        <span style={{ color: C.muted, display: "flex" }}>{MI[typeKey]}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: C.muted }}>{FEEDBACK_TYPE_LABELS[typeKey]}</span>
+        {openCount > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 20, background: C.dangerDim, color: C.danger }}>{openCount} open</span>}
+      </div>
+      {items.length === 0 ? (
+        <p style={{ margin: 0, fontSize: 12, color: C.hint, padding: "6px 0" }}>Nothing here.</p>
+      ) : items.map(f => (
+        <FeedbackRow key={f.id} f={f} isOpen={expandedId === f.id}
+          onToggle={() => setExpandedId(expandedId === f.id ? null : f.id)}
+          onMarkDone={onMarkDone} isViewingAs={isViewingAs} viewingAsName={viewingAsName} />
+      ))}
+    </div>
+  );
+}
 
 function FeedbackTriageCard({ isViewingAs, viewingAsName }) {
   const [items,      setItems]      = useState(null);
@@ -392,7 +539,9 @@ function FeedbackTriageCard({ isViewingAs, viewingAsName }) {
   );
   if (!items) return null;
 
-  const openCount = items.filter(f => f.status !== "resolved").length;
+  const openCount = items.filter(f => f.status !== "done").length;
+  const bugs     = items.filter(f => f.type === "bug");
+  const thoughts = items.filter(f => f.type === "thought");
 
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", marginBottom: 14 }}>
@@ -400,51 +549,17 @@ function FeedbackTriageCard({ isViewingAs, viewingAsName }) {
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: C.muted, flex: 1 }}>Feedback Triage</span>
         {openCount > 0 && <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: C.dangerDim, color: C.danger }}>{openCount} open</span>}
       </div>
-      <div style={{ padding: items.length ? "2px 14px 8px" : "12px 14px" }}>
-        {items.length === 0 && <p style={{ margin: 0, fontSize: 12, color: C.hint, textAlign: "center", padding: "10px 0" }}>No feedback yet.</p>}
-        {items.map(f => {
-          const isOpen = expandedId === f.id;
-          return (
-            <div key={f.id} style={{ borderTop: `1px solid ${C.border}`, padding: "9px 0" }}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }} onClick={() => setExpandedId(isOpen ? null : f.id)}>
-                <span style={{ color: C.muted, flexShrink: 0, marginTop: 1, display: "flex" }}>{MI[f.type]}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: 12, color: C.text, lineHeight: 1.4, overflow: isOpen ? "visible" : "hidden", textOverflow: "ellipsis", whiteSpace: isOpen ? "normal" : "nowrap" }}>{f.message}</p>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 10, color: C.muted }}>{f.submittedByName}</span>
-                    {f.pageContext && <span style={{ fontSize: 10, color: C.hint }}>· {f.pageContext}</span>}
-                    <span style={{ fontSize: 10, color: C.hint }}>· {fmtRel(f.createdAt)}</span>
-                    <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 3, background: FEEDBACK_STATUS_COLOR[f.status] + "20", color: FEEDBACK_STATUS_COLOR[f.status] }}>{FEEDBACK_STATUS_LABELS[f.status]}</span>
-                  </div>
-                </div>
-              </div>
-              {isOpen && (
-                <div style={{ marginTop: 8, marginLeft: 21 }}>
-                  {f.attachments.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                      {f.attachments.map(a => (
-                        <a key={a.id} href={`/api/feedback/attachment?attachmentId=${a.id}`} target="_blank" rel="noreferrer"
-                          style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 8px", background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 10.5, color: C.muted, textDecoration: "none" }}>
-                          <span style={{ display: "flex" }}>{a.mimeType === "application/pdf" ? MI.pdf : MI.file}</span>{a.fileName}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                  <div style={{ display: "flex", gap: 6 }}>
-                    {["new", "in_progress", "resolved"].map(s => (
-                      <button key={s} onClick={e => { e.stopPropagation(); setStatus(f.id, s); }}
-                        disabled={isViewingAs}
-                        title={isViewingAs ? viewingAsTooltip(viewingAsName) : undefined}
-                        style={{ fontSize: 10.5, fontWeight: 600, padding: "3px 9px", borderRadius: 5, border: `1px solid ${f.status === s ? FEEDBACK_STATUS_COLOR[s] : C.border}`, background: f.status === s ? FEEDBACK_STATUS_COLOR[s] + "20" : C.surface, color: f.status === s ? FEEDBACK_STATUS_COLOR[s] : C.muted, cursor: isViewingAs ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isViewingAs ? 0.5 : 1 }}>
-                        {FEEDBACK_STATUS_LABELS[s]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+      <div style={{ padding: items.length ? "8px 14px 10px" : "12px 14px" }}>
+        {items.length === 0 ? (
+          <p style={{ margin: 0, fontSize: 12, color: C.hint, textAlign: "center", padding: "10px 0" }}>No feedback yet.</p>
+        ) : (
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+            <FeedbackSection typeKey="bug" items={bugs} expandedId={expandedId} setExpandedId={setExpandedId}
+              onMarkDone={setStatus} isViewingAs={isViewingAs} viewingAsName={viewingAsName} />
+            <FeedbackSection typeKey="thought" items={thoughts} expandedId={expandedId} setExpandedId={setExpandedId}
+              onMarkDone={setStatus} isViewingAs={isViewingAs} viewingAsName={viewingAsName} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -584,6 +699,21 @@ export default function DashboardApp({user,setTab,isViewingAs=false}){
   const [dragId,setDragId]=useState(null);
   const [dragOverId,setDragOverId]=useState(null);
 
+  // Backs the Open RFIs widget — real ProjectSight-synced data, fetched once
+  // on mount (cached 4min TTL at the projectsightApi.js layer, same as the
+  // RFI Dashboard, so this doesn't add a new hit against ProjectSight).
+  const [rfiSnapshot, setRfiSnapshot] = useState({ loading: true, error: null, projects: [], rfisByProject: {} });
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([getProjects(), getAllRFIs()])
+      .then(([projects, rfisByProject]) => {
+        if (cancelled) return;
+        setRfiSnapshot({ loading: false, error: null, projects: projects.filter(isActiveProject), rfisByProject });
+      })
+      .catch(e => { if (!cancelled) setRfiSnapshot(s => ({ ...s, loading: false, error: e.message })); });
+    return () => { cancelled = true; };
+  }, []);
+
   useEffect(()=>{ try{localStorage.setItem(lk,JSON.stringify(widgetOrder));localStorage.setItem(hk,JSON.stringify(hiddenWidgets));}catch{} },[widgetOrder,hiddenWidgets]);
 
   const hideWidget=id=>{setWidgetOrder(p=>p.filter(w=>w!==id));setHiddenWidgets(p=>[...p,id]);};
@@ -595,6 +725,7 @@ export default function DashboardApp({user,setTab,isViewingAs=false}){
 
   const today=new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
   const totalOpen=data.ownerPending.length+data.fieldNeeds.filter(f=>f.status==="Open").length+data.scopeItems.length+data.changeOrders.length+data.kbQueue.length;
+  const dailyLine=pickDailyLine(DAILY_GREETINGS);
 
   const renderWidget=id=>{
     const size=WIDGET_META[id]?.size||"half";
@@ -602,6 +733,14 @@ export default function DashboardApp({user,setTab,isViewingAs=false}){
     const ws={gridColumn:size==="wide"?"1 / -1":"span 1"};
     switch(id){
       case "project_health": return <div key={id} style={ws}><Widget {...shared} title="Project Health" count={data.projects.length}><ProjectHealthContent data={data} setTab={setTab}/></Widget></div>;
+      case "rfi_snapshot": {
+        const n = rfiSnapshot.loading || rfiSnapshot.error ? undefined : isAdmin
+          ? teamRfiBreakdown(rfiSnapshot.projects, rfiSnapshot.rfisByProject).reduce((s, r) => s + r.openCount, 0)
+          : myVisibleProjects(user, rfiSnapshot.projects)
+              .flatMap(p => rfiSnapshot.rfisByProject[`${p.portfolioId}-${p.ProjectID}`] || [])
+              .filter(isOpenRFI).length;
+        return <div key={id} style={ws}><Widget {...shared} title="Open RFIs" count={n} countColor={n > 0 ? C.danger : undefined}><RfiSnapshotContent user={user} isAdmin={isAdmin} snapshot={rfiSnapshot} setTab={setTab}/></Widget></div>;
+      }
       case "fab_snapshot":   return <div key={id} style={ws}><Widget {...shared} title="Fabrication Snapshot" count={data.fabJobs.length}><FabContent jobs={data.fabJobs}/></Widget></div>;
       case "field_needs":    { const n=data.fieldNeeds.filter(f=>f.status==="Open").length; return <div key={id} style={ws}><Widget {...shared} title="Field Needs" count={n} countColor={n>0?C.danger:undefined}><FieldNeedsContent items={data.fieldNeeds} setTab={setTab} isField={isField}/></Widget></div>; }
       case "owner_pending":  { const n=data.ownerPending.length; return <div key={id} style={ws}><Widget {...shared} title="Owner Pending" count={n} countColor={n>0?C.warning:undefined}><OwnerPendingContent items={data.ownerPending} setTab={setTab}/></Widget></div>; }
@@ -622,6 +761,7 @@ export default function DashboardApp({user,setTab,isViewingAs=false}){
               <span style={{fontSize:12,color:C.hint}}>{today}</span>
               {totalOpen>0&&<><span style={{fontSize:12,color:C.hint}}>·</span><span style={{fontSize:12,fontWeight:600,color:C.danger}}>{totalOpen} item{totalOpen!==1?"s":""} need attention</span></>}
             </div>
+            {dailyLine && <p style={{margin:"4px 0 0",fontSize:12,color:C.hint,fontStyle:"italic"}}>{dailyLine}</p>}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             {user.department&&(()=>{const vc=vcol(user.department.label);return <span style={{fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:20,background:vc.bg,color:vc.color,border:`1px solid ${vc.color}33`}}>{user.department.label}</span>;})()}

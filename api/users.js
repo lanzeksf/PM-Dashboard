@@ -5,13 +5,34 @@ import { prisma } from "../server/prisma.js";
 import { getSessionUser } from "../server/auth.js";
 import { toClientUser } from "../server/userShape.js";
 
+const VALID_ROLES = ["admin", "sr_pm", "apm", "coordinator", "superintendent", "mfg_eng", "field"];
+
 export default async function handler(req, res) {
-  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "GET" && req.method !== "PATCH") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
   const caller = await getSessionUser(req, res, prisma);
   if (!caller) return res.status(401).json({ error: "No session" });
   if (caller.role !== "admin" && caller.role !== "sr_pm") {
     return res.status(403).json({ error: "Forbidden" });
+  }
+
+  if (req.method === "PATCH") {
+    const { userId, position, role } = req.body || {};
+    if (!userId) return res.status(400).json({ error: "userId required" });
+    if (role !== undefined && !VALID_ROLES.includes(role)) {
+      return res.status(400).json({ error: "Invalid role" });
+    }
+    if (position !== undefined && !position.trim()) {
+      return res.status(400).json({ error: "Position cannot be blank" });
+    }
+    const data = {};
+    if (position !== undefined) data.position = position.trim();
+    if (role !== undefined) data.role = role;
+    const updated = await prisma.user.update({ where: { id: userId }, data }).catch(() => null);
+    if (!updated) return res.status(404).json({ error: "Not found" });
+    return res.status(200).json({ user: toClientUser(updated) });
   }
 
   const users = await prisma.user.findMany({

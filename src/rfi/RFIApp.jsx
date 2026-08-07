@@ -8,7 +8,7 @@ const RUN_ISSUE_DISCOVERY = false;
 
 // ── KSF team → Territory filter mapping ──────────────────────────────────────
 
-const KSF_LEAD_MAP = {
+export const KSF_LEAD_MAP = {
   lanze:   null,
   loren:   null,
   jacob:   null,
@@ -23,11 +23,38 @@ const KSF_LEAD_MAP = {
 // team member to drill into. Real current names from USERS_LIST (core/utils.jsx),
 // replacing a stale legacy roster (Antonio S./Jake/Frank/Ali) that no longer
 // matched anyone and silently hid Tony, JR, Josh, Lisbet, and Jacob from this
-// view. Tony/Luis/Adam own jobs (matched via ProjectSight's TypeOfBuilding
-// field, same as KSF_LEAD_MAP above) so "their jobs" breaks down correctly;
-// JR/Josh/Lisbet/Jacob don't own jobs this way, so their rows will show 0
-// until CC'd-based visibility is built (pending — see Lanze).
-const TEAM_MEMBER_OPTS = ["All", "Tony S.", "Luis A.", "Adam K.", "JR", "Josh", "Lisbet L.", "Jacob T."];
+// view.
+export const TEAM_MEMBER_OPTS = ["All", "Tony S.", "Luis A.", "Adam K.", "JR C.", "Josh L.", "Lisbet L.", "Jacob T."];
+
+// Tony/Luis/Adam own jobs (matched via ProjectSight's TypeOfBuilding field,
+// same as KSF_LEAD_MAP above) — for them, "their jobs" means every record on
+// every project tagged as theirs. Everyone else in the roster doesn't own
+// jobs this way, so for them "their view" instead means "records they're
+// CC'd on" — see CC_ONLY_MEMBERS/TEAM_MEMBER_EMAIL/ccEmailsOf below.
+const CC_ONLY_MEMBERS = ["JR C.", "Josh L.", "Lisbet L.", "Jacob T."];
+
+// Real login emails per CLAUDE.md's roster — used only to match against a
+// record's CourtesyCopies (see ccEmailsOf) for the CC_ONLY_MEMBERS above.
+const TEAM_MEMBER_EMAIL = {
+  "Tony S.":   "antonio@kernsteel.com",
+  "Luis A.":   "larrezola@kernsteel.com",
+  "Adam K.":   "adam@kernsteel.com",
+  "JR C.":     "demetrio@kernsteel.com",
+  "Josh L.":   "jlopez@kernsteel.com",
+  "Lisbet L.": "lisbet@kernsteel.com",
+  "Jacob T.":  "jtiffany@kernsteel.com",
+};
+
+// CourtesyCopies is ProjectSight's CC list — same shape on both RFIs and
+// Issues (confirmed via api/data/debug-fields.js against real data: a real
+// RFI's CourtesyCopies included Luis's actual login email). Excludes
+// deleted/delete-requested entries, same convention as linkedIssuesOf/
+// linkedRFIsOf elsewhere in this file. NOT the same as Assignees (the
+// record's primary responsible party) — CC'd is specifically what was asked
+// for here.
+const ccEmailsOf = r => (r.CourtesyCopies || [])
+  .filter(cc => !cc.Deleted && !cc.DeleteRequested)
+  .map(cc => (cc.ContactEMail || "").toLowerCase());
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -99,8 +126,6 @@ const rfiDue = r => {
 };
 const rfiNum      = r => r.Number ?? r.number ?? r.rfiNumber ?? r.sequenceNumber ?? r.id ?? "—";
 const rfiIdVal    = r => String(r.RFI_ID ?? r.RFIID ?? r.id ?? r.rfiId ?? r.Number ?? r.number ?? "");
-const rfiJobNum   = r => r.Number ?? r.jobNumber ?? r.sequenceNumber ?? "—";
-const rfiDetailer = r => r.AuthorContactName ?? r.assignedCompany ?? r.submittedBy ?? r.createdBy ?? "Unknown";
 const rfiImp      = r => r.Importance ?? r.importance ?? r.priority ?? r.urgency ?? null;
 const rfiDisc     = r => r.Discipline ?? r.discipline ?? r._project?.vertical ?? "Unknown";
 
@@ -133,7 +158,35 @@ function normalizeStatus(r) {
   return rfiStatusVal(r);
 }
 
-const isOpenRFI = r => r.WorkflowStateName !== "Closed" && r.WorkflowStateName !== "Void";
+export const isOpenRFI = r => r.WorkflowStateName !== "Closed" && r.WorkflowStateName !== "Void";
+
+// Project-level status (ProjectSight's `Status` field, e.g. "Active"/"Closed"
+// on the job itself) — distinct from a record's WorkflowStateName. A job
+// marked Closed in ProjectSight should disappear from the tool entirely.
+export const isActiveProject = p => (p.Status ?? "").trim().toLowerCase() !== "closed";
+
+// Detailer is a project-level attribute, not a per-record one — confirmed
+// with Lanze there's no dedicated "Detailer" field in ProjectSight's API.
+// KSF repurposes the built-in "Project Manager" key-contact slot to record
+// the Detailer (ProjectSight lets the display label be customized per org;
+// KSF relabeled several of these slots — e.g. some projects use it for
+// Architect instead). `ProjectManagerID` is a contact ID that resolves to a
+// company via `ProjectContactLinks` (the project's team-members list) — the
+// same contact/company relationship RFI records use for AuthorContactID/
+// AuthorCompanyName. Falls back to the raw person name, then "Unknown", if
+// no team-member link matches (e.g. that contact was removed from the job).
+const detailerCompanyOf = project => {
+  if (!project) return null;
+  const links = project.ProjectContactLinks || [];
+  const contactId = project.ProjectManagerID;
+  const companyId = project.ProjectManagerCompanyID;
+  const byContact = contactId != null && links.find(l => l.ContactID === contactId && !l.Deleted);
+  if (byContact?.CompanyName) return byContact.CompanyName;
+  const byCompany = companyId && links.find(l => l.CompanyID === companyId && !l.Deleted);
+  if (byCompany?.CompanyName) return byCompany.CompanyName;
+  return project.ProjectManager || null;
+};
+const recordDetailer = r => detailerCompanyOf(r._project) ?? "Unknown";
 
 const fmtD = d => d
   ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -179,6 +232,11 @@ const recStyle = rec => ({
 const psRFILink   = (pid, projId, id) => `https://prod.projectsightapp.trimble.com/Web/app/RFI?orgid=${pid}&projid=${projId}&Action=Open&PDT=8&PKID=${id}&OALD=1`;
 const psIssueLink = (pid, projId, id) => `https://prod.projectsightapp.trimble.com/Web/app/Issues?orgid=${pid}&projid=${projId}&Action=Open&PDT=75&PKID=${id}&OALD=1`;
 
+// Confirmed project landing page (no listid/PDT/PKID — just the project
+// overview) — pulled directly from a real ProjectSight URL, e.g.
+// .../web/app/Project?orgid=5ce1bcb1-...&projid=21 for "25694 Fresno Cafeteria".
+const psProjectLink = (pid, projId) => `https://prod.projectsightapp.trimble.com/web/app/Project?orgid=${pid}&projid=${projId}`;
+
 // RecordToRecordLinks entries where LinkedTableType === 75 (Issue), excluding
 // deleted/delete-requested links. A single RFI can have more than one.
 const linkedIssuesOf = r => (r.RecordToRecordLinks || []).filter(
@@ -204,8 +262,6 @@ const issDue = i => {
 };
 const issNum    = i => i.Number ?? i.number ?? i.id ?? "—";
 const issIdVal  = i => String(i.IssueID ?? i.id ?? i.issueId ?? i.Number ?? i.number ?? "");
-const issJobNum = i => i.Number ?? i.number ?? "—";
-const issAuthor = i => i.AuthorContactName ?? i.createdBy ?? "Unknown";
 const issImpVal = i => i.Importance ?? i.importance ?? null;
 const isOpenIssueRecord = i => i.WorkflowStateName !== "Closed" && i.WorkflowStateName !== "Void";
 
@@ -214,7 +270,7 @@ const RECORD_KINDS = {
   rfi: {
     labelPlural: "RFIs", numColLabel: "RFI #",
     isOpen: isOpenRFI, due: rfiDue, submitted: rfiSubmitted, num: rfiNum, idVal: rfiIdVal,
-    jobNum: rfiJobNum, subject: rfiSubject, detailer: rfiDetailer, discipline: rfiDisc, importance: rfiImp,
+    subject: rfiSubject, detailer: recordDetailer, discipline: rfiDisc, importance: rfiImp,
     link: (pid, projId, r) => psRFILink(pid, projId, rfiIdVal(r)),
     linkedLabel: "Linked Issue",
     linkedOf: linkedIssuesOf,
@@ -223,7 +279,7 @@ const RECORD_KINDS = {
   issue: {
     labelPlural: "Issues", numColLabel: "Issue #",
     isOpen: isOpenIssueRecord, due: issDue, submitted: issSubmitted, num: issNum, idVal: issIdVal,
-    jobNum: issJobNum, subject: issSubject, detailer: issAuthor,
+    subject: issSubject, detailer: recordDetailer,
     discipline: i => i._project?.vertical ?? "Unknown", importance: issImpVal,
     link: (pid, projId, i) => psIssueLink(pid, projId, issIdVal(i)),
     linkedLabel: "Linked RFI",
@@ -675,57 +731,361 @@ const impChipStyle = imp => ({
 }[imp] || { color: C.muted, bg: C.surface2 });
 
 // ── Full record table (RFIs or Issues, driven by `kind`) ──────────────────────
+// Columns are user-reorderable (drag a header) and user-hideable (Grid
+// Options popup) — preference persists per-user in localStorage, shared
+// across the RFIs/Issues tabs since the column set is identical either way.
+// Each column carries its own filter control in a header sub-row (pivot-
+// table style) instead of a separate filter bar above the table.
 
-function RecordTable({ records, kind, enabledFilters }) {
-  const has = f => enabledFilters.includes(f);
+const DEFAULT_COLUMN_ORDER = ["project", "discipline", "num", "subject", "detailer", "submitted", "due", "age", "importance", "status", "linked"];
 
-  const mkFilter = () => ({
-    jobNumber:  "",
-    project:    "all",
-    detailer:   "all",
-    discipline: "all",
-    status:     "all",
-    importance: "all",
-    band:       "all",
-  });
+// weight: relative share of table width when visible (colorbar gets a fixed
+// slice separately — see widthPct below). filter: which header filter control
+// to render, or null for sort-only/no-filter columns.
+const COLUMN_META = {
+  project:    { label: () => "Project",     sortable: true,  weight: 16, filter: "project"     },
+  discipline: { label: () => "Discipline",  sortable: true,  weight: 9,  filter: "discipline"  },
+  num:        { label: k => k.numColLabel,  sortable: false, weight: 8,  filter: null          },
+  subject:    { label: () => "Subject",     sortable: false, weight: 20, filter: "subject"     },
+  detailer:   { label: () => "Detailer",    sortable: true,  weight: 13, filter: "detailer"    },
+  submitted:  { label: () => "Submitted",   sortable: true,  weight: 9,  filter: null          },
+  due:        { label: () => "Due",         sortable: true,  weight: 10, filter: "band"        },
+  age:        { label: () => "Days Open",   sortable: true,  weight: 7,  filter: null          },
+  importance: { label: () => "Importance",  sortable: true,  weight: 8,  filter: "importance"  },
+  status:     { label: () => "Status",      sortable: true,  weight: 10, filter: "status"      },
+  linked:     { label: k => k.linkedLabel,  sortable: false, weight: 10, filter: null          },
+};
 
-  const [filter, setFilter] = useState(mkFilter);
+const VISIBLE_ROWS = 12; // beyond this, the body scrolls internally instead of pushing the page down
+const ROW_HEIGHT    = 53;
+const HEAD_HEIGHT   = 32;
+const FILTER_ROW_HEIGHT = 38;
+
+// Minimum weight a column can be squeezed to when a neighbor borrows width
+// from it (see startResize below) — keeps a column from being dragged down
+// to unreadable/zero width.
+const MIN_COLUMN_WEIGHT = 4;
+
+function loadColumnPrefs(storageKey) {
+  if (storageKey) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey));
+      if (saved) {
+        const order  = Array.isArray(saved.order) ? saved.order.filter(k => DEFAULT_COLUMN_ORDER.includes(k)) : [];
+        const missing = DEFAULT_COLUMN_ORDER.filter(k => !order.includes(k));
+        const hidden = Array.isArray(saved.hidden) ? saved.hidden.filter(k => DEFAULT_COLUMN_ORDER.includes(k)) : [];
+        const widths = (saved.widths && typeof saved.widths === "object") ? saved.widths : {};
+        return { order: [...order, ...missing], hidden, widths };
+      }
+    } catch {}
+  }
+  return { order: DEFAULT_COLUMN_ORDER, hidden: [], widths: {} };
+}
+
+function GridOptionsMenu({ columns, hidden, onToggle, onReset }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button onClick={() => setOpen(o => !o)}
+        style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, padding: "4px 10px",
+          borderRadius: 6, border: `1px solid ${open ? C.accent + "66" : C.border}`,
+          background: open ? C.accentDim : C.surface, color: open ? C.accentText : C.muted,
+          cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+        ⚙ Grid Options
+      </button>
+      {open && (
+        <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 30, width: 200,
+          background: C.surface, border: `1px solid ${C.borderHi}`, borderRadius: 8,
+          boxShadow: "0 8px 28px rgba(0,0,0,0.22)", padding: 10 }}>
+          <p style={{ margin: "0 0 6px", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
+            textTransform: "uppercase", color: C.hint }}>Show columns</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 240, overflowY: "auto" }}>
+            {columns.map(col => (
+              <label key={col.key} style={{ display: "flex", alignItems: "center", gap: 7, padding: "3px 2px",
+                fontSize: 12, color: C.text, cursor: "pointer" }}>
+                <input type="checkbox" checked={!hidden.includes(col.key)} onChange={() => onToggle(col.key)} />
+                {col.label}
+              </label>
+            ))}
+          </div>
+          <button onClick={onReset}
+            style={{ marginTop: 8, fontSize: 11, fontWeight: 600, color: C.accentText, background: "none",
+              border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
+            Reset to default
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const EMPTY_FILTER = {
+  project: "all", discipline: "all", subject: "", detailer: "all",
+  status: "all", importance: "all", band: "all",
+};
+
+const filterInputSt = active => ({
+  width: "100%", fontSize: 11, padding: "4px 6px", borderRadius: 5, fontFamily: "inherit",
+  border: `1px solid ${active ? C.accent + "66" : C.border}`, background: C.surface,
+  color: active ? C.accentText : C.muted, boxSizing: "border-box",
+});
+
+// Top-level (not nested inside RecordTable) so identity is stable across
+// re-renders — a component redefined every render gets a fresh type each
+// time, which makes React unmount+remount its DOM node (e.g. the Subject
+// text input) on every keystroke instead of just updating its value. That
+// was the "can only type one letter at a time" bug.
+function FilterControl({ colKey, filter, setF, projectOpts, detailerOpts }) {
+  const kindKey = COLUMN_META[colKey].filter;
+  if (!kindKey) return null;
+  if (kindKey === "subject") {
+    return (
+      <input type="text" value={filter.subject} placeholder="Search…"
+        onChange={e => setF("subject", e.target.value)} style={filterInputSt(!!filter.subject)} />
+    );
+  }
+  if (kindKey === "project") {
+    return (
+      <select value={filter.project} onChange={e => setF("project", e.target.value)} style={filterInputSt(filter.project !== "all")}>
+        <option value="all">All projects</option>
+        {projectOpts.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+  }
+  if (kindKey === "discipline") {
+    return (
+      <select value={filter.discipline} onChange={e => setF("discipline", e.target.value)} style={filterInputSt(filter.discipline !== "all")}>
+        <option value="all">All disciplines</option>
+        {["Structural", "Solar", "Aero"].map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+  }
+  if (kindKey === "detailer") {
+    return (
+      <select value={filter.detailer} onChange={e => setF("detailer", e.target.value)} style={filterInputSt(filter.detailer !== "all")}>
+        <option value="all">All detailers</option>
+        {detailerOpts.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+  }
+  if (kindKey === "band") {
+    return (
+      <select value={filter.band} onChange={e => setF("band", e.target.value)} style={filterInputSt(filter.band !== "all")}>
+        <option value="all">All ages</option>
+        <option value="overdue">Overdue</option>
+        <option value="soon3">Due ≤ 3d</option>
+        <option value="soon7">Due ≤ 7d</option>
+        <option value="ontrack">On Track</option>
+        <option value="nodate">No Date</option>
+      </select>
+    );
+  }
+  if (kindKey === "importance") {
+    return (
+      <select value={filter.importance} onChange={e => setF("importance", e.target.value)} style={filterInputSt(filter.importance !== "all")}>
+        <option value="all">All</option>
+        {["Low", "Normal", "High", "Urgent"].map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+  }
+  if (kindKey === "status") {
+    return (
+      <select value={filter.status} onChange={e => setF("status", e.target.value)} style={filterInputSt(filter.status !== "all")}>
+        <option value="all">All</option>
+        {["Draft", "Open", "KSF PM Review", "Submitted to GC", "Closed"].map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+  }
+  return null;
+}
+
+function ColumnCell({ colKey, r, kind }) {
+  switch (colKey) {
+    case "project": {
+      const name = r._project.Name;
+      return (
+        <a href={psProjectLink(r._project.portfolioId, r._project.ProjectID)}
+          target="_blank" rel="noopener noreferrer" title={name}
+          style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.text, textDecoration: "none",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+          onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
+          onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}>
+          {name}
+        </a>
+      );
+    }
+    case "discipline":
+      return <VertBadge v={kind.discipline(r)} />;
+    case "num":
+      return (
+        <a href={kind.link(r._project.portfolioId, r._project.ProjectID, r)}
+          target="_blank" rel="noopener noreferrer"
+          style={{ color: C.accentText, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
+          onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
+          onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}>
+          {kind.num(r)}
+        </a>
+      );
+    case "subject":
+      return (
+        <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis",
+          whiteSpace: "nowrap", color: C.text }} title={kind.subject(r)}>
+          {kind.subject(r)}
+        </span>
+      );
+    case "detailer": {
+      const name = kind.detailer(r);
+      return (
+        <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis",
+          whiteSpace: "nowrap", color: C.muted, fontSize: 11 }} title={name}>
+          {name}
+        </span>
+      );
+    }
+    case "submitted":
+      return <span style={{ color: C.muted, whiteSpace: "nowrap" }}>{fmtD(kind.submitted(r))}</span>;
+    case "due": {
+      const band = ageBand(kind.due(r));
+      return kind.due(r)
+        ? <span style={{ color: BAND_C[band], fontWeight: 600, whiteSpace: "nowrap" }}>{fmtD(kind.due(r))}</span>
+        : <span style={{ color: C.hint }}>—</span>;
+    }
+    case "age":
+      return <span style={{ color: C.muted, whiteSpace: "nowrap" }}>{daysOpenCalc(kind.submitted(r))}d</span>;
+    case "importance": {
+      const imp = kind.importance(r) ?? "Normal", ics = impChipStyle(imp);
+      return (
+        <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
+          background: ics.bg, color: ics.color, whiteSpace: "nowrap" }}>{imp}</span>
+      );
+    }
+    case "status": {
+      const sc = wfnChipStyle(r.WorkflowStateName);
+      return (
+        <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
+          background: sc.bg, color: sc.color, whiteSpace: "nowrap" }}>{r.WorkflowStateName || "—"}</span>
+      );
+    }
+    case "linked": {
+      const linked = kind.linkedOf(r);
+      if (linked.length === 0) return <span style={{ color: C.hint }}>—</span>;
+      return (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+          {linked.map(li => (
+            <a key={li.RecordLinkID}
+              href={kind.linkedLink(r._project.portfolioId, r._project.ProjectID, li.LinkedRecordID)}
+              target="_blank" rel="noopener noreferrer" title={li.RecordTitle}
+              style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
+                background: C.accentDim, color: C.accentText, textDecoration: "none", whiteSpace: "nowrap" }}
+              onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
+              onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}>
+              {li.RecordNumber}
+            </a>
+          ))}
+        </div>
+      );
+    }
+    default: return null;
+  }
+}
+
+function RecordTable({ records, kind, user }) {
+  const storageKey = user?.id ? `ksf-rfi-table-cols-${user.id}` : null;
+
+  const [columnOrder, setColumnOrder] = useState(() => loadColumnPrefs(storageKey).order);
+  const [hiddenCols,  setHiddenCols]  = useState(() => loadColumnPrefs(storageKey).hidden);
+  const [columnWidths, setColumnWidths] = useState(() => loadColumnPrefs(storageKey).widths);
+  useEffect(() => {
+    if (!storageKey) return;
+    try { localStorage.setItem(storageKey, JSON.stringify({ order: columnOrder, hidden: hiddenCols, widths: columnWidths })); } catch {}
+  }, [columnOrder, hiddenCols, columnWidths, storageKey]);
+
+  const [dragCol,     setDragCol]     = useState(null);
+  const [dragOverCol, setDragOverCol] = useState(null);
+  const handleColDrop = toKey => {
+    if (!dragCol || dragCol === toKey) return;
+    setColumnOrder(prev => {
+      const arr = [...prev], from = arr.indexOf(dragCol), to = arr.indexOf(toKey);
+      if (from === -1 || to === -1) return arr;
+      arr.splice(from, 1); arr.splice(to, 0, dragCol);
+      return arr;
+    });
+  };
+  const toggleColumn = key => setHiddenCols(h => h.includes(key) ? h.filter(k => k !== key) : [...h, key]);
+  const resetColumns = () => { setColumnOrder(DEFAULT_COLUMN_ORDER); setHiddenCols([]); setColumnWidths({}); };
+
+  const visibleCols = columnOrder.filter(k => !hiddenCols.includes(k));
+  const effectiveWeight = key => columnWidths[key] ?? COLUMN_META[key].weight;
+  const totalWeight = visibleCols.reduce((s, k) => s + effectiveWeight(k), 0) || 1;
+  const widthPct    = key => (effectiveWeight(key) / totalWeight) * 97; // 97 leaves ~3% for the colorbar strip
+
+  // Dragging a column's right edge takes width from (or gives it to) the
+  // next visible column — total table width never changes, "the ends" stay
+  // put. Reads the table's rendered px width once at drag start rather than
+  // tracking individual header widths; that's enough to convert a pixel
+  // delta into a weight delta since widthPct() is linear in weight.
+  const tableRef = useRef(null);
+  const resizingRef = useRef(false);
+  const [resizingCol, setResizingCol] = useState(null);
+  function startResize(e, colKey) {
+    e.preventDefault();
+    e.stopPropagation();
+    const idx = visibleCols.indexOf(colKey);
+    const nextKey = visibleCols[idx + 1];
+    if (!nextKey || !tableRef.current) return;
+    const startX = e.clientX;
+    const tableWidthPx = tableRef.current.getBoundingClientRect().width;
+    const startWeightA = effectiveWeight(colKey);
+    const startWeightB = effectiveWeight(nextKey);
+    const pairWeight = startWeightA + startWeightB;
+    resizingRef.current = true;
+    setResizingCol(colKey);
+    const onMove = ev => {
+      const deltaPx = ev.clientX - startX;
+      const deltaWeight = deltaPx * totalWeight / (tableWidthPx * 0.97);
+      let newA = startWeightA + deltaWeight;
+      newA = Math.max(MIN_COLUMN_WEIGHT, Math.min(pairWeight - MIN_COLUMN_WEIGHT, newA));
+      const newB = pairWeight - newA;
+      setColumnWidths(w => ({ ...w, [colKey]: newA, [nextKey]: newB }));
+    };
+    const onUp = () => {
+      resizingRef.current = false;
+      setResizingCol(null);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
+
+  const [filter, setFilter] = useState(EMPTY_FILTER);
   const [sort,   setSort]   = useState({ col: "due", dir: "asc" });
-
   const setF = (key, value) => setFilter(f => ({ ...f, [key]: value }));
+  const hasActiveFilter = filter.project !== "all" || filter.discipline !== "all" || !!filter.subject
+    || filter.detailer !== "all" || filter.status !== "all" || filter.importance !== "all" || filter.band !== "all";
 
   const projectOpts  = useMemo(() => [...new Set(records.map(r => r._project.Name))].sort(), [records]);
   const detailerOpts = useMemo(() => [...new Set(records.map(r => kind.detailer(r)))].sort(), [records, kind]);
 
-  const activeChips = useMemo(() => {
-    const chips = [];
-    const { jobNumber, project, detailer, discipline, status, importance, band } = filter;
-    if (has("jobNumber")  && jobNumber)            chips.push({ key: "jobNumber",  label: `Job: "${jobNumber}"` });
-    if (has("project")    && project    !== "all") chips.push({ key: "project",    label: `Project: ${project}` });
-    if (has("detailer")   && detailer   !== "all") chips.push({ key: "detailer",   label: `Detailer: ${detailer}` });
-    if (has("discipline") && discipline !== "all") chips.push({ key: "discipline", label: `Discipline: ${discipline}` });
-    if (has("status")     && status     !== "all") chips.push({ key: "status",     label: `Status: ${status}` });
-    if (has("importance") && importance !== "all") chips.push({ key: "importance", label: `Importance: ${importance}` });
-    if (has("band")       && band       !== "all") chips.push({ key: "band",       label: `Age: ${BAND_LABEL[band]}` });
-    return chips;
-  }, [filter, enabledFilters]);
-
-  const clearChip = key => setFilter(f => ({
-    ...f, [key]: key === "jobNumber" ? "" : "all",
-  }));
-
   const filtered = useMemo(() => {
     let list = [...records];
-    if (has("jobNumber") && filter.jobNumber) {
-      const q = filter.jobNumber.toLowerCase();
-      list = list.filter(r => kind.jobNum(r).toLowerCase().includes(q));
+    if (filter.subject.trim()) {
+      const q = filter.subject.trim().toLowerCase();
+      list = list.filter(r => kind.subject(r).toLowerCase().includes(q));
     }
-    const applyEq = (key, get) => {
-      if (has(key) && filter[key] !== "all") list = list.filter(r => get(r) === filter[key]);
-    };
+    const applyEq = (key, get) => { if (filter[key] !== "all") list = list.filter(r => get(r) === filter[key]); };
     applyEq("project",    r => r._project.Name);
-    applyEq("detailer",   r => kind.detailer(r));
     applyEq("discipline", r => kind.discipline(r));
+    applyEq("detailer",   r => kind.detailer(r));
     applyEq("status",     r => r.WorkflowStateName);
     applyEq("importance", r => kind.importance(r) ?? "Normal");
     applyEq("band",       r => ageBand(kind.due(r)));
@@ -733,8 +1093,8 @@ function RecordTable({ records, kind, enabledFilters }) {
     const dir = sort.dir === "asc" ? 1 : -1;
     list.sort((a, b) => {
       switch (sort.col) {
-        case "jobnum":     return dir * kind.jobNum(a).localeCompare(kind.jobNum(b));
         case "project":    return dir * a._project.Name.localeCompare(b._project.Name);
+        case "discipline": return dir * kind.discipline(a).localeCompare(kind.discipline(b));
         case "detailer":   return dir * kind.detailer(a).localeCompare(kind.detailer(b));
         case "submitted":  return dir * (new Date(kind.submitted(a) || 0) - new Date(kind.submitted(b) || 0));
         case "due": {
@@ -758,243 +1118,146 @@ function RecordTable({ records, kind, enabledFilters }) {
     s.col === key ? { ...s, dir: s.dir === "asc" ? "desc" : "asc" } : { col: key, dir: "asc" }
   );
 
-  const COLS = [
-    { key: "colorbar",   label: "",           sortable: false },
-    { key: "jobnum",     label: "Job #",      sortable: true  },
-    { key: "project",    label: "Project",    sortable: true  },
-    { key: "num",        label: kind.numColLabel, sortable: false },
-    { key: "subject",    label: "Subject",    sortable: false },
-    { key: "detailer",   label: "Detailer",   sortable: true  },
-    { key: "submitted",  label: "Submitted",  sortable: true  },
-    { key: "due",        label: "Due",        sortable: true  },
-    { key: "age",        label: "Days Open",  sortable: true  },
-    { key: "importance", label: "Importance", sortable: true  },
-    { key: "status",     label: "Status",     sortable: true  },
-    { key: "linked",     label: kind.linkedLabel, sortable: false },
-  ];
-
-  const selSt = active => ({
-    fontSize: 11, padding: "4px 8px", borderRadius: 6, fontFamily: "inherit", cursor: "pointer",
-    border:     `1px solid ${active ? C.accent + "66" : C.border}`,
-    background: C.surface,
-    color:      active ? C.accentText : C.muted,
-  });
+  const gridColumns = DEFAULT_COLUMN_ORDER.map(key => ({ key, label: COLUMN_META[key].label(kind) }));
 
   return (
     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
 
-      <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, background: C.surface2 }}>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center",
-          marginBottom: activeChips.length ? 8 : 0 }}>
-
+      <div style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}`, background: C.surface2,
+        display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase",
-            color: C.hint, marginRight: 4, flexShrink: 0 }}>All Open {kind.labelPlural}</span>
-
-          {has("jobNumber") && (
-            <input type="text" value={filter.jobNumber} placeholder="Job #…"
-              onChange={e => setF("jobNumber", e.target.value)}
-              style={{ ...selSt(!!filter.jobNumber), width: 88 }} />
-          )}
-
-          {has("project") && (
-            <select value={filter.project} onChange={e => setF("project", e.target.value)}
-              style={selSt(filter.project !== "all")}>
-              <option value="all">Project: All</option>
-              {projectOpts.map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
-          )}
-
-          {has("detailer") && (
-            <select value={filter.detailer} onChange={e => setF("detailer", e.target.value)}
-              style={selSt(filter.detailer !== "all")}>
-              <option value="all">Detailer: All</option>
-              {detailerOpts.map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
-          )}
-
-          {has("discipline") && (
-            <select value={filter.discipline} onChange={e => setF("discipline", e.target.value)}
-              style={selSt(filter.discipline !== "all")}>
-              <option value="all">Discipline: All</option>
-              {["Structural", "Solar", "Aero"].map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
-          )}
-
-          {has("status") && (
-            <select value={filter.status} onChange={e => setF("status", e.target.value)}
-              style={selSt(filter.status !== "all")}>
-              <option value="all">Status: All</option>
-              {["Draft", "Open", "KSF PM Review", "Submitted to GC", "Closed"].map(o =>
-                <option key={o} value={o}>{o}</option>)}
-            </select>
-          )}
-
-          {has("importance") && (
-            <select value={filter.importance} onChange={e => setF("importance", e.target.value)}
-              style={selSt(filter.importance !== "all")}>
-              <option value="all">Importance: All</option>
-              {["Low", "Normal", "High", "Urgent"].map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
-          )}
-
-          {has("band") && (
-            <select value={filter.band} onChange={e => setF("band", e.target.value)}
-              style={selSt(filter.band !== "all")}>
-              <option value="all">Age Band: All</option>
-              <option value="overdue">Overdue</option>
-              <option value="soon3">Due ≤ 3d</option>
-              <option value="soon7">Due ≤ 7d</option>
-              <option value="ontrack">On Track</option>
-              <option value="nodate">No Date</option>
-            </select>
-          )}
-
-          <span style={{ marginLeft: "auto", fontSize: 11, color: C.hint, flexShrink: 0, whiteSpace: "nowrap" }}>
-            {filtered.length} / {records.length} {kind.labelPlural}
+            color: C.hint, flexShrink: 0 }}>All Open {kind.labelPlural}</span>
+          <span style={{ fontSize: 11, color: C.hint, whiteSpace: "nowrap" }}>
+            {filtered.length} / {records.length}
           </span>
-        </div>
-
-        {activeChips.length > 0 && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-            {activeChips.map(chip => (
-              <span key={chip.key} style={{ display: "inline-flex", alignItems: "center", gap: 4,
-                fontSize: 11, padding: "3px 8px 3px 10px", borderRadius: 20,
-                background: C.accent + "1a", border: `1px solid ${C.accent}44`,
-                color: C.accentText, whiteSpace: "nowrap" }}>
-                {chip.label}
-                <button onClick={() => clearChip(chip.key)}
-                  style={{ background: "none", border: "none", color: C.accentText,
-                    cursor: "pointer", padding: 0, lineHeight: 1, fontSize: 14,
-                    display: "flex", alignItems: "center" }}>×</button>
-              </span>
-            ))}
-            <button onClick={() => setFilter(mkFilter())}
-              style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20,
-                border: `1px solid ${C.border}`, background: C.surface,
-                color: C.hint, cursor: "pointer", fontFamily: "inherit" }}>
-              Clear All
+          {hasActiveFilter && (
+            <button onClick={() => setFilter(EMPTY_FILTER)}
+              style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
+                border: `1px solid ${C.border}`, background: C.surface, color: C.hint, cursor: "pointer", fontFamily: "inherit" }}>
+              Clear filters
             </button>
-          </div>
-        )}
+          )}
+        </div>
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: F.head, whiteSpace: "nowrap" }}>
+          The Grid
+        </span>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <GridOptionsMenu columns={gridColumns} hidden={hiddenCols} onToggle={toggleColumn} onReset={resetColumns} />
+        </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <p style={{ margin: 0, padding: "28px 16px", fontSize: 12, color: C.hint, textAlign: "center" }}>
-          No {kind.labelPlural} match the current filters.
-        </p>
-      ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+      {/* Header (labels + per-column filters) always renders, even with zero
+          matches — otherwise a filter combo with no results hides the very
+          controls needed to undo it (e.g. filtering to a discipline nobody
+          on that project has), locking the table out until a full reload. */}
+      <div style={{ overflowX: "auto" }}>
+        {/* Fixed height, not max-height — a max-height shrinks to fit fewer
+            rows, which shifts everything below it on the page as filters
+            narrow the result set (most noticeable while typing in Subject).
+            A fixed height keeps the table's footprint constant regardless
+            of match count; it just leaves blank space below a short result
+            set instead of collapsing around it. */}
+        <div style={{ height: HEAD_HEIGHT + FILTER_ROW_HEIGHT + VISIBLE_ROWS * ROW_HEIGHT, overflowY: "auto" }}>
+          <table ref={tableRef} style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: "3%" }} />
+              {visibleCols.map(key => <col key={key} style={{ width: `${widthPct(key)}%` }} />)}
+            </colgroup>
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                {COLS.map(col => (
-                  <th key={col.key} onClick={() => col.sortable && toggleSort(col.key)}
-                    style={{ padding: col.key === "colorbar" ? "8px 0 8px 12px" : "8px 12px",
-                      textAlign: "left", fontSize: 10, fontWeight: 700,
-                      letterSpacing: "0.06em", textTransform: "uppercase",
-                      color: sort.col === col.key ? C.accentText : C.hint,
-                      whiteSpace: "nowrap", cursor: col.sortable ? "pointer" : "default",
-                      userSelect: "none",
-                      ...(col.key === "colorbar" ? { width: 20 } : {}) }}>
-                    {col.label}
-                    {col.sortable && sort.col === col.key && (
-                      <span style={{ marginLeft: 3 }}>{sort.dir === "asc" ? "↑" : "↓"}</span>
-                    )}
+                <th style={{ position: "sticky", top: 0, zIndex: 2, background: C.surface,
+                  padding: "8px 0 8px 12px", height: HEAD_HEIGHT, borderBottom: `1px solid ${C.border}` }} />
+                {visibleCols.map((colKey, i) => {
+                  const meta = COLUMN_META[colKey];
+                  const canResize = i < visibleCols.length - 1;
+                  return (
+                    <th key={colKey}
+                      draggable
+                      onDragStart={() => setDragCol(colKey)}
+                      onDragOver={e => { e.preventDefault(); if (dragCol && dragCol !== colKey) setDragOverCol(colKey); }}
+                      onDrop={e => { e.preventDefault(); handleColDrop(colKey); setDragCol(null); setDragOverCol(null); }}
+                      onDragEnd={() => { setDragCol(null); setDragOverCol(null); }}
+                      onClick={() => meta.sortable && toggleSort(colKey)}
+                      title="Drag to reorder"
+                      style={{ position: "sticky", top: 0, zIndex: 2,
+                        padding: "8px 12px", height: HEAD_HEIGHT, textAlign: "left", fontSize: 10, fontWeight: 700,
+                        letterSpacing: "0.06em", textTransform: "uppercase",
+                        color: sort.col === colKey ? C.accentText : C.hint,
+                        cursor: meta.sortable ? "pointer" : "grab", userSelect: "none",
+                        background: dragOverCol === colKey ? C.accentDim : C.surface,
+                        borderBottom: `1px solid ${C.border}`,
+                        borderLeft: dragOverCol === colKey ? `2px solid ${C.accent}` : "2px solid transparent",
+                        opacity: dragCol === colKey ? 0.4 : 1 }}>
+                      {/* overflow/truncation lives on this inner span rather than the
+                          th itself, so the resize handle below (a th sibling, absolutely
+                          positioned) isn't clipped when it extends past this row into
+                          the filter row underneath. */}
+                      <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {meta.label(kind)}
+                        {meta.sortable && sort.col === colKey && (
+                          <span style={{ marginLeft: 3 }}>{sort.dir === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </span>
+                      {canResize && (
+                        <div
+                          draggable={false}
+                          onDragStart={e => e.preventDefault()}
+                          onMouseDown={e => startResize(e, colKey)}
+                          onClick={e => e.stopPropagation()}
+                          title="Drag to resize"
+                          style={{ position: "absolute", top: 0, right: -3, width: 6,
+                            height: HEAD_HEIGHT + FILTER_ROW_HEIGHT, cursor: "col-resize", zIndex: 3,
+                            background: resizingCol === colKey ? C.accent + "66" : "transparent" }}
+                          onMouseEnter={e => { if (!resizingRef.current) e.currentTarget.style.background = C.accent + "33"; }}
+                          onMouseLeave={e => { if (!resizingRef.current) e.currentTarget.style.background = "transparent"; }}
+                        />
+                      )}
+                    </th>
+                  );
+                })}
+              </tr>
+              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                <th style={{ position: "sticky", top: HEAD_HEIGHT, zIndex: 2, background: C.surface2,
+                  height: FILTER_ROW_HEIGHT, borderBottom: `1px solid ${C.border}` }} />
+                {visibleCols.map(colKey => (
+                  <th key={colKey} style={{ position: "sticky", top: HEAD_HEIGHT, zIndex: 2, background: C.surface2,
+                    padding: "4px 8px", height: FILTER_ROW_HEIGHT, fontWeight: 400,
+                    borderBottom: `1px solid ${C.border}`, verticalAlign: "top" }}>
+                    <FilterControl colKey={colKey} filter={filter} setF={setF} projectOpts={projectOpts} detailerOpts={detailerOpts} />
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map(r => {
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={visibleCols.length + 1} style={{ padding: "28px 16px", fontSize: 12, color: C.hint, textAlign: "center" }}>
+                    No {kind.labelPlural} match the current filters.
+                  </td>
+                </tr>
+              ) : filtered.map(r => {
                 const band = ageBand(kind.due(r));
-                const imp  = kind.importance(r) ?? "Normal";
-                const ics  = impChipStyle(imp);
-                const sc   = wfnChipStyle(r.WorkflowStateName);
-                const linked = kind.linkedOf(r);
                 return (
                   <tr key={`${r._project.portfolioId}-${r._project.ProjectID}-${kind.idVal(r)}`}
                     style={{ borderBottom: `1px solid ${C.border}` }}
                     onMouseEnter={e => e.currentTarget.style.background = C.surface2}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                    <td style={{ padding: "10px 0 10px 12px", width: 20 }}>
+                    <td style={{ padding: "10px 0 10px 12px" }}>
                       <div style={{ width: 4, height: 32, borderRadius: 2, background: BAND_C[band] }} />
                     </td>
-                    <td style={{ padding: "10px 12px", color: C.muted, whiteSpace: "nowrap", fontSize: 11 }}>
-                      {kind.jobNum(r)}
-                    </td>
-                    <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{r._project.Name}</span>
-                        <VertBadge v={kind.discipline(r)} />
-                      </div>
-                    </td>
-                    <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>
-                      <a href={kind.link(r._project.portfolioId, r._project.ProjectID, r)}
-                        target="_blank" rel="noopener noreferrer"
-                        style={{ color: C.accentText, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
-                        onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
-                        onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}>
-                        {kind.num(r)}
-                      </a>
-                    </td>
-                    <td style={{ padding: "10px 12px", maxWidth: 220 }}>
-                      <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis",
-                        whiteSpace: "nowrap", color: C.text }} title={kind.subject(r)}>
-                        {kind.subject(r)}
-                      </span>
-                    </td>
-                    <td style={{ padding: "10px 12px", color: C.muted, whiteSpace: "nowrap", fontSize: 11 }}>
-                      {kind.detailer(r)}
-                    </td>
-                    <td style={{ padding: "10px 12px", color: C.muted, whiteSpace: "nowrap" }}>
-                      {fmtD(kind.submitted(r))}
-                    </td>
-                    <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>
-                      {kind.due(r)
-                        ? <span style={{ color: BAND_C[band], fontWeight: 600 }}>{fmtD(kind.due(r))}</span>
-                        : <span style={{ color: C.hint }}>—</span>}
-                    </td>
-                    <td style={{ padding: "10px 12px", color: C.muted, whiteSpace: "nowrap" }}>
-                      {daysOpenCalc(kind.submitted(r))}d
-                    </td>
-                    <td style={{ padding: "10px 12px" }}>
-                      <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
-                        background: ics.bg, color: ics.color, whiteSpace: "nowrap" }}>
-                        {imp}
-                      </span>
-                    </td>
-                    <td style={{ padding: "10px 12px" }}>
-                      <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
-                        background: sc.bg, color: sc.color, whiteSpace: "nowrap" }}>
-                        {r.WorkflowStateName || "—"}
-                      </span>
-                    </td>
-                    <td style={{ padding: "10px 12px" }}>
-                      {linked.length === 0 ? (
-                        <span style={{ color: C.hint }}>—</span>
-                      ) : (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                          {linked.map(li => (
-                            <a key={li.RecordLinkID}
-                              href={kind.linkedLink(r._project.portfolioId, r._project.ProjectID, li.LinkedRecordID)}
-                              target="_blank" rel="noopener noreferrer" title={li.RecordTitle}
-                              style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20,
-                                background: C.accentDim, color: C.accentText, textDecoration: "none", whiteSpace: "nowrap" }}
-                              onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
-                              onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}>
-                              {li.RecordNumber}
-                            </a>
-                          ))}
-                        </div>
-                      )}
-                    </td>
+                    {visibleCols.map(colKey => (
+                      <td key={colKey} style={{ padding: "10px 12px", overflow: "hidden" }}>
+                        <ColumnCell colKey={colKey} r={r} kind={kind} />
+                      </td>
+                    ))}
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -1106,7 +1369,7 @@ export default function RFIApp({ user }) {
   useEffect(() => {
     const cache = store.projectsightCache;
     if (cache.projects.length > 0) {
-      setPsProjects(cache.projects);
+      setPsProjects(cache.projects.filter(isActiveProject));
       setPsRFIs(cache.rfis);
       setPsIssues(cache.issues || {});
       setLastSynced(cache.lastSynced);
@@ -1116,7 +1379,8 @@ export default function RFIApp({ user }) {
     setProjectsLoading(true);
     Promise.all([getProjects(), getAllRFIs(), getAllIssues(), getSyncStatus().catch(() => null)])
       .then(([projects, rfiMap, rawIssueMap, syncStatus]) => {
-        setPsProjects(projects);
+        const activeProjects = projects.filter(isActiveProject);
+        setPsProjects(activeProjects);
         setPsRFIs(rfiMap);
 
         // Same pre-filter the old per-project Issues effect applied before
@@ -1152,10 +1416,18 @@ export default function RFIApp({ user }) {
     }
   }, [psProjects]);
 
+  // True when the admin's "Team Member" filter is set to someone who doesn't
+  // own jobs (JR/Josh/Lisbet/Jacob) — for them we filter which RECORDS show
+  // (by CC'd email, below), not which PROJECTS show, so every project stays
+  // visible here and the record-level filtering happens in allRFIs/allIssues/
+  // recordsForDisplay instead.
+  const isCCOnlyFilter = (user?.id === "lanze" || user?.id === "loren") && CC_ONLY_MEMBERS.includes(leadFilter);
+  const ccFilterEmail  = isCCOnlyFilter ? TEAM_MEMBER_EMAIL[leadFilter] : null;
+
   // Derived: visible projects for this user
   const visibleProjects = useMemo(() => {
     if (user?.id === "lanze" || user?.id === "loren") {
-      if (leadFilter === "All") return psProjects;
+      if (leadFilter === "All" || isCCOnlyFilter) return psProjects;
       return psProjects.filter(p => (p.TypeOfBuilding ?? "").trim() === leadFilter);
     }
     const lead = KSF_LEAD_MAP[user?.id];
@@ -1166,7 +1438,7 @@ export default function RFIApp({ user }) {
       const firstName = lead.split(" ")[0].toLowerCase();
       return tob.toLowerCase().includes(firstName);
     });
-  }, [psProjects, user, leadFilter]);
+  }, [psProjects, user, leadFilter, isCCOnlyFilter]);
 
   // Same `.vertical` field driving the Structural/Solar/Aero tags on project
   // cards — no new classification, just a breakdown of the same count already
@@ -1177,23 +1449,26 @@ export default function RFIApp({ user }) {
     return counts;
   }, [visibleProjects]);
 
-  // Derived: all RFIs across visible projects, decorated with _project
-  const allRFIs = useMemo(() =>
-    visibleProjects.flatMap(p =>
+  // Derived: all RFIs across visible projects, decorated with _project.
+  // When viewing a CC_ONLY_MEMBERS team member, also drops any record that
+  // person isn't CC'd on — see isCCOnlyFilter/ccFilterEmail above.
+  const allRFIs = useMemo(() => {
+    const base = visibleProjects.flatMap(p =>
       (psRFIs[`${p.portfolioId}-${p.ProjectID}`] || []).map(r => ({ ...r, _project: p }))
-    ),
-    [visibleProjects, psRFIs]
-  );
+    );
+    return ccFilterEmail ? base.filter(r => ccEmailsOf(r).includes(ccFilterEmail)) : base;
+  }, [visibleProjects, psRFIs, ccFilterEmail]);
 
   const openRFIs = useMemo(() => allRFIs.filter(isOpenRFI), [allRFIs]);
 
-  // Derived: all open issues across visible projects, decorated with _project
-  const allIssues = useMemo(() =>
-    visibleProjects.flatMap(p =>
+  // Derived: all open issues across visible projects, decorated with
+  // _project. Same CC'd-only narrowing as allRFIs above.
+  const allIssues = useMemo(() => {
+    const base = visibleProjects.flatMap(p =>
       (psIssues[`${p.portfolioId}-${p.ProjectID}`] || []).map(i => ({ ...i, _project: p }))
-    ),
-    [visibleProjects, psIssues]
-  );
+    );
+    return ccFilterEmail ? base.filter(i => ccEmailsOf(i).includes(ccFilterEmail)) : base;
+  }, [visibleProjects, psIssues, ccFilterEmail]);
 
   // Derived: open issues, filtered the same way openRFIs is derived from allRFIs
   const openIssuesList = useMemo(() => allIssues.filter(isOpenIssueRecord), [allIssues]);
@@ -1291,7 +1566,9 @@ export default function RFIApp({ user }) {
             { id: "triage",    label: "Issues" },
           ].map(t => {
             const isActive = rfiTab === t.id;
-            const badge    = t.id === "triage" && allIssues.length;
+            // Total OPEN records, not every record ever fetched (allRFIs/
+            // allIssues include Closed/Void too — that inflated this badge).
+            const badge    = t.id === "dashboard" ? rfiStats.total : issueStats.total;
             return (
               <button key={t.id} onClick={() => { setRfiTab(t.id); setExpandedProject(null); }}
                 style={{ padding: "8px 18px", borderRadius: "7px 7px 0 0",
@@ -1317,8 +1594,17 @@ export default function RFIApp({ user }) {
 
         {/* ── RFIs / Issues tab body — same components, driven by `kind` ────── */}
         {(() => {
-          const kind      = rfiTab === "dashboard" ? RECORD_KINDS.rfi : RECORD_KINDS.issue;
-          const records   = rfiTab === "dashboard" ? psRFIs      : psIssues;
+          const kind        = rfiTab === "dashboard" ? RECORD_KINDS.rfi : RECORD_KINDS.issue;
+          const rawRecords  = rfiTab === "dashboard" ? psRFIs      : psIssues;
+          // RecordCards/TeamBreakdownTable read this per-project map directly
+          // (unlike allRFIs/allIssues above, which are already flattened+
+          // filtered) — apply the same CC'd-only narrowing here so a project's
+          // card/breakdown count matches what showed up in the flat table.
+          const records = !ccFilterEmail ? rawRecords : Object.fromEntries(
+            Object.entries(rawRecords).map(([pid, recs]) =>
+              [pid, (recs || []).filter(r => ccEmailsOf(r).includes(ccFilterEmail))]
+            )
+          );
           // No more per-project loading/error map — projects+RFIs+Issues now
           // load in one bulk request (see the load effect above), so there's
           // nothing per-card left to track; RecordCards still accepts these
@@ -1327,9 +1613,6 @@ export default function RFIApp({ user }) {
           const errors    = EMPTY_MAP;
           const flatStats = rfiTab === "dashboard" ? rfiStats    : issueStats;
           const flatList  = rfiTab === "dashboard" ? openRFIs    : openIssuesList;
-          const enabledFilters = rfiTab === "dashboard"
-            ? ["jobNumber", "project", "detailer", "discipline", "status", "importance", "band"]
-            : ["project", "status", "importance", "band"];
 
           return (
             <>
@@ -1363,8 +1646,14 @@ export default function RFIApp({ user }) {
                     </div>
                   )}
                 </div>
+                {/* Always the full, unfiltered per-project record map — this
+                    is a summary of EVERY team member regardless of which one
+                    leadFilter currently has selected, so it must not inherit
+                    the CC'd-only narrowing applied to `records` below (that
+                    narrowing is specific to whichever single member is
+                    currently selected). */}
                 {(user?.id === "lanze" || user?.id === "loren") && (
-                  <TeamBreakdownTable projects={visibleProjects} records={records} kind={kind} />
+                  <TeamBreakdownTable projects={visibleProjects} records={rawRecords} kind={kind} />
                 )}
                 <RecordCards
                   projects={visibleProjects}
@@ -1378,7 +1667,7 @@ export default function RFIApp({ user }) {
               </div>
 
               {!projectsLoading && (
-                <RecordTable records={flatList} kind={kind} enabledFilters={enabledFilters} />
+                <RecordTable records={flatList} kind={kind} user={user} />
               )}
             </>
           );

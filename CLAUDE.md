@@ -68,9 +68,10 @@ is not adopting FabOS's mirror-table pattern.
 
 The app has a **shell** — real login, password management, and user
 management all built and verified (see Auth section below), nav, routing —
-wrapping work modules. RFI Dashboard (RFIs + Issues tabs) and Kern Bot are
-fully built and live with real data. Submittals tab is in progress. Others
-are stubbed as Coming Soon.
+wrapping work modules. Open Items (RFIs + Issues tabs) and Kern Bot are
+fully built and live with real data. Submittals and Action Items tabs are
+planned next (see the Open Items module section below). Others are stubbed
+as Coming Soon.
 
 **Stack:** React 18, Vite 5, inline CSS-in-JS (no CSS files, no Tailwind),
 custom pub/sub state store (no Redux/Zustand). Backend: Postgres + Prisma,
@@ -361,7 +362,7 @@ specific record — do not use this for single-record links.
     ├── projectsight/
     │   └── projectsightApi.js
     ├── rfi/
-    │   └── RFIApp.jsx               # "RFI Dashboard" module — RFIs + Issues tabs,
+    │   └── RFIApp.jsx               # "Open Items" module — RFIs + Issues tabs,
     │                                 # shared RecordCards/RecordTable components
     │                                 # driven by a per-tab `kind` config (rfi/issue),
     │                                 # not duplicated implementations
@@ -396,23 +397,55 @@ silently overwriting
 the other's changes on disk. (Lanze is running a separate chat scoped to
 "other modules" alongside this one, which stays scoped to login/database.)
 
-### RFI Dashboard module (RFIs / Issues / Submittals tabs)
+### Open Items module (RFIs / Issues today; Submittals / Action Items planned)
 
-Module nav label: "RFI Dashboard." Internal tabs: "RFIs" and "Issues" (both
-live), "Submittals" (in progress). All three tabs render through the SAME
-shared components (`RecordCards` for the searchable/expandable project card
-grid, `RecordTable` for the flat filterable table) — each tab passes a `kind`
-config (data accessors/labels) rather than having its own component
-implementation. Any structural fix to one tab's cards/table should apply to
-all tabs automatically; do not fork these components per record type.
+Module nav label: "Open Items" (renamed from "RFIs" — the module now covers
+more than just RFIs, see below; internal `id` stayed `"rfi"` since that's
+wired into `ROLE_MODULES`/routing everywhere and renaming it would be a
+larger, purely-internal change for no user-facing benefit). Internal tabs
+today: "RFIs" and "Issues" (both live). Planned next: "Submittals" and
+"Action Items" — not yet built, exact shape TBD, but expected to follow the
+same pattern as RFIs/Issues (see below) rather than being bespoke.
 
-Per-tab filter bar differs by relevance: RFIs keeps all filters (Job #,
-Project, Detailer, Discipline, Status, Importance, Age Band). Issues drops
-Detailer and Discipline. Submittals filter set not yet finalized — likely
-needs "ball in court" instead of Detailer, TBD.
+All tabs render through the SAME shared components — `RecordCards` (the
+searchable/expandable project card grid) and `RecordTable` ("the Grid" — see
+below) — each tab passing a `kind` config (data accessors/labels) rather
+than having its own component implementation. Any structural fix to one
+tab's cards/Grid should apply to all tabs automatically; do not fork these
+components per record type. When Submittals/Action Items are built, they
+should plug in as new `kind` configs, not new components.
+
+**"The Grid"** — Lanze's name for `RecordTable`, the flat "All Open
+{RFIs/Issues}" table (as opposed to `RecordCards`' project-card view) — use
+this name when discussing it with her. Columns are user-reorderable (drag a
+header), user-resizable (drag the right edge of a header — see below), and
+user-hideable (the "Grid Options" popup); all three preferences persist
+per-user in localStorage (`ksf-rfi-table-cols-{userId}`), shared across
+tabs since the column set is identical. Each column carries its own filter
+control in a header sub-row (pivot-table style) instead of a separate
+filter bar above the table — Subject is free-text search, the rest are
+dropdowns. There is no more separate "Job #" column/filter — it duplicated
+the RFI/Issue Number column and was removed. The header (labels + filters)
+always renders even with zero matching rows, specifically so a filter
+combo that matches nothing can still be undone (a "Clear filters" button
+next to Grid Options helps too) — a real bug once, worth not regressing.
+
+Column resizing is zero-sum: dragging a column's right edge takes width
+from (or gives it to) the very next visible column, so the Grid's total
+width never changes — "if they want more room they can hide a column"
+(Lanze's words) rather than the Grid growing past the viewport and
+reintroducing horizontal scroll. Widths, like order/visibility, persist
+per-user.
 
 Stat cards (Total Open, Overdue, Due Within 7 Days, Avg Days Open) and
-age-band coloring logic are shared/identical across all tabs.
+age-band coloring logic are shared/identical across all tabs. Age bands
+(`ageBand()` in RFIApp.jsx): `overdue` (< 0 days), `soon3` (≤ 3 days),
+`soon7` (≤ 7 days), `ontrack` (> 7 days away), `nodate` (no due date) — used
+for the colorbar strip, the Due column's text color, and the Due column's
+age-band filter dropdown. Open question from Lanze: whether `ontrack` (the
+"comfortably far out" bucket) pulls its weight, especially as a *filter*
+option — nobody obviously filters TO find non-urgent items. Not changed
+yet, revisit if asked.
 
 ### Team Member overview (overseer feature, not role-gated with a new flag)
 
@@ -556,7 +589,7 @@ Removed. New `makeCache()` helper (4-min TTL + in-flight de-dup) added,
 reused for `getProjects()`, `getRFIs()`, and `getIssues()` — two callers
 requesting the same project within the TTL window now get the same promise
 instead of firing duplicate requests. `Shell.jsx`'s `prefetchProjectsight()`
-now also warms Issues (previously RFIs only), so both RFI Dashboard tabs
+now also warms Issues (previously RFIs only), so both Open Items tabs
 open warm after login/session-restore. Manual refresh still bypasses the
 cache — new exported `clearProjectsightApiCache()`, wired into
 `RFIApp.jsx`'s `handleRefresh`.

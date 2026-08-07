@@ -14,8 +14,8 @@ const prisma = new PrismaClient();
 const USERS = [
   { id: "lanze",  email: "lanze@kernsteel.com",     name: "Lanze A.",   initials: "LA", color: "#22c55e", position: "Manufacturing Engineer", role: "admin",          department: null,         canRespond: true,  stdWrite: true  },
   { id: "loren",  email: "loren@kernsteel.com",     name: "Loren C.",   initials: "LC", color: "#a78bfa", position: "Senior PM",               role: "sr_pm",          department: null,         canRespond: true,  stdWrite: true  },
-  { id: "jr",     email: "jr@kernsteel.com",        name: "JR",         initials: "JR", color: "#f472b6", position: "Superintendent",          role: "superintendent", department: "All",        canRespond: false, stdWrite: false },
-  { id: "josh",   email: "jlopez@kernsteel.com",    name: "Josh",       initials: "JO", color: "#60a5fa", position: "Project Manager",         role: "coordinator",    department: "Structural", canRespond: false, stdWrite: false },
+  { id: "jr",     email: "jr@kernsteel.com",        name: "JR C.",      initials: "JC", color: "#f472b6", position: "Superintendent",          role: "superintendent", department: "All",        canRespond: false, stdWrite: false },
+  { id: "josh",   email: "jlopez@kernsteel.com",    name: "Josh L.",    initials: "JL", color: "#60a5fa", position: "Project Manager",         role: "coordinator",    department: "Structural", canRespond: false, stdWrite: false },
   { id: "tony",   email: "antonio@kernsteel.com",   name: "Tony S.",    initials: "TS", color: "#38bdf8", position: "Project Coordinator",     role: "coordinator",    department: "Structural", canRespond: false, stdWrite: false },
   { id: "luis",   email: "larrezola@kernsteel.com", name: "Luis A.",    initials: "LU", color: "#f59e0b", position: "Assistant PM",            role: "apm",            department: "Solar",      canRespond: false, stdWrite: false },
   { id: "adam",   email: "adam@kernsteel.com",      name: "Adam K.",    initials: "AK", color: "#fb923c", position: "Assistant PM",            role: "apm",            department: "Aero",       canRespond: false, stdWrite: false },
